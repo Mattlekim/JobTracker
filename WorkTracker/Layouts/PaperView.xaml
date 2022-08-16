@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.PaperView"
+             Title="PaperView">
+    <StackLayout>
+        
+        <CollectionView x:Name="c_jobList" VerticalOptions="StartAndExpand">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Grid TranslationX="{Binding TranslastionX}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition></RowDefinition>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.3*"></ColumnDefinition>
+                            <ColumnDefinition Width="0.4*"></ColumnDefinition>
+                            <ColumnDefinition Width="0.9*"></ColumnDefinition>
+                            <ColumnDefinition Width="0.7*"></ColumnDefinition>
+
+                            <ColumnDefinition Width="0.3*"></ColumnDefinition>
+                            <ColumnDefinition Width="0.3*"></ColumnDefinition>
+                            <ColumnDefinition Width="0.08*"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+
+                        <BoxView HorizontalOptions="FillAndExpand" VerticalOptions="End" HeightRequest="1" Color="White" Grid.Column="0" Grid.ColumnSpan="9"/>
+
+
+                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="White" Grid.Column="3" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/>
+                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="White" Grid.Column="4" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/>
+                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="White" Grid.Column="5" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/>
+                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="White" Grid.Column="6" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/>
+                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="White" Grid.Column="7" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/>
+
+
+                        <ContentView Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="{Binding RowSpan}" Padding="4">
+                            <Label Text="{Binding Title}"  FontAttributes="{Binding FontAttri}"></Label>
+                            <ContentView.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
+                            </ContentView.GestureRecognizers>
+                        </ContentView>
+
+                        <ContentView Grid.Column="1" Grid.Row="0">
+                            <Label Text="{Binding Price}"  IsVisible="{Binding ShowJobInformation}" Padding="2" VerticalOptions="Center"></Label>
+                            <ContentView.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
+                            </ContentView.GestureRecognizers>
+                        </ContentView>
+                        <ContentView Grid.Column="2" Grid.Row="0">
+                            <Label Text="{Binding Notes}"  IsVisible="{Binding ShowJobInformation}" Padding="2"  FontSize="12" VerticalOptions="Center"></Label>
+                            <ContentView.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
+                            </ContentView.GestureRecognizers>
+                        </ContentView>
+
+                        <ContentView Grid.Column="3" Grid.Row="0">
+                            <Label Text="{Binding Owing}" TextColor="{Binding OwingColour}" IsVisible="{Binding ShowJobInformation}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12"></Label>
+                            <ContentView.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="grid_Ballence_Tapped" CommandParameter="{Binding JobI3}"></TapGestureRecognizer>
+                            </ContentView.GestureRecognizers>
+                        </ContentView>
+
+                        <ContentView Grid.Column="4" Grid.Row="0" BackgroundColor="{Binding BgColour}">
+                            <Label Text="{Binding I3}" IsVisible="{Binding ShowJobInformation}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center" ></Label>
+                        </ContentView>
+
+                        <ContentView Grid.Column="4" Grid.Row="0"  Grid.ColumnSpan="{Binding I3RowSpan}">
+                            <Label Text="{Binding I3}" IsVisible="{Binding NotShowJobInformation}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="Micro" TranslationX="10"></Label>
+                            
+                            <ContentView.GestureRecognizers>
+
+                                <TapGestureRecognizer Tapped="tap_i3_lable" CommandParameter="{Binding JobI3}">
+                                    
+                                </TapGestureRecognizer>    
+                                </ContentView.GestureRecognizers>
+                        </ContentView>
+
+                        <ContentView Grid.Column="5" Grid.Row="0">
+                            <Label Text="{Binding I4}" IsVisible="{Binding ShowJobInformation}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center"  ></Label>
+                        </ContentView>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </StackLayout>
+</ContentPage>

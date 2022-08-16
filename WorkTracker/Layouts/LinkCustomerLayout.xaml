@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.LinkCustomerLayout"
+             Title="LinkCustomerLayout">
+    <StackLayout>
+        <Picker x:Name="p_customerList" Title="Select Customer"></Picker>
+        <Label x:Name="l_pRef" Text="Payment Reference"></Label>
+        <Button Text="Link Payment To Customer" Clicked="bnt_Link"></Button>
+    </StackLayout>
+</ContentPage>

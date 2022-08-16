@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.NewJob"
+             Title="NewJob">
+    <ScrollView>
+        <StackLayout>
+          
+            <Label Text="Name Of Jobs"></Label>
+            <Entry x:Name="t_name"></Entry>
+            
+            <Label Text="Description Of Job"></Label>
+            <Entry x:Name="t_description"></Entry>
+
+            <Label Text="Notes"></Label>
+            <Entry x:Name="t_notes"></Entry>
+
+            <Label Text="Price"></Label>
+            <Entry x:Name="t_price" Keyboard="Numeric"></Entry>
+
+            <Label Text="Frequence"></Label>
+            <Picker x:Name="t_frequency">
+                <Picker.Items>
+                    <x:String>One Off</x:String>
+                    <x:String>Weekly</x:String>
+                    <x:String>2 Weekly</x:String>
+                    <x:String>3 Weekly</x:String>
+                    <x:String>4 Weekly</x:String>
+                    <x:String>5 Weekly</x:String>
+                    <x:String>6 Weekly</x:String>
+                    <x:String>7 Weekly</x:String>
+                    <x:String>8 Weekly</x:String>
+                    <x:String>12 Weekly</x:String>
+                </Picker.Items>
+            </Picker>
+
+            <Label Text="Existing Customer" ></Label>
+            <HorizontalStackLayout>
+            <Picker x:Name="p_customer" SelectedIndexChanged="p_customerSelected" VerticalOptions="Center"></Picker>
+                <Label TranslationX="8" Text="Optional (use to add job to existing customer)" TextColor="LightGray" VerticalOptions="Center"></Label>
+            </HorizontalStackLayout>
+
+            <Label Text="Start Date"></Label>
+            <DatePicker x:Name="dp_startDate"></DatePicker>
+
+            <Label Text="House Name / Number"/>
+            <Entry x:Name="t_houseNumberName"></Entry>
+
+            <Label Text="Street"/>
+            <Entry x:Name="t_street"></Entry>
+
+            <Label Text="City / Town"/>
+            <Entry x:Name="t_city"></Entry>
+
+            <Label Text="Area"/>
+            <Entry x:Name="t_area"></Entry>
+
+            <Label Text="Postcode"/>
+            <Entry x:Name="t_postcode"></Entry>
+
+            <HorizontalStackLayout>
+                <Label Text="Job Address Different To Customer Address" VerticalOptions="Center"></Label>
+                <CheckBox TranslationX="4" x:Name="cb_differentAddress" VerticalOptions="Center" IsChecked=" false" ></CheckBox>
+            </HorizontalStackLayout>
+
+            <VerticalStackLayout Padding="8">
+                <Label Text="Customer Details"></Label>
+                <Label x:Name="l_hide1" Text="House Name / Number" IsVisible="false"/>
+                <Entry x:Name="t_d_houseNumberName" IsVisible="false" IsEnabled="False" Placeholder=""></Entry>
+
+                <Label x:Name="l_hide2" Text="Street" IsVisible="false"/>
+                <Entry x:Name="t_d_street" IsVisible="false" IsEnabled="False"></Entry>
+
+                <Label x:Name="l_hide3" Text="City / Town" IsVisible="false"/>
+                <Entry x:Name="t_d_city" IsVisible="false" IsEnabled="False"></Entry>
+
+                <Label x:Name="l_hide4" Text="Area" IsVisible="false"/>
+                <Entry x:Name="t_d_area" IsVisible="false" IsEnabled="False"></Entry>
+
+                <Label x:Name="l_hide5" Text="Postcode" IsVisible="false"/>
+                <Entry x:Name="t_d_postcode" IsVisible="false" IsEnabled="False"></Entry>
+
+                <Label Text="Name"></Label>
+                <Entry x:Name="t_customerName"></Entry>
+            
+                <Label Text="Phone Number"></Label>
+                <Entry x:Name="t_customerPhone"></Entry>
+            
+                <Label Text="Email"></Label>
+                <Entry x:Name="t_customerEmail"></Entry>
+            </VerticalStackLayout>
+            <HorizontalStackLayout>
+            <Label Text="Notify Customer Night Before " VerticalOptions="Center"></Label>
+            <CheckBox TranslationX="8" x:Name="cb_tnb" VerticalOptions="Center" ></CheckBox>
+            </HorizontalStackLayout>
+            
+            <HorizontalStackLayout>
+                <Label Text="Notify Customer When Job Compleate " VerticalOptions="Center"></Label>
+                <CheckBox TranslationX="8" x:Name="cb_tfc" VerticalOptions="Center"></CheckBox>
+            </HorizontalStackLayout>
+
+            <HorizontalStackLayout HorizontalOptions="Center">
+                <Button x:Name="_bnt_Cancel" Text="Cancel" Clicked="bnt_Clicked"></Button>
+                <Button x:Name="_bnt_Add" Text="Add" Clicked="bnt_Add"></Button>
+
+                <Button TranslationX="16" x:Name="_bnt_Delete" Text="Delete" Clicked="bnt_Delete" BackgroundColor="Red" HorizontalOptions="End" VerticalOptions="Start"></Button>
+            </HorizontalStackLayout>
+        </StackLayout>
+    </ScrollView>
+</ContentPage>

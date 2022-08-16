@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.TutorialWorkPlanner"
+             Title="TutorialWorkPlanner">
+    <StackLayout>
+        <Label Text="Welcome to the work tracker app"
+                VerticalOptions="Center" 
+                HorizontalOptions="Center"
+                FontAttributes="Bold"/>
+        <Label Text="Job tracker is designed to be as simple as possible to use, but also a powerful tool"
+                VerticalOptions="Center" 
+                HorizontalOptions="Start"
+                Padding="16"/>
+
+        <Label Text="Once you have jobs simple swipe left to right to access the menu below"
+                VerticalOptions="Start" 
+                HorizontalOptions="Center"
+                Padding="16"/>
+
+        <Image Source="swipright.png" Scale="0.7"></Image>
+
+
+        <Label Text="Swipe right to left access the menu below"
+                VerticalOptions="Center" 
+                HorizontalOptions="Start"
+                Padding="16"/>
+
+        <Image Source="swipleft.png" Scale="0.7"></Image>
+
+        <Label Text="Job track can also text, email, import payments from back statments and much more"
+                VerticalOptions="Center" 
+                HorizontalOptions="Start"
+                Padding="16"/>
+
+        <Button Text="Ok i'v got it" HorizontalOptions="Center" TextColor="Green" BorderColor="Green" BorderWidth="2" BackgroundColor="Transparent" FontAttributes="Bold" Clicked="bntOk_Clicked"></Button>
+    </StackLayout>
+</ContentPage>

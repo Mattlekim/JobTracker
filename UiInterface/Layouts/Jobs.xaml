@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.JobsList"
+             Title="Jobs">
+    <StackLayout>
+        <HorizontalStackLayout HorizontalOptions="End">
+       
+        <Button Text="New Job" HorizontalOptions="End" Clicked="bnt_Add_Job"></Button>
+        </HorizontalStackLayout>
+        <CollectionView 
+        x:Name="lv_Jobs"
+            ItemsSource="{Binding Job }">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <VerticalStackLayout>
+                    <Label Text ="{Binding JobFormattedString}" FontAttributes="Bold" />
+                    <Label Text ="{Binding JobFormattedSubString}"/>
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </StackLayout>
+</ContentPage>

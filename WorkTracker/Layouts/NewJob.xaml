@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.NewJob"
+             x:Name="cp_title"
+             Title="NewJob">
+
+    <StackLayout>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition></RowDefinition>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Row="0" Grid.Column="0" x:Name="_bnt_Delete" Text="Delete"  Clicked="bnt_Delete" BackgroundColor="Transparent" BorderWidth="2" BorderColor="Red" TextColor="Red"></Button>
+
+            
+            <Button Grid.Row="0" Grid.Column="2" x:Name="_bnt_Add" Text="Create Job" Clicked="bnt_Add" HorizontalOptions="End" BorderWidth="2" BorderColor="Green" BackgroundColor="Transparent" TextColor="Green"></Button>
+        </Grid>
+
+
+        <ScrollView x:Name="sv_mainScrole" VerticalOptions="FillAndExpand" HorizontalScrollBarVisibility="Default">
+            <VerticalStackLayout Padding="16">
+
+                <Label Text="Job Type" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4" >
+                    <Picker x:Name="p_JobType"></Picker>
+                </Border>
+
+                <Label Text="Description Of Job" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" IsVisible="false"></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" IsVisible="false" Padding="4">
+                    <Entry x:Name="t_description" ></Entry>
+                </Border>
+
+                <Label Text="Notes" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                    <Entry x:Name="t_notes" BackgroundColor="Transparent" Placeholder="Enter job notes here (optional)"></Entry>
+                </Border>
+                <Label Text="Price" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                    <Entry x:Name="t_price" Keyboard="Numeric" BackgroundColor="Transparent"></Entry>
+                </Border>
+
+
+                <Grid x:Name="g_alterativePrice" BackgroundColor="#005555" IsVisible="true">
+                    <Grid.RowDefinitions>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <HorizontalStackLayout Grid.Row="0" Grid.Column="0"  HorizontalOptions="Start">
+                        <Label Text="Has Alternative Price" VerticalOptions="Center" Padding="2"></Label>
+                        <CheckBox x:Name="cb_alternativePrice" CheckedChanged="cb_alterativePrice_Checked" IsVisible="true" BackgroundColor="Transparent"></CheckBox>
+                        <Label Text="(For example if you have a Front Only)" VerticalOptions="Center" TextColor="DarkGray" FontSize="Micro" BackgroundColor="Transparent"></Label>
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Grid.Row="1" Grid.Column="0">
+                        <Label Text="Name" VerticalOptions="Center"></Label>
+                        <Entry x:Name="e_alterativeName" MinimumWidthRequest="100" BackgroundColor="Transparent"></Entry>
+                    </HorizontalStackLayout>
+
+                    <HorizontalStackLayout Grid.Row="2" Grid.Column="0">
+                        <Label Text="Price" VerticalOptions="Center"></Label>
+                        <Entry x:Name="e_alterativePrice" MinimumWidthRequest="100" Keyboard="Numeric" BackgroundColor="Transparent"></Entry>
+                    </HorizontalStackLayout>
+                </Grid>
+
+                <Label x:Name="l_ballence" Text="Starting Ballence" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                    <HorizontalStackLayout>
+                        <Entry x:Name="e_startingBallence" Keyboard="Numeric" WidthRequest="100"></Entry>
+                        <Picker x:Name="p_ballenceType" SelectedIndex="0">
+                            <Picker.Items>
+                                <x:String>Credit</x:String>
+                                <x:String>Debt</x:String>
+                            </Picker.Items>
+                        </Picker>
+                    </HorizontalStackLayout>
+                </Border>
+
+                <Label Text="Frequence" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                    <HorizontalStackLayout>
+
+                        <Entry x:Name="e_frequence" Keyboard="Numeric" MinimumWidthRequest="100" BackgroundColor="Transparent"></Entry>
+
+
+                        <Picker x:Name="p_frequencyType" SelectedIndex="0">
+                            <Picker.Items>
+                                <x:String>Day</x:String>
+                                <x:String>Week</x:String>
+                                <x:String>Month</x:String>
+                                <x:String>Year</x:String>
+
+                            </Picker.Items>
+                        </Picker>
+
+                    </HorizontalStackLayout>
+                </Border>
+
+                <Label Text="Estimated duration" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                    <HorizontalStackLayout>
+
+                        <Entry x:Name="e_estimatedDruation" MinimumWidthRequest="100" BackgroundColor="Transparent"></Entry>
+                        <Label Text="(Minutes)" VerticalOptions="Center"></Label>
+                    </HorizontalStackLayout>
+                </Border>
+
+
+                
+                <Label Text="Start Date" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                    <DatePicker x:Name="dp_startDate" HorizontalOptions="Start"></DatePicker>
+                </Border>
+
+                <Label Text="Job Address" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                    <VerticalStackLayout>
+                        <Label Text="House Name / Number (Required)" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" />
+                        <Entry x:Name="t_houseNumberName"></Entry>
+                        <Label Text="Street (Required)" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" />
+                        <Entry x:Name="t_street"></Entry>
+                        <Label Text="City / Town (Required)" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" />
+                        <Entry x:Name="t_city"></Entry>
+                        <Label Text="Area" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" />
+                        <Entry x:Name="t_area"></Entry>
+
+                        <Label Text="Postcode" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" />
+                        <Entry x:Name="t_postcode"></Entry>
+                    </VerticalStackLayout>
+                </Border>
+                <!--    all existing customer stuff            -->
+                <Grid TranslationY="8" >
+                    <Grid.RowDefinitions>
+                        <RowDefinition></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition Width="0.5*"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Row="0" Grid.Column="0" Text="Existing Customer" VerticalOptions="Center"  TranslationY="4" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                    <Button Grid.Row="0" Grid.Column="1" Text="Help?" VerticalOptions="Center" TranslationY="4" Padding="4" BackgroundColor="{AppThemeBinding Light=white, Dark=#121212}" TranslationX="-4" HorizontalOptions="End"  
+                            Clicked="bnt_existingCustomerHelp_Clicked"></Button>
+                </Grid>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                    <HorizontalStackLayout>
+                        <Picker x:Name="p_customer" SelectedIndexChanged="p_customerSelected" VerticalOptions="Center" MinimumWidthRequest="200"></Picker>
+                        <Label TranslationX="8" Text="(Optional)" TextColor="LightGray" VerticalOptions="Center"></Label>
+                    </HorizontalStackLayout>
+                </Border>
+
+                <Label Text="Customer Details"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="4">
+                    <VerticalStackLayout Padding="4">
+                      
+                        <Label x:Name="l_hide1" Text="House Name / Number" IsVisible="true"/>
+                        <Entry x:Name="t_d_houseNumberName" IsVisible="true" IsEnabled="False" Placeholder=""></Entry>
+
+                        <Label x:Name="l_hide2" Text="Street" IsVisible="true"/>
+                        <Entry x:Name="t_d_street" IsVisible="true" IsEnabled="False"></Entry>
+
+                        <Label x:Name="l_hide3" Text="City / Town" IsVisible="true"/>
+                        <Entry x:Name="t_d_city" IsVisible="true" IsEnabled="False"></Entry>
+
+                        <Label x:Name="l_hide4" Text="Area" IsVisible="true"/>
+                        <Entry x:Name="t_d_area" IsVisible="true" IsEnabled="False"></Entry>
+
+                        <Label x:Name="l_hide5" Text="Postcode" IsVisible="true"/>
+                        <Entry x:Name="t_d_postcode" IsVisible="true" IsEnabled="False"></Entry>
+
+                        <Label Text="Name"></Label>
+                        <Entry x:Name="t_customerName"></Entry>
+
+                        <Label Text="Phone Number"></Label>
+                        <Entry x:Name="t_customerPhone"></Entry>
+
+                        <Label Text="Email"></Label>
+                        <Entry x:Name="t_customerEmail"></Entry>
+
+                        <HorizontalStackLayout>
+                            <Label Text="Job Address Different To Customer Address" VerticalOptions="Center"></Label>
+                            <CheckBox TranslationX="4" x:Name="cb_differentAddress" VerticalOptions="Center" IsChecked=" false" ></CheckBox>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+                <Label Text="Messaging"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="8">
+                    <VerticalStackLayout>
+                        <HorizontalStackLayout>
+                            <Label Text="Text Customer Night Before " VerticalOptions="Center"></Label>
+                            <CheckBox TranslationX="8" x:Name="cb_tnb" VerticalOptions="Center" BackgroundColor="Transparent"></CheckBox>
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout>
+                            <Label Text="Text Customer When Job Compleate " VerticalOptions="Center"></Label>
+                            <CheckBox TranslationX="8" x:Name="cb_tfc" VerticalOptions="Center" BackgroundColor="Transparent"></CheckBox>
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout>
+                            <Label Text="Email Customer Night Before" VerticalOptions="Center"></Label>
+                            <CheckBox TranslationX="8" x:Name="cb_enb" VerticalOptions="Center" BackgroundColor="Transparent"></CheckBox>
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout>
+                            <Label Text="Email Customer Receipt" VerticalOptions="Center"></Label>
+                            <CheckBox TranslationX="8" x:Name="cb_eac" VerticalOptions="Center" BackgroundColor="Transparent"></CheckBox>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </StackLayout>
+</ContentPage>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.ViewCustomerDetails"
+             Title="Customer Details">
+
+    <StackLayout Padding="8">
+        <Label Text="_________________________________" HorizontalOptions="Center"></Label>
+
+        <Label></Label>
+
+        <VerticalStackLayout Padding="8">
+            <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4" >
+                <VerticalStackLayout>
+
+                    <VerticalStackLayout Padding="8" HorizontalOptions="Center">
+                        <Label x:Name="l_customerName" Text="Customer Name" HorizontalOptions="Center"></Label>
+                        <Label x:Name="l_customerAddressl1" Text="Customer AddressLine1" HorizontalOptions="Center"></Label>
+                        <Label x:Name="l_customerAddressl2" Text="Customer AddressLine2" HorizontalOptions="Center"></Label>
+                        <Label x:Name="l_customerAddressl3" Text="Customer AddressLine3" HorizontalOptions="Center"></Label>
+                        <Label x:Name="l_customerAddressl4" Text="Customer AddressLine4" HorizontalOptions="Center"></Label>
+
+                        <Label x:Name="l_email" Text="email" HorizontalOptions="Center" TextColor="Blue" Padding="4">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="l_emailClicked"></TapGestureRecognizer>
+                            </Label.GestureRecognizers>
+                        </Label>
+                        
+                        <Label x:Name="l_phone" Text="phone" HorizontalOptions="Center" TextColor="Blue" Padding="4">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="l_phoneClicked"></TapGestureRecognizer>
+                            </Label.GestureRecognizers>
+                        </Label>
+                        
+                    </VerticalStackLayout>
+                    <HorizontalStackLayout Padding="8" HorizontalOptions="Center">
+                        <Label Text="Current Ballence "></Label>
+                        <Label x:Name="l_owing" Text="{Binding Owing}" TextColor="{Binding OwingColour}"></Label>
+                        <Label x:Name="l_creditDebit" Text="{Binding CreditDebit}"></Label>
+                       
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+            <Label Text="Customer" FontAttributes="Bold" FontSize="Large" HorizontalOptions="Center" TranslationY="-175" BackgroundColor="{AppThemeBinding Light=white, Dark=black}"></Label>
+        </VerticalStackLayout>
+
+
+
+        <Label Text="_________________________________" HorizontalOptions="Center" TranslationY="-20"></Label>
+        <Label Text="History" FontAttributes="Bold" FontSize="Title" HorizontalOptions="Center" TranslationY="-20"></Label>
+        
+        <CollectionView x:Name="cv_jobList" VerticalOptions="FillAndExpand" SelectionMode="Single">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <VerticalStackLayout BackgroundColor="{Binding AltColour}">
+                        <Grid Padding="4">
+                            <Grid.RowDefinitions>
+                                <RowDefinition></RowDefinition>
+                                <RowDefinition></RowDefinition>
+                                <RowDefinition></RowDefinition>
+
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition></ColumnDefinition>
+                                <ColumnDefinition></ColumnDefinition>
+                                <ColumnDefinition></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <HorizontalStackLayout BackgroundColor="{Binding DateColour}" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Padding="2">
+                                <Label Text="{Binding JobDate}" TextColor="{Binding DueColorTextCode}" IsVisible="{Binding IsJob}" FontAttributes="Bold"></Label>
+                                <Label Text="{Binding PaymentDate}"  TextColor="{Binding DueColorTextCode}" IsVisible="{Binding IsPayment}" FontAttributes="Bold"></Label>
+                            </HorizontalStackLayout>
+
+                            <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Padding="4">
+                                <Label Text="{Binding FormattedLine1}"></Label>
+
+                            </HorizontalStackLayout>
+                            <VerticalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Padding="4">
+                                <HorizontalStackLayout Padding="4" >
+                                    <Label Text="{Binding FormattedLine2}" TextColor="White" BackgroundColor="Orange" Padding="2"></Label>
+
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout  IsVisible="{Binding IsJob}" Padding="4">
+                                    <Label Text="Notes: "></Label>
+                                    <Label Text="{Binding Notes}" ></Label>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+
+                        </Grid>
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </StackLayout>
+
+</ContentPage>

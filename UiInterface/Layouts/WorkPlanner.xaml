@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.WorkPlanner"
+             Title="WorkPlanner">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="View Jobs"></ToolbarItem>
+
+    </ContentPage.ToolbarItems>
+    <StackLayout>
+
+        <Label Text="Due Work"
+                VerticalOptions="Center" 
+                HorizontalOptions="Center"
+               x:Name="t_job_overview"
+               FontSize="Title"
+               FontAttributes="Bold"
+               Scale="0.8"/>
+      
+        <CollectionView
+        x:Name="lv_Jobs">
+            <CollectionView.ItemTemplate>
+                <DataTemplate >
+                    
+                        <SwipeView x:Name="sv" SwipeStarted="swip_started">
+
+                            <SwipeView.LeftItems >
+                                <SwipeItems >
+                                    <SwipeItem Text="Done" 
+                                    IconImageSource="tick.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="LightGreen"
+                                    Invoked="On_Job_Compleated"
+                                           />
+                                    <SwipeItem Text="Paid"
+                                    CommandParameter="{Binding Id}"
+                                    IconImageSource="paid.png"
+                                    BackgroundColor="Green"
+                                    Invoked="On_Job_Paid" 
+                                               />
+                                    <SwipeItem Text="Done &amp; Paid"
+                                    IconImageSource="donepaid.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="DarkGreen"
+                                    Invoked="On_Job_CompleatedPaid" 
+                                               />
+                                </SwipeItems>
+                            </SwipeView.LeftItems>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Skip" 
+                                    IconImageSource="skip.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="Orange"
+                                    Invoked="On_Job_Skipped"
+                                           />
+                                    <SwipeItem Text="Cancel"
+                                    IconImageSource="cancel.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="Red"
+                                    Invoked="On_Job_Canceled" 
+                                               />
+                                    <SwipeItem Text="Details"
+                                    IconImageSource="options.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="LightBlue"
+                                    Invoked="On_Job_Detials" 
+                                               />
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+
+                        <VerticalStackLayout ChildAdded="list_child_added" Padding="2" BackgroundColor="White">
+                            <Label Text="{Binding JobFormattedString}" FontAttributes="Bold" Padding="6"></Label>
+                            <HorizontalStackLayout>
+                                <Label BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4"></Label>
+                                <Label BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" TranslationX="8" Padding="4"></Label>
+                                <Label BackgroundColor="Orange" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4"></Label>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+
+
+                        </SwipeView>
+                   
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+       
+    </StackLayout>
+</ContentPage>

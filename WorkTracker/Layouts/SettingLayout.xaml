@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.SettingLayout"
+             Title="Setting">
+
+    <ScrollView x:Name="sv_mainScrole" VerticalScrollBarVisibility="Always" Margin="5">
+        <VerticalStackLayout>
+            <Label Text="____________________________" HorizontalOptions="Center"></Label>
+            <Label Text="General Settings" HorizontalOptions="Center" FontSize="Title"></Label>
+            <Label Text="App Version 1.1.32 ---- Released 01/07/22" VerticalOptions="Center" HorizontalOptions="Center" Padding="16" TextColor="Grey"></Label>
+            <VerticalStackLayout Padding="16">
+                <Label Text="Default New Job Settings"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="4">
+                    <VerticalStackLayout>
+                        <HorizontalStackLayout>
+                            <Label Text="Default new job frequence" VerticalOptions="Center"></Label>
+                            <Entry x:Name="e_defaultFrequence" Keyboard="Numeric" MinimumWidthRequest="40"></Entry>
+                            <Picker x:Name="p_frequencyType" >
+                                <Picker.Items>
+                                    <x:String>Day</x:String>
+                                    <x:String>Week</x:String>
+                                    <x:String>Month</x:String>
+                                    <x:String>Year</x:String>
+                                </Picker.Items>
+                            </Picker>
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout>
+                            <Label Text="Default new job duration (in minutes)" VerticalOptions="Center"></Label>
+                            <Entry x:Name="e_defaultDuration" MinimumWidthRequest="40" Keyboard="Numeric"></Entry>
+                        </HorizontalStackLayout>
+                        <Label></Label>
+                    </VerticalStackLayout>
+                </Border>
+
+
+                <Label Text="Customize Job Settings"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="4">
+                    <VerticalStackLayout>
+                        <Label Text="Job Names"></Label>
+                        <ListView x:Name="l_jobNames" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <ViewCell>
+                                        <Entry Text="{Binding Name}" ClassId="{Binding Index}" TextChanged="e_textChanged"></Entry>
+                                    </ViewCell>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+
+                        </ListView>
+                        <Button Text="Add Job Type"  BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8" Clicked="bnt_addJobType"></Button>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+            <Label Text="____________________________" HorizontalOptions="Center"></Label>
+            <Label Text="Paper View Settings" HorizontalOptions="Center" FontSize="Title"></Label>
+            <VerticalStackLayout Padding="16">
+                <Label Text="Symbol Settings"  VerticalOptions="Center" TranslationY="10" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="4">
+                    <VerticalStackLayout Padding="2">
+                        <HorizontalStackLayout>
+                            <Label Text="Done" VerticalTextAlignment="Center"></Label>
+                            <Entry x:Name="e_pv_done" MinimumWidthRequest="50" VerticalOptions="Center"></Entry>
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout>
+                            <Label Text="Paid"  VerticalOptions="Center"></Label>
+                            <Entry x:Name="e_pv_paid"  VerticalOptions="Center" MinimumWidthRequest="50"></Entry>
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout>
+                            <Label Text="Done &amp; Paid"  VerticalOptions="Center"></Label>
+                            <Entry x:Name="e_pv_donepaid"  VerticalOptions="Center" MinimumWidthRequest="50"></Entry>
+                        </HorizontalStackLayout>
+
+                    </VerticalStackLayout>
+                </Border>
+
+
+            </VerticalStackLayout>
+
+            <!-- the data settings -->
+            <Label Text="____________________________" HorizontalOptions="Center"></Label>
+            <Label Text="Data" HorizontalOptions="Center" FontSize="Title"></Label>
+            <VerticalStackLayout Padding="16">
+                <Button Text="Create Backup" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_createBackup_Clicked"></Button>
+                <Label></Label>
+                <Button Text="Restore From Backup" BackgroundColor="Transparent" TextColor="Orange" BorderColor="Orange" BorderWidth="2" Clicked="bnt_restorBackup_Clicked"></Button>
+                <Label></Label>
+                <Button Text="Delete All Data" BackgroundColor="Transparent" TextColor="Red" BorderColor="Red" BorderWidth="2" Clicked="bnt_deleteData_Clicked"></Button>
+
+
+            </VerticalStackLayout>
+
+            <Label Text="____________________________" HorizontalOptions="Center"></Label>
+            <Label Text="Default Messages" HorizontalOptions="Center" FontSize="Title"></Label>
+            
+            <Label Text="" FontSize="Title"></Label>
+           
+
+            <Grid TranslationY="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition></RowDefinition>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Label Grid.Column="0" Grid.Row="0" Text="Customize Messages"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Button Grid.Column="1" Grid.Row="0" Text="Help?" VerticalOptions="Center" TranslationY="4" Padding="4" BackgroundColor="{AppThemeBinding Light=white, Dark=#121212}" TranslationX="-4" HorizontalOptions="End"  
+                            Clicked="bnt_messagesHelp_Clicked"></Button>
+            </Grid>
+            <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="4">
+                <VerticalStackLayout>
+                    <VerticalStackLayout Padding="2">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition></RowDefinition>
+
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.78*"></ColumnDefinition>
+                                <ColumnDefinition Width="0.22*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Row="0" Grid.Column="0" Text="Night Before Message" VerticalOptions="Center" Padding="4" ></Label>
+                            <Button Grid.Row="0" Grid.Column="1" Text="Preview" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8" Clicked="bnt_previewTNB"></Button>
+                        </Grid>
+                        <Editor x:Name="e_DefaultTNB" Margin="0,0,0,0" HorizontalOptions="StartAndExpand" VerticalTextAlignment="Start" MinimumHeightRequest="100" MinimumWidthRequest="300"></Editor>
+                    </VerticalStackLayout>
+
+
+                    <VerticalStackLayout Padding="2">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition></RowDefinition>
+
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.78*"></ColumnDefinition>
+                                <ColumnDefinition Width="0.22*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Label  Grid.Row="0" Grid.Column="0" Text="After Job Completion Message" VerticalOptions="Center" Padding="4 "></Label>
+                            <Button Grid.Row="0" Grid.Column="1" Text="Preview" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8"  Clicked="bnt_previewTAC"></Button>
+                        </Grid>
+                        <Editor x:Name="e_DefaultTAC" Margin="0,0,0,0" HorizontalOptions="StartAndExpand" VerticalTextAlignment="Start" MinimumHeightRequest="100" MinimumWidthRequest="300" ></Editor>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Padding="2">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition></RowDefinition>
+
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.78*"></ColumnDefinition>
+                                <ColumnDefinition Width="0.22*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Label  Grid.Row="0" Grid.Column="0" Text="Message To Reschadule" VerticalOptions="Center" Padding="4"></Label>
+                            <Button Grid.Row="0" Grid.Column="1" Text="Preview" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8"  Clicked="bnt_previewRearange"></Button>
+                        </Grid>
+                        <Editor x:Name="e_DefaultRearange" Margin="0,0,0,0" HorizontalOptions="StartAndExpand" VerticalTextAlignment="Start" MinimumHeightRequest="100" MinimumWidthRequest="300"></Editor>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Padding="2">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition></RowDefinition>
+
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.79*"></ColumnDefinition>
+                                <ColumnDefinition Width="0.22*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Label  Grid.Row="0" Grid.Column="0" Text="Message To Say Not Coming" VerticalOptions="Center" Padding="4"></Label>
+                            <Button Grid.Row="0" Grid.Column="1" Text="Preview" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8" Clicked="bnt_previewNotComming"></Button>
+                        </Grid>
+                        <Editor x:Name="e_DefaultNotComming" Margin="0,0,0,0" HorizontalOptions="StartAndExpand" VerticalTextAlignment="Start" MinimumHeightRequest="100" MinimumWidthRequest="300"></Editor>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+
+            <VerticalStackLayout>
+                <Label Text="____________________________" HorizontalOptions="Center"></Label>
+                <Label Text="Banking Import Settings" HorizontalOptions="Center" FontSize="Title"></Label>
+                <Label Text=""></Label>
+                <Button Text="Reset Import Settings"  HorizontalOptions="Center" BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_resetImportBanking"></Button>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+      
+    </ScrollView>
+
+</ContentPage>

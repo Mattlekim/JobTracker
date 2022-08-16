@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.CalenderView"
+             Title="Calendar">
+    <StackLayout>
+        <HorizontalStackLayout HorizontalOptions="CenterAndExpand" x:Name="hsl_monthSelector">
+            <Button Text="&lt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontSize="Micro" VerticalOptions="Center" Clicked="bnt_previousMonthClicked"
+                    BorderWidth="2"></Button>
+            <Label x:Name="l_date" Text="May 2022" HorizontalOptions="Center" FontSize="Default" FontAttributes="Bold" VerticalOptions="Center" Padding="8"></Label>
+            <Button Text="&gt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontSize="Micro" VerticalOptions="Center" Clicked="bnt_nextMonthClicked"
+                     BorderWidth="2"></Button>
+        </HorizontalStackLayout>
+        <!--                         THIS IS THE CALENDER GRID      ALL LABLES ARE ADDED IN THE CS FILE             -->
+        <Grid x:Name="g_calender" TranslationY="-14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="20"></RowDefinition>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+        </Grid>
+        <HorizontalStackLayout BackgroundColor="Transparent" HorizontalOptions="CenterAndExpand" TranslationY="-0">
+            <Button x:Name="bnt_minimizeCalender" Text="&lt;" Rotation="90" HorizontalOptions="Start" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" Clicked="bnt_minimizeCalender_Clicked"
+                     BorderColor="Orange" BorderWidth="2" Padding="8"></Button>
+            <Label x:Name="l_currentDayName" FontSize="Default" FontAttributes="Bold" HorizontalOptions="CenterAndExpand" VerticalOptions="Center" Padding="8"></Label>
+            <Button x:Name="bnt_minimizeCalender1" Text="&lt;" Rotation="90" HorizontalOptions="Start" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" Clicked="bnt_minimizeCalender_Clicked"
+                    BorderColor="Orange" BorderWidth="2" Padding="8"></Button>
+        </HorizontalStackLayout>
+        <!--                       THIS IS THE LIST OF JOBS TO DISPLAY!!!!                       -->
+        <Label x:Name="l_noJobs" FontSize="Title" HorizontalOptions="CenterAndExpand" Text="No Jobs To Do" Padding="16"></Label>
+        <CollectionView
+                    x:Name="lv_Jobs" SelectionMode="None" VerticalOptions="FillAndExpand" RemainingItemsThreshold="0" TranslationY="-16">
+            <CollectionView.ItemTemplate>
+                <DataTemplate >
+
+                    <SwipeView x:Name="sv" SwipeStarted="swip_started" SwipeEnded="swip_ended" IsEnabled="{Binding EnabledSwipe}">
+
+                        <SwipeView.LeftItems  >
+                            <SwipeItems >
+                                <SwipeItem Text="Done" 
+                                    IconImageSource="tick.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="LightGreen"
+                                    Invoked="On_Job_Compleated"
+                                           />
+                                <SwipeItem Text="Done &amp; Paid"
+                                    CommandParameter="{Binding Id}"
+                                    IconImageSource="donepaid.png"
+                                    BackgroundColor="Green"
+                                    Invoked="On_Job_Paid" 
+                                               />
+                                <SwipeItem Text="More"
+                                    IconImageSource="more.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="DarkGreen"
+                                    Invoked="On_Job_More" 
+                                                   
+                                               />
+                            </SwipeItems>
+                        </SwipeView.LeftItems>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Skip" 
+                                    IconImageSource="skip.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="Orange"
+                                    Invoked="On_Job_Skipped"
+                                           />
+                                <SwipeItem Text="Cancel"
+                                    IconImageSource="cancel.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="Red"
+                                    Invoked="On_Job_Canceled" 
+                                               />
+                                <SwipeItem Text="Edit Details"
+                                    IconImageSource="options.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="LightBlue"
+                                    Invoked="On_Job_Detials" 
+                                               />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+
+                        <!--            job list for jobs                              -->
+
+                        <VerticalStackLayout Padding="2" BackgroundColor="{Binding AltColour}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition></RowDefinition>
+                                    <RowDefinition></RowDefinition>
+                                    <RowDefinition></RowDefinition>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="0" ></ColumnDefinition>
+                                    <ColumnDefinition ></ColumnDefinition>
+                                    <ColumnDefinition></ColumnDefinition>
+                                    <ColumnDefinition Width="0.3*"></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+
+                                
+
+                                <ImageButton Grid.Column="3" Grid.Row="0" Grid.RowSpan="2" Source="info.png" Scale="1"  HeightRequest="30" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"></ImageButton>
+                                <HorizontalStackLayout  Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="2">
+                                 
+                                    <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" Padding="6" />
+                                    <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" Padding="6" >
+                                      
+                                    </Label>
+                                    <Label Text="{Binding JobFormattedCity}" FontAttributes="Bold" Padding="6" >
+                                       
+                                    </Label>
+                                    <Label Text="{Binding JobFormattedArea}" FontAttributes="Bold" Padding="6" >
+                                       
+                                    </Label>
+                                </HorizontalStackLayout>
+
+                                <HorizontalStackLayout  Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2">
+                                    <Label Text="Bookin" IsVisible="{Binding IsBookedIn}" FontAttributes="Bold" Padding="6" BackgroundColor="OrangeRed" />
+                                    <Label 
+                                    Text="{Binding Name}" FontAttributes="Bold" Padding="6" BackgroundColor="DarkOrange" TranslationX="4">
+                                    </Label>
+                                    <Label 
+                                    Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" Padding="6" BackgroundColor="DarkGreen" TranslationX="8">
+                                        
+                                    </Label>
+                                    <Label 
+                                        Text="Canceled" FontAttributes="Bold" Padding="6" BackgroundColor="Red" TextColor="White" TranslationX="12" IsVisible="{Binding HaveCanceled}">
+                                    </Label>
+                                    <Label 
+                                    Text="TNB" TextColor="White" BackgroundColor="DarkRed" IsVisible="{Binding TNB}" Padding="6" FontAttributes="Bold" TranslationX="16"></Label>
+                                    <Label 
+                                    Text="ENB" TextColor="White" BackgroundColor="DarkRed" IsVisible="{Binding ENB}" Padding="6" FontAttributes="Bold" TranslationX="20"></Label>
+                                </HorizontalStackLayout>
+
+                                <HorizontalStackLayout Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2">
+                                    <Label BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4"></Label>
+                                    <Label BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" TranslationX="8" Padding="4">
+                                    </Label>
+                                    <Label BackgroundColor="Orange" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}"></Label>
+                                </HorizontalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </StackLayout>
+</ContentPage>

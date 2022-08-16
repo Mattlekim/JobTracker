@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:UiInterface.Controles"
+             x:Class="UiInterface.Layouts.WorkPlanner"
+             Title="WorkPlanner">
+    <ContentPage.ToolbarItems>
+        
+      
+
+    </ContentPage.ToolbarItems>
+
+
+    <StackLayout>
+        <VerticalStackLayout>
+
+            <Label x:Name="l_filterResultsText" Text="Filtering Results" FontAttributes="Bold" FontSize="Medium" TextColor="White" BackgroundColor="#164C00" IsVisible="false" ></Label>
+            <!-- Filter stuff-->
+            <Grid x:Name="g_filter" BackgroundColor="Transparent" IsVisible="false">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="0.6*"></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition Height="0.6*"></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"  Text="Primary Filter" FontAttributes="Bold" FontSize="Medium" TextColor="White" BackgroundColor="#164C00"></Label>
+                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BackgroundColor="#164C00">
+                    <Label Text="From" TextColor="White" VerticalOptions="Center"></Label>
+                    <DatePicker x:Name="dp_StartSearchDate" DateSelected="UpdateMasterFileterStart"></DatePicker>
+                    <Label Text="To" TextColor="White" VerticalOptions="Center"></Label>
+                    <DatePicker x:Name="dp_EndSearchDate" DateSelected="UpdateMasterFileterEnd"></DatePicker>
+                    <CheckBox IsChecked="true" BackgroundColor="#164C00" CheckedChanged="cb_UpdateMasterFilter"></CheckBox>
+
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Grid.Row="1" Grid.Column="2" BackgroundColor="#164C00">
+                    <Label Text="View" TextColor="White" VerticalOptions="Center"></Label>
+                    <Picker MinimumWidthRequest="60" SelectedItem="Jobs" x:Name="p_viewFilter" IsEnabled="false">
+                        <Picker.Items>
+                            <x:String>Jobs</x:String>
+                            <x:String>Days</x:String>
+                        </Picker.Items>
+                    </Picker>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" BackgroundColor="DarkGreen"  >
+                    <Label  Text="Secondry Filter" FontAttributes="Bold" FontSize="Medium" TextColor="White" ></Label>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" BackgroundColor="DarkGreen" >
+                    <Label Text="Filter By: " VerticalOptions="Center"></Label>
+                    <Label x:Name="l_filterBy" Text="" VerticalOptions="Center"></Label>
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Grid.Row="2" Grid.Column="1" BackgroundColor="DarkGreen" >
+                    
+                    <Label Text="(Click on job tag to set)" VerticalOptions="Center" TextColor="DarkGrey"></Label>
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Grid.Row="4" Grid.Column="2" HorizontalOptions="End">
+                    <Button Text="Reset" TranslationX="-4" Clicked="bnt_Clear_Filter_Clicked"></Button>
+                    <Button Text="Hide" Clicked="bnt_hideFilter"></Button>
+                </HorizontalStackLayout>
+
+
+
+            </Grid>
+
+            <!-- Viewing booking stuff-->
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <VerticalStackLayout Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" x:Name="jobOverviewBackground" BackgroundColor="Transparent">
+                    <Label  Text="Due Work"
+                        VerticalOptions="Center" 
+                        HorizontalOptions="Start"
+                        x:Name="t_job_overview"
+                        FontSize="Small"
+                        FontAttributes="Bold"
+                        Scale="1"
+                        Padding="4"
+                    >
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="There are no jobs to display.
+                                      
+                                      Start creating jobs by clicking on the 'Add Job' button at the top of this screen. "></Span>
+                                <Span Text="'Add Job'" TextColor="Green" FontAttributes="Bold"></Span>
+                                <Span Text=" button at the top of this screen."></Span>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+
+
+                </VerticalStackLayout>
+                <Button x:Name="bnt_cancel_booking" Grid.Row="1" Grid.Column="0" Text="Cancel Booking" HorizontalOptions="Center" VerticalOptions="Center" BackgroundColor="Transparent" TextColor="Red" BorderColor="Red" BorderWidth="2" Padding="8"
+                        Clicked="bnt_cancel_booking_clicked" IsVisible="false"
+                        ></Button>
+                <Button x:Name="bnt_reschedule_booking" Grid.Row="1" Grid.Column="1" Text="Reschedule Booking" HorizontalOptions="Center" VerticalOptions="Center" BackgroundColor="Transparent" TextColor="Orange" BorderColor="Orange" BorderWidth="2" Padding="8"
+                        IsVisible="false" Clicked="bnt_reschedule_booking_Clicked"
+                        ></Button>
+            </Grid>
+            <HorizontalStackLayout BackgroundColor="Transparent" x:Name="hsl_rescheduleDate" IsVisible="false">
+                <Label Padding="8" Text="Reschedule Date" VerticalOptions="Center"></Label>
+             <DatePicker x:Name="dp_rescedualDate" DateSelected="dp_dateSelected"></DatePicker>
+                <Button Text="Reschedule" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" HorizontalOptions="Center" VerticalOptions="Center" Padding="8" Clicked="bnt_ReschedualConfirm_Clicked"></Button>
+            </HorizontalStackLayout>
+            
+            <!--  Job more info stuff-->
+            <Grid BackgroundColor="DarkCyan" x:Name="g_more" IsVisible="false" >
+                <Grid.RowDefinitions>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Label x:Name="l_customerDescription" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="" FontAttributes="Bold" FontSize="Medium" BackgroundColor="#005555"
+                       VerticalOptions="CenterAndExpand" Padding="8" ></Label>
+                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" HorizontalOptions="Start">
+                    <Label Text="Job Information:" VerticalOptions="Center" FontAttributes="Bold" Padding="4"  TextColor="White"></Label>
+                    <Label x:Name="l_jobType" Margin="4" Padding="4" Text="" VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
+                    <Label x:Name="l_jobPrice" Margin="4" Padding="4" Text="" VerticalOptions="Center" FontAttributes="Bold"  TextColor="White" ></Label>
+                    <Label x:Name="l_jobOwed" Margin="4" Padding="4" VerticalOptions="Center" TextColor="White"></Label>
+                    
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout x:Name="h_createAlterativePrice" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" HorizontalOptions="Center">
+                        <Entry x:Name="e_alterativeName" Placeholder="Name" MinimumWidthRequest="200"></Entry>
+                        <Entry x:Name="e_alterativePrice" Placeholder="Price" MinimumWidthRequest="100" Keyboard="Numeric"></Entry>
+                    <Button Text="Add" Clicked="bnt_saveAlterativePrice" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
+                    <Button Text="X" Clicked="bnt_cancelAlterativePrice" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold" TranslationX="2" ></Button>
+                 </HorizontalStackLayout>
+                
+                <Button x:Name="bnt_addAlterativePrice" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"  Text="Add Alterative Price" Clicked="bnt_addAlterativePrice_Clicked" IsVisible="false"
+                        BorderWidth="4"></Button>
+                <HorizontalStackLayout x:Name="h_pick_alterativePrice" Grid.Row="2" Grid.Column="0" IsVisible="false">
+                    <Label Text="Job Price" VerticalOptions="Center" FontAttributes="Bold" Padding="4"  TextColor="White"></Label>
+                    <Picker VerticalOptions="Center" x:Name="p_priceToUse" SelectedIndexChanged="p_priceToUse_SelectedIndexChanged"></Picker>
+                    
+                </HorizontalStackLayout>
+                <HorizontalStackLayout x:Name="h_pick_alterativePricebnt" Grid.Row="2" Grid.Column="2" HorizontalOptions="End" >
+                    <Button x:Name="bnt_removeAlternatePayment" Text="Remove" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent"  Clicked="bnt_deleteAlternativePrice_Clicked" FontAttributes="Bold"></Button>
+                    <Button Text="+" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" Clicked="bnt_addAlterativePrice_Clicked" FontAttributes="Bold"></Button>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Grid.Row="3" Grid.Column="0" HorizontalOptions="End">
+                    <Label Text="Compleated" VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
+                    <CheckBox x:Name="cb_isCompleated" CheckedChanged="cb_IsCompleated_Changed" BackgroundColor="Transparent" ></CheckBox>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2">
+                    <Label x:Name="l_dateCompleated" Text="Date Compleated"  VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
+                    <DatePicker x:Name="p_dateCompleated"></DatePicker>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Grid.Row="4" Grid.Column="0" HorizontalOptions="End">
+                    <Label Text="Paid"  VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
+                    <CheckBox x:Name="cb_isPaid" IsChecked="False" CheckedChanged="on_isPaid_Changed" BackgroundColor="Transparent" ></CheckBox>
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Grid.Row="4" Grid.Column="1">
+                    <Label x:Name="l_currencyType" Text=""  VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
+                    <Entry x:Name="l_amoutToPay" Text="" TextColor="White" ></Entry>
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Grid.Row="4" Grid.Column="2">
+
+                    <Picker x:Name="p_paymentType">
+                        
+                    </Picker>
+                </HorizontalStackLayout>
+                <Button Text="Cancel" Grid.Row="5" Grid.Column="0" Clicked="bnt_cancel_clicked" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
+                <Button Text="Confirm" Grid.Row="5" Grid.Column="2" Clicked="bnt_confirm_clicked" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
+            </Grid>
+        </VerticalStackLayout>
+        <CollectionView
+                    x:Name="lv_Jobs" SelectionMode="Single" SelectionChanged="lv_Jobs_SelectionChanged" VerticalOptions="FillAndExpand" RemainingItemsThreshold="0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate >
+
+                    <SwipeView x:Name="sv" SwipeStarted="swip_started" SwipeEnded="swip_ended" IsEnabled="{Binding EnabledSwipe}">
+
+                        <SwipeView.LeftItems  >
+                            <SwipeItems >
+                                <SwipeItem Text="Done" 
+                                    IconImageSource="tick.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="LightGreen"
+                                    Invoked="On_Job_Compleated"
+                                           />
+                                <SwipeItem Text="Done &amp; Paid"
+                                    CommandParameter="{Binding Id}"
+                                    IconImageSource="donepaid.png"
+                                    BackgroundColor="Green"
+                                    Invoked="On_Job_Paid" 
+                                               />
+                                <SwipeItem Text="More"
+                                    IconImageSource="more.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="DarkGreen"
+                                    Invoked="On_Job_More" 
+                                                   
+                                               />
+                            </SwipeItems>
+                        </SwipeView.LeftItems>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Skip" 
+                                    IconImageSource="skip.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="Orange"
+                                    Invoked="On_Job_Skipped"
+                                           />
+                                <SwipeItem Text="Cancel"
+                                    IconImageSource="cancel.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="Red"
+                                    Invoked="On_Job_Canceled" 
+                                               />
+                                <SwipeItem Text="Edit Details"
+                                    IconImageSource="options.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="LightBlue"
+                                    Invoked="On_Job_Detials" 
+                                               />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+
+                        <!--            job list for jobs                              -->
+                        
+                        <VerticalStackLayout Padding="2" BackgroundColor="{Binding AltColour}" x:Name="test">
+                            <Grid TranslationX="-32" x:Name="g_workList" ChildAdded="g_childAdded">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition></RowDefinition>
+                                    <RowDefinition></RowDefinition>
+                                    <RowDefinition></RowDefinition>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="0.2*" ></ColumnDefinition>
+                                    <ColumnDefinition ></ColumnDefinition>
+                                    <ColumnDefinition></ColumnDefinition>
+                                    <ColumnDefinition Width="0.3*"></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox 
+                                    BackgroundColor="Transparent"
+                                    Grid.Column="0"
+                                    Grid.Row="0"
+                                    Grid.RowSpan="3"
+                                    VerticalOptions="Center" 
+                                    IsVisible="{Binding SelectionModeEnabled}"
+                                    IsChecked="{Binding IsSelected} "
+                                    CheckedChanged="cb_streetSelected"  ClassId="{Binding Id}" PropertyChanged="test"></CheckBox>
+
+                                <ImageButton Grid.Column="3" Grid.Row="0" Grid.RowSpan="2" Source="info.png" Scale="1"  HeightRequest="30" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"></ImageButton>
+                                <HorizontalStackLayout  Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="2">
+                                    <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" Padding="6" />
+                                    <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" Padding="6" >
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Job_Street_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
+                                    <Label Text="{Binding JobFormattedCity}" FontAttributes="Bold" Padding="6" >
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Job_City_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
+                                    <Label Text="{Binding JobFormattedArea}" FontAttributes="Bold" Padding="6" >
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Job_Area_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
+                                </HorizontalStackLayout>
+
+                                <HorizontalStackLayout  Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2">
+                                    <Label 
+                                    Text="{Binding Name}" FontAttributes="Bold" Padding="6" BackgroundColor="DarkOrange">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Job_Type_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
+                                    <Label 
+                                    Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" Padding="6" BackgroundColor="DarkGreen" TranslationX="4">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Job_Price_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
+                                    <Label 
+                                        Text="Canceled" FontAttributes="Bold" Padding="6" BackgroundColor="Red" TextColor="White" TranslationX="8" IsVisible="{Binding HaveCanceled}">
+                                        
+                                    </Label>
+
+                                    <Label 
+                                    Text="TNB" TextColor="White" BackgroundColor="DarkRed" IsVisible="{Binding TNB}" Padding="6" FontAttributes="Bold" TranslationX="12"></Label>
+                                    <Label 
+                                    Text="ENB" TextColor="White" BackgroundColor="DarkRed" IsVisible="{Binding ENB}" Padding="6" FontAttributes="Bold" TranslationX="16"></Label>
+                                </HorizontalStackLayout>
+
+                                <HorizontalStackLayout Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2">
+                                    <Label BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4"></Label>
+                                    <Label BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" TranslationX="8" Padding="4">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Money_Owed_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
+                                    <Label BackgroundColor="Orange" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}"></Label>
+                                </HorizontalStackLayout>
+                            </Grid>
+
+
+                            
+                          
+                        </VerticalStackLayout>
+
+
+                    </SwipeView>
+
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </StackLayout>
+</ContentPage>

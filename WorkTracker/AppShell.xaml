@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="WorkTracker.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:UiInterface.Layouts"
+    Shell.FlyoutBehavior="Disabled">
+
+    <TabBar >
+
+        <Tab Title="Customers"
+            Icon="person.png">
+            <ShellContent  ContentTemplate="{DataTemplate local:Customers}" IsVisible="false"/>
+        </Tab>
+        <Tab Title="Jobs"
+            Icon="work.png">
+            <ShellContent ContentTemplate="{DataTemplate local:JobsList}" IsVisible="False"/>
+        </Tab>
+        <Tab Title="Jobs"
+            Icon="work.png">
+            <ShellContent ContentTemplate="{DataTemplate local:PaperView}" IsVisible="True"/>
+        </Tab>
+
+        <ShellContent Title="Work" Icon="work.png" ContentTemplate="{DataTemplate local:WorkPlanner}" >
+          
+        </ShellContent>
+        <Tab Title="Calendar"
+            Icon="planner.png"
+             >
+            <ShellContent ContentTemplate="{DataTemplate local:CalenderView}" />
+        </Tab>
+        <Tab Title="Payments"
+            Icon="payments.png">
+            <ShellContent ContentTemplate="{DataTemplate local:Payments}" />
+        </Tab>
+        <Tab Title="Settings"
+            Icon="options.png"
+             >
+            <ShellContent ContentTemplate="{DataTemplate local:SettingLayout}" />
+        </Tab>
+
+    </TabBar>
+</Shell>

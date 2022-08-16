@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="UiInterface.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:UiInterface.Layouts">
+
+    <TabBar >
+        
+        <Tab Title="Customers"
+            Icon="person.png">
+            <ShellContent ContentTemplate="{DataTemplate local:Customers}" IsVisible="false"/>
+        </Tab>
+        <Tab Title="Jobs"
+            Icon="work.png">
+            <ShellContent ContentTemplate="{DataTemplate local:JobsList}" />
+        </Tab>
+        <Tab Title="Work"
+            Icon="planner.png">
+            <ShellContent ContentTemplate="{DataTemplate local:WorkPlanner}" />
+        </Tab>
+    </TabBar>
+</Shell>

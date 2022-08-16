@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.BookJobFormcs"
+             Title="Book in Jobs">
+    <StackLayout>
+        <HorizontalStackLayout>
+            <Label Text="Estimated Time: "></Label>
+            <Label x:Name="l_estimatedTime" Text="0"></Label>
+        </HorizontalStackLayout>
+        
+        <HorizontalStackLayout>
+            
+        <Label Text="Estimated Value: "></Label>
+            <Label x:Name="l_value" Text="0"></Label>
+        </HorizontalStackLayout>
+        <HorizontalStackLayout>
+            <Label Text="Book in date: " VerticalOptions="Center"></Label>
+        <DatePicker x:Name="dp_bookinDate"></DatePicker>
+        
+        </HorizontalStackLayout>
+        <ListView x:Name="lv_jobs">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <TextCell Text="{Binding}" TextColor="{AppThemeBinding Light=Black, Dark=White}"></TextCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>   
+            
+        </ListView>
+        
+        <HorizontalStackLayout HorizontalOptions="End">
+            <Button Text="Confirm Booking" Clicked="bnt_Confirmed" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8"></Button>
+        </HorizontalStackLayout>
+        
+    </StackLayout>
+</ContentPage>

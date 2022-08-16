@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.NewCustomer"
+             Title="NewCustomer"
+             >
+    <ScrollView>
+        <VerticalStackLayout>
+
+            <Label Text="Name"/>
+            <Entry x:Name="t_fName"></Entry>
+
+            <Label Text="Phone Number"/>
+            <Entry x:Name="t_phone"></Entry>
+
+            <Label Text="Email"/>
+            <Entry x:Name="t_email"></Entry>
+
+            <Label Text="Starting Balance"/>
+            <Entry x:Name="t_balance"></Entry>
+
+            <Label Text="Date Aquired"/>
+            <DatePicker x:Name="t_date"></DatePicker>
+
+            <Picker x:Name="t_preferedPayment" Title="Prefered Payment">
+                <Picker.Items>
+                    <x:String>Cash</x:String>
+                    <x:String>Card</x:String>
+                    <x:String>Paypal</x:String>
+                    <x:String>Bank</x:String>
+                    <x:String>Check</x:String>
+                    <x:String>GoCardless</x:String>
+                    <x:String>Other</x:String>
+                </Picker.Items>
+            </Picker>
+
+
+            <Label Text=""/>
+            <Label Text="Address"/>
+
+            <Label Text="House Name / Number"/>
+            <Entry x:Name="t_houseNumberName"></Entry>
+
+            <Label Text="Street"/>
+            <Entry x:Name="t_street"></Entry>
+
+            <Label Text="City / Town"/>
+            <Entry x:Name="t_city"></Entry>
+
+            <Label Text="Area"/>
+            <Entry x:Name="t_area"></Entry>
+
+            <Label Text="Postcode"/>
+            <Entry x:Name="t_postcode"></Entry>
+
+
+            <HorizontalStackLayout>
+            <Button x:Name="_bnt_cancel" Text="Cancel" Clicked="bnt_Cancel" WidthRequest="200" HorizontalOptions="EndAndExpand"></Button>
+            <Button x:Name="_bnt_Add" Text="Add" Clicked="bnt_Add" WidthRequest="200" HorizontalOptions="End"></Button>
+            <Button x:Name="_bnt_Delete" Text="Delete" Clicked="bnt_Delete" WidthRequest="200" HorizontalOptions="End" BackgroundColor="Red"></Button>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.Payments"
+             Title="Payments">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem x:Name="bnt_ClearFilter" Text="Import Bank Statment" Clicked="bnt_ImportBank"></ToolbarItem>
+        
+    </ContentPage.ToolbarItems>
+    
+    <StackLayout>
+
+       
+
+        <CollectionView VerticalOptions="StartAndExpand"
+        x:Name="lv_Payments">
+            <CollectionView.ItemTemplate>
+                <DataTemplate >
+                    <VerticalStackLayout ChildAdded="list_child_added" Padding="4" BackgroundColor="{AppThemeBinding Light=White, Dark=Black}">
+                        <HorizontalStackLayout BackgroundColor="Green">
+                            <Label Text="{Binding PaymentAmount}" FontAttributes="Bold" Padding="6"></Label>
+                            <Label Text="{Binding PaymentDaysAgo}" FontAttributes="Bold" Padding="6"></Label>
+                            
+
+                            <Label Text="{Binding Date}" FontAttributes="Bold" Padding="6"></Label>
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout BackgroundColor="#275115">
+                            <Label Text="Payment Type:" TextColor="White"  Padding="4"></Label>
+                            <Label Text="{Binding PaymentType}" TextColor="White" Padding="4"></Label>
+                            <Label  Text="{Binding CustomerReference}" TextColor="White" Padding="4"></Label>
+                        </HorizontalStackLayout>
+                        <HorizontalStackLayout BackgroundColor="#275115">
+                           
+                            <Label  Text="{Binding GetCustomerDetails}" TextColor="White" Padding="0"></Label>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </StackLayout>
+</ContentPage>
