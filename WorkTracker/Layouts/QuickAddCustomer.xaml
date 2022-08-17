@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.QuickAddCustomer"
+             Title="Add Job">
+    <VerticalStackLayout x:Name="vsl_main">
+
+        
+        <Entry Placeholder="Property Name / Number"></Entry>
+        <Entry Placeholder="Street" Text="{Binding Street}"></Entry>
+        <Entry Placeholder="Area"></Entry>
+        <Entry Placeholder="City / Town"></Entry>
+        <Entry Placeholder="PostCode"></Entry>
+
+        <Entry Placeholder="Customer Name"></Entry>
+        <Entry Placeholder="Phone Number"></Entry>
+        <Entry Placeholder="Email"></Entry>
+
+        <HorizontalStackLayout>
+            <Label Text="Text Night Before" VerticalOptions="Center"></Label>
+            <CheckBox></CheckBox>
+        </HorizontalStackLayout>
+
+        <HorizontalStackLayout>
+            <Label Text="Text After Completion" VerticalOptions="Center"></Label>
+            <CheckBox></CheckBox>
+        </HorizontalStackLayout>
+
+        <HorizontalStackLayout>
+            <Label Text="Email Night Before" VerticalOptions="Center"></Label>
+            <CheckBox></CheckBox>
+        </HorizontalStackLayout>
+
+        <HorizontalStackLayout>
+            <Label Text="Email Receipt" VerticalOptions="Center"></Label>
+            <CheckBox></CheckBox>
+        </HorizontalStackLayout>
+    </VerticalStackLayout>
+</ContentPage>

@@ -8,7 +8,7 @@
         <VerticalStackLayout>
             <Label Text="____________________________" HorizontalOptions="Center"></Label>
             <Label Text="General Settings" HorizontalOptions="Center" FontSize="Title"></Label>
-            <Label Text="App Version 1.1.32 ---- Released 01/07/22" VerticalOptions="Center" HorizontalOptions="Center" Padding="16" TextColor="Grey"></Label>
+            <Label Text="App Version 1.1.80 ---- Released 17/08/22" VerticalOptions="Center" HorizontalOptions="Center" Padding="16" TextColor="Grey"></Label>
             <VerticalStackLayout Padding="16">
                 <Label Text="Default New Job Settings"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
                 <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="4">
@@ -58,18 +58,30 @@
                 <Label Text="Symbol Settings"  VerticalOptions="Center" TranslationY="10" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
                 <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="4">
                     <VerticalStackLayout Padding="2">
-                        <HorizontalStackLayout>
-                            <Label Text="Done" VerticalTextAlignment="Center"></Label>
-                            <Entry x:Name="e_pv_done" MinimumWidthRequest="50" VerticalOptions="Center"></Entry>
-                        </HorizontalStackLayout>
-                        <HorizontalStackLayout>
-                            <Label Text="Paid"  VerticalOptions="Center"></Label>
-                            <Entry x:Name="e_pv_paid"  VerticalOptions="Center" MinimumWidthRequest="50"></Entry>
-                        </HorizontalStackLayout>
-                        <HorizontalStackLayout>
-                            <Label Text="Done &amp; Paid"  VerticalOptions="Center"></Label>
-                            <Entry x:Name="e_pv_donepaid"  VerticalOptions="Center" MinimumWidthRequest="50"></Entry>
-                        </HorizontalStackLayout>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition></RowDefinition>
+                                <RowDefinition></RowDefinition>
+                                <RowDefinition></RowDefinition>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition></ColumnDefinition>
+                                <ColumnDefinition></ColumnDefinition>
+                                <ColumnDefinition Width="0.2*"></ColumnDefinition>
+                                <ColumnDefinition></ColumnDefinition>
+                                
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Row="0" Grid.Column="1" Text="Done" VerticalTextAlignment="Center"></Label>
+                            <Entry  Grid.Row="0" Grid.Column="2" x:Name="e_pv_done" MinimumWidthRequest="10" VerticalOptions="Center" MaxLength="1"></Entry>
+
+                            <Label Grid.Row="1" Grid.Column="1" Text="Paid"  VerticalOptions="Center"></Label>
+                            <Entry Grid.Row="1" Grid.Column="2" x:Name="e_pv_paid"  VerticalOptions="Center" MinimumWidthRequest="10" MaxLength="1"></Entry>
+
+                            <Label Grid.Row="2" Grid.Column="1" Text="Done &amp; Paid"  VerticalOptions="Center"></Label>
+                            <Entry Grid.Row="2" Grid.Column="2" x:Name="e_pv_donepaid"  VerticalOptions="Center" MinimumWidthRequest="10" MaxLength="1"></Entry>
+                        </Grid>
+                        
+                       
 
                     </VerticalStackLayout>
                 </Border>

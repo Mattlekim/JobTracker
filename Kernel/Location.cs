@@ -8,13 +8,13 @@ namespace Kernel
 {
     public class Location
     {
-        public string PropertyNameNumber;
-        public string Postcode;
-        public string Street;
-        public string City;
-        public string Area;
-        public Vector3 GPS_Location;
-
+        public string PropertyNameNumber { get; set; }
+        public string Postcode { get; set; }
+        public string Street { get; set; }
+        public string City { get; set; }
+        public string Area { get; set; }
+        public Vector3 GPS_Location { get; set; }
+        
         static Location _garbaeCollectorLimiter;
         public Location DeepCopy()
         {

@@ -202,12 +202,13 @@ public partial class PaperView : ContentPage
 
 		public void UpdatePaperRecordI3(Job j)
 		{
-			string tmp = string.Empty;
-		
-			//AT
-			//need to do job is due color
 
-			if (j.IsCompleted)
+			if (j == null)
+				return;
+
+            string tmp = string.Empty;
+
+            if (j.IsCompleted)
 			{
 				if (j.IsPaidFor)
 					tmp = StringDonePaid;
@@ -442,108 +443,134 @@ public partial class PaperView : ContentPage
 	{
 		InitializeComponent();
 
-		List<Job> jobs = Job.Query();
-		jobs = jobs.OrderByDescending(x => x.OrderByDate).ToList();
-		PaperItem pi;
+		NavigatedTo += PaperView_NavigatedTo;
 
-		List<PaperItem> tmpPaperwork = new List<PaperItem>();
-
-
-		foreach(Job j in jobs)
-        {
-			
-			pi = tmpPaperwork.FirstOrDefault(x => x.BaseJobId == j.BaseJobId);
-			if (pi != null)
-			{
-				pi.AddInstance(j);
-			}
-			else
-			{
-				pi = new PaperItem();
-				pi.AddInstance(j);
-                tmpPaperwork.Add(pi);
-			}
-
-        }
-
-		//now lets group them by streets
-		List<string> streets = new List<string>();
-
-		
-
-		foreach(Job j in jobs)
-        {
-			if (!streets.Contains(j.JobFormattedStreetOnly.ToLower()))
-            {
-				streets.Add(j.JobFormattedStreetOnly.ToLower());
-            }
-        }
-
-		PaperItems.Clear();
-		foreach(string street in streets)
-        {
-			List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x => x.Title.ToLower() == street);
-			char[] tmp = street.ToCharArray();
-			tmp[0] = char.ToUpper(tmp[0]);
-
-			for (int i = 1; i < tmp.Length; i++)
-				if (tmp[i - 1] == ' ')
-					tmp[i] = char.ToUpper(tmp[i]);
-			
-			PaperItems.Add(new PaperItem()
-			{
-				Title = new string(tmp),
-				FontAttri = FontAttributes.Bold,
-				RowSpan = 5,
-                ShowJobInformation = false,
-            });
-			if (jobsToAdd != null && jobsToAdd.Count > 0)
-            {
-				PaperItem paperItem = null;
-				foreach (PaperItem p in jobsToAdd)
-				{
-                    paperItem = p;
-					p.Title = p.PropertyNumber;
-					p.TranslastionX = 10;
-					p.SyncRecordsToDate(DateTime.Now);
-					PaperItems.Add(paperItem);
-				}
-            }
-        }
-
-		//now check the dates
-		PaperItem currentItem;
-		PaperItem nextItem;
-		for (int i = 0; i < PaperItems.Count - 1; i++)
-		{
-			currentItem = PaperItems[i];
-            nextItem = PaperItems[i + 1];
-
-			if (!currentItem.ShowJobInformation) //if this is just showing the street etc
-			{
-				if (nextItem.JobI3 != null)
-				{
-					currentItem.I3 = nextItem.JobI3.OrderByDate.ToString("dd MMM yy");
-					currentItem.I3RowSpan = 2;
-				}
-				else
-					currentItem.I3RowSpan = 1;
-			}
-			else
-			{
-				if (currentItem.JobI3 != null && nextItem.JobI3!= null)
-					if (currentItem.JobI3.OrderByDate != nextItem.JobI3.OrderByDate)
-					{
-						PaperItems.Insert(i + 1, new PaperItem() { ShowJobInformation = false }); 
-					}
-			}
-        }
-
-		c_jobList.ItemsSource = PaperItems;
+		FullPageLoad();
 
 	}
 
-    private void grid_Job_Tapped(object sender, EventArgs e)
+	private void FullPageLoad()
+	{
+        List<Job> jobs = Job.Query();
+        jobs = jobs.OrderByDescending(x => x.OrderByDate).ToList();
+        PaperItem pi;
+
+        List<PaperItem> tmpPaperwork = new List<PaperItem>();
+
+
+        foreach (Job j in jobs)
+        {
+
+            pi = tmpPaperwork.FirstOrDefault(x => x.BaseJobId == j.BaseJobId);
+            if (pi != null)
+            {
+                pi.AddInstance(j);
+            }
+            else
+            {
+                pi = new PaperItem();
+                pi.AddInstance(j);
+                tmpPaperwork.Add(pi);
+            }
+
+        }
+
+        //now lets group them by streets
+        List<string> streets = new List<string>();
+
+
+
+        foreach (Job j in jobs)
+        {
+            if (!streets.Contains(j.JobFormattedStreetOnly.ToLower()))
+            {
+                streets.Add(j.JobFormattedStreetOnly.ToLower());
+            }
+        }
+
+        PaperItems.Clear();
+        foreach (string street in streets)
+        {
+            List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x => x.Title.ToLower() == street);
+            char[] tmp = street.ToCharArray();
+            tmp[0] = char.ToUpper(tmp[0]);
+
+            for (int i = 1; i < tmp.Length; i++)
+                if (tmp[i - 1] == ' ')
+                    tmp[i] = char.ToUpper(tmp[i]);
+
+            PaperItems.Add(new PaperItem()
+            {
+                Title = new string(tmp),
+                FontAttri = FontAttributes.Bold,
+                RowSpan = 5,
+                ShowJobInformation = false,
+            });
+            if (jobsToAdd != null && jobsToAdd.Count > 0)
+            {
+                PaperItem paperItem = null;
+                foreach (PaperItem p in jobsToAdd)
+                {
+                    paperItem = p;
+                    p.Title = p.PropertyNumber;
+                    p.TranslastionX = 10;
+                    p.SyncRecordsToDate(DateTime.Now);
+                    PaperItems.Add(paperItem);
+                }
+            }
+        }
+
+        //now check the dates
+        PaperItem currentItem;
+        PaperItem nextItem;
+        for (int i = 0; i < PaperItems.Count - 1; i++)
+        {
+            currentItem = PaperItems[i];
+            nextItem = PaperItems[i + 1];
+
+            if (!currentItem.ShowJobInformation) //if this is just showing the street etc
+            {
+                if (nextItem.JobI3 != null)
+                {
+                    currentItem.I3 = nextItem.JobI3.OrderByDate.ToString("dd MMM yy");
+                    currentItem.I3RowSpan = 2;
+                }
+                else
+                    currentItem.I3RowSpan = 1;
+            }
+            else
+            {
+                if (currentItem.JobI3 != null && nextItem.JobI3 != null)
+                    if (currentItem.JobI3.OrderByDate != nextItem.JobI3.OrderByDate)
+                    {
+                        PaperItems.Insert(i + 1, new PaperItem() { ShowJobInformation = false });
+                    }
+            }
+        }
+
+        c_jobList.ItemsSource = PaperItems;
+    }
+
+	private bool SkipNavigatTo = true;
+	private void PaperView_NavigatedTo(object sender, NavigatedToEventArgs e)
+	{
+		if (SkipNavigatTo)
+		{
+			SkipNavigatTo = false;
+			return;
+		}
+
+		if (_fullRefresh)
+		{
+			FullPageLoad();
+			return;
+
+		}
+		foreach (PaperItem pi in PaperItems)
+			pi.UpdatePaperRecordI3(pi.JobI3);
+	}
+
+	private void grid_Job_Tapped(object sender, EventArgs e)
     {
 		TappedEventArgs args = e as TappedEventArgs;
 		Job j = args.Parameter as Job;
@@ -687,6 +714,61 @@ public partial class PaperView : ContentPage
 
                 Customer.Save();
 			}
+		}
+    }
+
+	private bool _fullRefresh = false;
+	private void bnt_newJob_Clicked(object sender, EventArgs e)
+	{
+		NewJob.AddNewJob = true;
+		NewJob.JobToAdd = null;
+		NewJob nj = new NewJob();
+		nj.OnJobAdded+=	(Job j) => {
+			_fullRefresh = true;
+		};
+        Navigation.PushAsync(nj);
+
+    }
+
+	private async void grid_street_Tapped(object sender, EventArgs e)
+	{
+        TappedEventArgs args = e as TappedEventArgs;
+		PaperItem pi = args.Parameter as PaperItem;
+
+		if (pi.Title == " ")
+			return;
+
+		List<string> options = new List<string>();
+		options.Add("Quick Add");
+        options.Add("Add Customer");
+        string result = await DisplayActionSheet($"{pi.Title}", "Cancel", "", options.ToArray());
+
+		if (result.Contains("Quick"))
+		{
+			return;
+            Location address = new Location()
+            {
+                Street = "test"
+            };
+
+            QuickAddCustomer.TheAddress = address;
+
+            QuickAddCustomer qac = new QuickAddCustomer();
+			
+			await Navigation.PushAsync(qac);
+			return;
+		}
+
+		if (result.Contains("Customer"))
+		{
+            NewJob.AddNewJob = true;
+            NewJob.JobToAdd = null;
+            NewJob nj = new NewJob();
+            nj.OnJobAdded += (Job j) => {
+                _fullRefresh = true;
+            };
+            await Navigation.PushAsync(nj);
+            return;
 		}
     }
 }

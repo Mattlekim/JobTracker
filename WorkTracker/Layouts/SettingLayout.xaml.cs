@@ -136,8 +136,16 @@ public class Settings
 
                 PaperView.PaperItem.StringDone = sd.SymbolDone;
                 PaperView.PaperItem.StringPaid = sd.SymbolPaid;
-                PaperView.PaperItem.StringDonePaid = sd.SymbolDonePaid; 
+                PaperView.PaperItem.StringDonePaid = sd.SymbolDonePaid;
 
+                if (PaperView.PaperItem.StringPaid == null)
+                    PaperView.PaperItem.StringPaid = "/";
+
+                if (PaperView.PaperItem.StringDone == null)
+                    PaperView.PaperItem.StringDone = "\\";
+
+                if (PaperView.PaperItem.StringDonePaid == null)
+                    PaperView.PaperItem.StringDonePaid = "X";
                 if (sd.JobNames != null && sd.JobNames.Count > 0)
                 {
                     Job.JobNames.Clear();
@@ -190,7 +198,7 @@ public partial class SettingLayout : ContentPage
 
         e_defaultDuration.Text = Settings.DefaultJobDuration.ToString();
 
-
+        
         e_pv_done.Text = PaperView.PaperItem.StringDone;
         e_pv_paid.Text = PaperView.PaperItem.StringPaid;
         e_pv_donepaid.Text = PaperView.PaperItem.StringDonePaid;
@@ -232,8 +240,9 @@ public partial class SettingLayout : ContentPage
 
         Settings.DefaultJobDuration = (int)Convert.ToDecimal(e_defaultDuration.Text);
 
-        //at
-        //here i need to get seetings to load up the new symblos for paper view and also veryfly them
+        PaperView.PaperItem.StringDone = e_pv_done.Text;
+        PaperView.PaperItem.StringPaid = e_pv_paid.Text;
+        PaperView.PaperItem.StringDonePaid = e_pv_donepaid.Text;
 
         Settings.Save();
     }

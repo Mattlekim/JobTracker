@@ -160,6 +160,9 @@
 	  <MauiXaml Update="Layouts\Payments.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Layouts\QuickAddCustomer.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Layouts\SetCustomerPayment.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

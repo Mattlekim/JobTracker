@@ -6,6 +6,8 @@ public partial class NewJob : ContentPage
     public static Job JobToAdd = new Job();
 
     public static bool AddNewJob = false;
+
+    public Action<Job> OnJobAdded;
 	public NewJob()
 	{
         
@@ -492,7 +494,12 @@ public partial class NewJob : ContentPage
         }
 
         if (AddNewJob)
+        {
             Job.Add(JobToAdd);
+
+            if (OnJobAdded != null)
+                OnJobAdded(JobToAdd);
+        }
         Job.Save();
 
 
