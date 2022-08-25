@@ -4,8 +4,19 @@ using Kernel;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
+using Kernel.Fiilters;
+
 public partial class PaperView : ContentPage
 {
+
+	
+	public struct PaperViewLocationInfo
+	{
+		public string Street;
+		public string City;
+		public string Area;
+
+	}
 	public class JobInstance
 	{
 		public DateTime JobDate { get; set; }
@@ -41,13 +52,26 @@ public partial class PaperView : ContentPage
         public static string StringPaid = "/", StringDone = "\\", StringDonePaid = "X", StringSkipped = "O", StringCanceld = "-";
 		public string Title { get; set; } = " ";
 		public string PropertyStreet { get; set; }
-		public string PropertyTown { get; set; }
+		public string PropertyCity { get; set; }
 		public string PropertyArea { get; set; }
 		public string PropertyNumber { get; set; }
 		public DateTime StartDate { get; set; } = new DateTime(2000, 1, 1);
 		public List<JobInstance> Instances { get; set; } = new List<JobInstance>();
 		public int BaseJobId { get; set; } = -1;
 
+		private bool _isCanceled;
+		public bool IsCanceled
+		{
+			get
+			{
+				return _isCanceled;
+			}
+			set
+			{
+				_isCanceled = value;
+                RaisePropertyChanged("IsCanceled");
+            }
+		}
 		public Job BaseJob { get; set; }
 
 		public Job _jobI3 { get; set; }
@@ -78,6 +102,7 @@ public partial class PaperView : ContentPage
 			}
 		}
         public float TranslastionX { get; set; } = 0;
+
 
 		public FontAttributes FontAttri { get; set; } = FontAttributes.None;
 
@@ -173,7 +198,8 @@ public partial class PaperView : ContentPage
 
 
 		public static Color DueColour = Color.FromArgb("1E2E41");
-		public Color BgColour { get; set; } = Colors.Transparent;
+        public static Color DueColourLight = Color.FromArgb("CCE5FF");
+        public Color BgColour { get; set; } = Colors.Transparent;
 
 		private bool _jobIsDue = false;
 
@@ -187,12 +213,26 @@ public partial class PaperView : ContentPage
 			set
 			{
 				_jobIsDue = value;
-				if (value)
-					BgColour = DueColour;
-				else
+
+				if (IsCanceled)
+				{
                     BgColour = Colors.Transparent;
-                RaisePropertyChanged("BgColour");
-                RaisePropertyChanged("JobIdDue");
+                    RaisePropertyChanged("BgColour");
+                   
+				}
+				else
+				if (value)
+				{
+					if (Application.Current.PlatformAppTheme == AppTheme.Dark)
+						BgColour = DueColour;
+					else
+						BgColour = DueColourLight;
+
+				}
+				else
+					BgColour = Colors.Transparent;
+				RaisePropertyChanged("BgColour");
+				RaisePropertyChanged("JobIsDue");
 			}
 		}
 
@@ -256,7 +296,7 @@ public partial class PaperView : ContentPage
 
             I3 = tmp;
 
-
+			IsCanceled = j.HaveCanceled;
             float bal = j.GetCustomer().Balance;
 
             if (bal == 0)
@@ -273,10 +313,22 @@ public partial class PaperView : ContentPage
 		public void UpdateColors ()
 		{
 			if (Owing.Contains("Nothing Owed"))
-				OwingColour = Colors.White;
+			{
+				if (Application.Current.PlatformAppTheme == AppTheme.Dark)
+				{
+					OwingColour = Colors.White;
+				}
+				else
+				{
+
+						OwingColour = Colors.Black;
+					if (IsCanceled)
+						OwingColour = new Color(OwingColour.Red, OwingColour.Green, OwingColour.Blue, 0.5f);
+                }
+            }
 			else
 				if (Owing.Contains("In Credit"))
-					OwingColour = Colors.Green;
+				OwingColour = Colors.Green;
 			else
 				OwingColour = Colors.Red;
 		}
@@ -299,6 +351,8 @@ public partial class PaperView : ContentPage
 						Owing = $"{Gloable.CurrenceSymbol}{Math.Abs(bal)} In Credit";
 
 				I3 = "0";
+
+			
 
             }
 
@@ -327,7 +381,7 @@ public partial class PaperView : ContentPage
 
 			JobNote = string.Empty;
 			
-
+			
 			
 			//rows
 			//i4 is the last row to the right
@@ -411,15 +465,23 @@ public partial class PaperView : ContentPage
 					Title = j.Address.Street;
 					PropertyNumber = j.Address.PropertyNameNumber;
 					PropertyStreet = j.Address.Street;
-					PropertyTown = j.Address.City;
+					PropertyCity = j.Address.City;
 					PropertyArea = j.Address.Area;
 					
 				}
 				BasePice = j.Price;
 				Notes = j.Notes;
             }
+            if (j.JobNextId == -1) //ie no next job
+            {
+                PropertyStreet = j.Address.Street;
+                PropertyCity = j.Address.City;
+                PropertyArea = j.Address.Area;
+            }
 
-			UpdateColors();
+			if (j.HaveCanceled)
+				IsCanceled = true;
+            UpdateColors();
         }
 
 		public void SyncRecordsToDate(DateTime date)
@@ -439,19 +501,60 @@ public partial class PaperView : ContentPage
     }
 
 	public ObservableCollection<PaperItem> PaperItems = new ObservableCollection<PaperItem>();
+
+	public JobFilterBase PaperViewFilter;
+
+	private CityFilter Filter_City;
 	public PaperView()
 	{
 		InitializeComponent();
-
+		//return;
 		NavigatedTo += PaperView_NavigatedTo;
 
-		FullPageLoad();
+        Filter_City = new CityFilter(Job.Query());
 
+		g_filters.BindingContext = PaperViewFilter;
+
+
+
+
+
+
+
+      //  SetFilter(cf);
+        FullPageLoad();
+
+		
 	}
 
-	private void FullPageLoad()
+	public void SetFilter(JobFilterBase jfb)
+	{
+        PaperViewFilter = jfb;
+		p_filter_selection.Items.Clear();
+	//	l_filterName.BindingContext = PaperViewFilter;
+		//p_filter_selection.SelectedItem = "All";
+		foreach (string s in PaperViewFilter.FilterOptions)
+			p_filter_selection.Items.Add(s);
+
+        p_filter_selection.SelectedIndex = 0;
+        g_filters.BindingContext = PaperViewFilter;
+
+		g_filters.IsVisible = true;
+    }
+
+    private void p_FilterSelected(object sender, EventArgs e)
+    {
+		PaperViewFilter.SelectedIndex = p_filter_selection.SelectedIndex;
+        FullPageLoad();
+    }
+    private void FullPageLoad()
 	{
         List<Job> jobs = Job.Query();
+		jobs.RemoveAll(x => x.JobNextId == -1 && x.IsCompleted && UsfulFuctions.DifferenceSigned(DateTime.Now, x.DateCompleated) > 30);
+
+		if (PaperViewFilter != null)
+			PaperViewFilter.Filter(ref jobs);
+
         jobs = jobs.OrderByDescending(x => x.OrderByDate).ToList();
         PaperItem pi;
 
@@ -475,23 +578,33 @@ public partial class PaperView : ContentPage
 
         }
 
-        //now lets group them by streets
-        List<string> streets = new List<string>();
+        //now lets group them by location
+        List<string> location = new List<string>();
+        List<PaperViewLocationInfo> locationData = new List<PaperViewLocationInfo>();
 
 
-
+        string tmpString = string.Empty;
         foreach (Job j in jobs)
         {
-            if (!streets.Contains(j.JobFormattedStreetOnly.ToLower()))
+            tmpString = $"{j.Address.Street} {j.Address.City} {j.Address.Area}";
+            tmpString.ToLower();
+			if (!location.Contains(tmpString))
             {
-                streets.Add(j.JobFormattedStreetOnly.ToLower());
+                location.Add(tmpString);
+				locationData.Add(new PaperViewLocationInfo()
+				{
+					Street = j.Address.Street,
+					City = j.Address.City,
+					Area = j.Address.Area,
+				});
             }
         }
 
         PaperItems.Clear();
-        foreach (string street in streets)
+		int count = 0;
+        foreach (string street in location)
         {
-            List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x => x.Title.ToLower() == street);
+            List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x => x.PropertyStreet.ToLower() == locationData[count].Street.ToLower() && x.PropertyArea == locationData[count].Area.ToLower() && x.PropertyCity.ToLower() == locationData[count].City.ToLower());
             char[] tmp = street.ToCharArray();
             tmp[0] = char.ToUpper(tmp[0]);
 
@@ -505,6 +618,9 @@ public partial class PaperView : ContentPage
                 FontAttri = FontAttributes.Bold,
                 RowSpan = 5,
                 ShowJobInformation = false,
+				PropertyStreet = locationData[count].Street,
+                PropertyArea = locationData[count].Area,
+                PropertyCity = locationData[count].City,
             });
             if (jobsToAdd != null && jobsToAdd.Count > 0)
             {
@@ -518,6 +634,7 @@ public partial class PaperView : ContentPage
                     PaperItems.Add(paperItem);
                 }
             }
+			count++;
         }
 
         //now check the dates
@@ -577,8 +694,29 @@ public partial class PaperView : ContentPage
 		if (j == null)
 			return;
 
-		ViewCustomerDetails.CurrentJob = j;
-		Navigation.PushAsync(new ViewCustomerDetails());
+
+        //get the last instance of the job
+        Job nextJob;
+		nextJob = j;
+		while (nextJob.JobNextId != -1)
+		{
+			nextJob = Job.Query(QueryType.JobId, nextJob.JobNextId).FirstOrDefault();
+			if (nextJob == null)
+				break;
+		}
+
+		if (nextJob == null)
+			ViewCustomerDetails.CurrentJob = j;
+		else
+			ViewCustomerDetails.CurrentJob = nextJob;
+
+		ViewCustomerDetails vcd = new ViewCustomerDetails();
+		vcd.OnJobDetialsUpdated += (job) =>
+		{
+			FullPageLoad();
+		};
+
+        Navigation.PushAsync(vcd);
     }
 
 	private async void tap_i3_lable(object sender, EventArgs e)
@@ -591,7 +729,12 @@ public partial class PaperView : ContentPage
 
 		List<string> options = new List<string>();
 		if (!j.IsCompleted)
+		{
 			options.Add($"Done {PaperItem.StringDone}");
+
+			foreach (AlternativePrice ap in j.AlternativePrices)
+				options.Add($"Done - {ap.Description} {Gloable.CurrenceSymbol}{ap.Price}");
+		}
 
 		if (!j.IsPaidFor)
 			options.Add($"Paid {PaperItem.StringPaid}");
@@ -609,19 +752,52 @@ public partial class PaperView : ContentPage
 
 		if (result.Contains("Done"))
 		{
-			j.MarkJobDone();
+			if (result.Contains("-"))//marker for alternative price
+			{
+				int i = 0;
+				foreach (AlternativePrice ap in j.AlternativePrices)
+				{
+					if (result.Contains(ap.Description) && result.Contains($"{ap.Price}"))
+					{
+						j.UseAlterativePrice = i;
+						j.MarkJobDone();
+						break;
+					}
+					i++;
+				}
+			}
+			else
+			if (CustomeMarkDate)
+				j.MarkJobDone(DateToMarkWorkDone);
+			else
+				j.MarkJobDone();
 		}
 
 		if (result.Contains("Paid"))
 		{
-			j.MarkJobPaid();
+        /*    float ball = 0;
+            if (j.GetCustomer() != null)
+                ball = j.GetCustomer().Balance;
+
+            if (ball > 0)
+            {
+                await DisplayAlert("Waring", $"{j.JobFormattedStreet} is in dept by {Gloable.CurrenceSymbol}{ball}", "Mark Paid Up", "Cancel");
+
+            }
+		*/
+            j.MarkJobPaid();
 		}
 
 		if (result.Contains("Done & Paid"))
 		{
-			j.MarkJobDone();
-			j.MarkJobPaid();
-		}
+			if (CustomeMarkDate)
+				j.MarkJobDone(DateToMarkWorkDone);
+			else
+                j.MarkJobDone();
+
+
+            j.MarkJobPaid();
+        }
 
 		if (result.Contains("Skip"))
 		{
@@ -745,10 +921,12 @@ public partial class PaperView : ContentPage
 
 		if (result.Contains("Quick"))
 		{
-			return;
+			//return;
             Location address = new Location()
             {
-                Street = "test"
+                Street = pi.PropertyStreet,
+                City = pi.PropertyCity,
+                Area = pi.PropertyArea,
             };
 
             QuickAddCustomer.TheAddress = address;
@@ -770,5 +948,69 @@ public partial class PaperView : ContentPage
             await Navigation.PushAsync(nj);
             return;
 		}
+    }
+
+	
+	private void tbi_DoneDate_Clicked(object sender, EventArgs e)
+	{
+		dp_DoneDate.IsEnabled = true;
+		dp_DoneDate.IsVisible = true;
+        dp_DoneDate.Focused += Dp_DoneDate_Focused;
+        if (!dp_DoneDate.Focus())
+		{
+
+		}
+		
+    }
+
+	private void Dp_DoneDate_Focused(object sender, FocusEventArgs e)
+	{
+		throw new NotImplementedException();
+	}
+
+	private async void bnt_View_Clicked(object sender, EventArgs e)
+	{
+		List<string> options = new List<string>();
+		options.Add("All Jobs");
+        options.Add("City");
+        options.Add("Area");
+        options.Add("Group");
+        string result = await DisplayActionSheet("Select View", null, null, options.ToArray());
+
+		switch(result)
+		{
+			case "City":
+				SetFilter(Filter_City);
+				break;
+		}
+
+		
+    }
+
+	private DateTime DateToMarkWorkDone = DateTime.Now;
+	private bool CustomeMarkDate = false;
+	private void dp_MarkDate_Selected(object sender, DateChangedEventArgs e)
+	{
+        DatePicker dp = sender as DatePicker;
+		DateTime dt = dp.Date;
+		if (dt.DayOfYear == DateTime.Now.DayOfYear &&  dt.Year == DateTime.Now.Year)
+		{
+			CustomeMarkDate = false;
+		}
+		else
+		{
+			CustomeMarkDate = true;
+			DateToMarkWorkDone = new DateTime(dt.Year, dt.Month, dt.Day);
+		}	
+    }
+
+	private void bnt_hideOptions_Clicked(object sender, EventArgs e)
+	{
+		g_options.IsVisible = false;
+    }
+
+	private void tbi_ShowOptions_Clicked(object sender, EventArgs e)
+	{
+        g_options.IsVisible = true;
     }
 }

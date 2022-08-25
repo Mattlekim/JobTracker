@@ -4,6 +4,10 @@
              x:Class="UiInterface.Layouts.ViewCustomerDetails"
              Title="Customer Details">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Edit Details" Priority="1" Clicked="tbi_EditDetails_Clicked"></ToolbarItem>
+        <ToolbarItem x:Name="tbi_cancelJob" Text="Cancel Job" Order="Secondary" Clicked="tbi_Cancel_Job_Clicked"></ToolbarItem>
+    </ContentPage.ToolbarItems>
     <StackLayout Padding="8">
         <Label Text="_________________________________" HorizontalOptions="Center"></Label>
 
@@ -34,7 +38,7 @@
                         
                     </VerticalStackLayout>
                     <HorizontalStackLayout Padding="8" HorizontalOptions="Center">
-                        <Label Text="Current Ballence "></Label>
+                        <Label Text="Current Balance "></Label>
                         <Label x:Name="l_owing" Text="{Binding Owing}" TextColor="{Binding OwingColour}"></Label>
                         <Label x:Name="l_creditDebit" Text="{Binding CreditDebit}"></Label>
                        
@@ -50,9 +54,11 @@
         <Label Text="History" FontAttributes="Bold" FontSize="Title" HorizontalOptions="Center" TranslationY="-20"></Label>
         
         <CollectionView x:Name="cv_jobList" VerticalOptions="FillAndExpand" SelectionMode="Single">
+            
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <VerticalStackLayout BackgroundColor="{Binding AltColour}">
+                        
                         <Grid Padding="4">
                             <Grid.RowDefinitions>
                                 <RowDefinition></RowDefinition>
@@ -66,7 +72,9 @@
                                 <ColumnDefinition></ColumnDefinition>
                             </Grid.ColumnDefinitions>
                             <HorizontalStackLayout BackgroundColor="{Binding DateColour}" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Padding="2">
-                                <Label Text="{Binding JobDate}" TextColor="{Binding DueColorTextCode}" IsVisible="{Binding IsJob}" FontAttributes="Bold"></Label>
+                                <Label Text="{Binding JobDate}" TextColor="{Binding DueColorTextCode}" IsVisible="{Binding IsJob}" FontAttributes="Bold">
+                                    
+                                </Label>
                                 <Label Text="{Binding PaymentDate}"  TextColor="{Binding DueColorTextCode}" IsVisible="{Binding IsPayment}" FontAttributes="Bold"></Label>
                             </HorizontalStackLayout>
 

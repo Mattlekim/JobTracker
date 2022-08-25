@@ -2,7 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.UpdateJobInstance"
-             Title="UpdateJobInstance">
+             Title="Update Job Details">
     <VerticalStackLayout>
     <Grid x:Name="g_more" IsVisible="true" >
         <Grid.RowDefinitions>
@@ -21,46 +21,46 @@
         <Label x:Name="l_customerDescription" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="" FontAttributes="Bold" FontSize="Medium" BackgroundColor="#005555"
                        VerticalOptions="CenterAndExpand" Padding="8" ></Label>
         <HorizontalStackLayout Grid.Row="1" Grid.Column="0" HorizontalOptions="Start">
-            <Label Text="Job Information:" VerticalOptions="Center" FontAttributes="Bold" Padding="4"  TextColor="White"></Label>
-            <Label x:Name="l_jobType" Margin="4" Padding="4" Text="" VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
-            <Label x:Name="l_jobPrice" Margin="4" Padding="4" Text="" VerticalOptions="Center" FontAttributes="Bold"  TextColor="White" ></Label>
-            <Label x:Name="l_jobOwed" Margin="4" Padding="4" VerticalOptions="Center" TextColor="White"></Label>
+                <Label Text="Job Information:" VerticalOptions="Center" FontAttributes="Bold" Padding="4"  TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>
+                <Label x:Name="l_jobType" Margin="4" Padding="4" Text="" VerticalOptions="Center" FontAttributes="Bold"  TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>
+                <Label x:Name="l_jobPrice" Margin="4" Padding="4" Text="" VerticalOptions="Center" FontAttributes="Bold"  TextColor="{AppThemeBinding Dark=White, Light=Black}" ></Label>
+                <Label x:Name="l_jobOwed" Margin="4" Padding="4" VerticalOptions="Center" TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>
 
         </HorizontalStackLayout>
 
         <HorizontalStackLayout x:Name="h_createAlterativePrice" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" HorizontalOptions="Center">
             <Entry x:Name="e_alterativeName" Placeholder="Name" MinimumWidthRequest="200"></Entry>
             <Entry x:Name="e_alterativePrice" Placeholder="Price" MinimumWidthRequest="100" Keyboard="Numeric"></Entry>
-            <Button Text="Add" Clicked="bnt_saveAlterativePrice" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
-            <Button Text="X" Clicked="bnt_cancelAlterativePrice" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold" TranslationX="2" ></Button>
+                <Button Text="Add" Clicked="bnt_saveAlterativePrice" BorderWidth="2" BorderColor="{AppThemeBinding Dark=White, Light=Black}" TextColor="{AppThemeBinding Dark=White, Light=Black}" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
+                <Button Text="X" Clicked="bnt_cancelAlterativePrice" BorderWidth="2" BorderColor="{AppThemeBinding Dark=White, Light=Black}" TextColor="{AppThemeBinding Dark=White, Light=Black}" BackgroundColor="Transparent" FontAttributes="Bold" TranslationX="2" ></Button>
         </HorizontalStackLayout>
 
         <Button x:Name="bnt_addAlterativePrice" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"  Text="Add Alterative Price" Clicked="bnt_addAlterativePrice_Clicked" IsVisible="false"
                         BorderWidth="4"></Button>
         <HorizontalStackLayout x:Name="h_pick_alterativePrice" Grid.Row="2" Grid.Column="0" IsVisible="false">
-            <Label Text="Job Price" VerticalOptions="Center" FontAttributes="Bold" Padding="4"  TextColor="White"></Label>
+                <Label Text="Job Price" VerticalOptions="Center" FontAttributes="Bold" Padding="4"  TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>
             <Picker VerticalOptions="Center" x:Name="p_priceToUse" SelectedIndexChanged="p_priceToUse_SelectedIndexChanged"></Picker>
 
         </HorizontalStackLayout>
         <HorizontalStackLayout x:Name="h_pick_alterativePricebnt" Grid.Row="2" Grid.Column="2" HorizontalOptions="End" >
-            <Button x:Name="bnt_removeAlternatePayment" Text="Remove" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent"  Clicked="bnt_deleteAlternativePrice_Clicked" FontAttributes="Bold"></Button>
-            <Button Text="+" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" Clicked="bnt_addAlterativePrice_Clicked" FontAttributes="Bold"></Button>
+                <Button x:Name="bnt_removeAlternatePayment" Text="Remove" BorderWidth="2" BorderColor="{AppThemeBinding Dark=White, Light=Black}" TextColor="{AppThemeBinding Dark=White, Light=Black}" BackgroundColor="Transparent"  Clicked="bnt_deleteAlternativePrice_Clicked" FontAttributes="Bold"></Button>
+                <Button Text="+" BorderWidth="2" BorderColor="{AppThemeBinding Dark=White, Light=Black}" TextColor="{AppThemeBinding Dark=White, Light=Black}" BackgroundColor="Transparent" Clicked="bnt_addAlterativePrice_Clicked" FontAttributes="Bold"></Button>
         </HorizontalStackLayout>
         <HorizontalStackLayout Grid.Row="3" Grid.Column="0" HorizontalOptions="End">
-            <Label Text="Compleated" VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
+                <Label Text="Completed" VerticalOptions="Center" FontAttributes="Bold"  TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>
             <CheckBox x:Name="cb_isCompleated" CheckedChanged="cb_IsCompleated_Changed" BackgroundColor="Transparent" ></CheckBox>
         </HorizontalStackLayout>
         <HorizontalStackLayout Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2">
-            <Label x:Name="l_dateCompleated" Text="Date Compleated"  VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
+                <Label x:Name="l_dateCompleated" Text="Date Completed"  VerticalOptions="Center" FontAttributes="Bold"  TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>
             <DatePicker x:Name="p_dateCompleated"></DatePicker>
         </HorizontalStackLayout>
         <HorizontalStackLayout Grid.Row="4" Grid.Column="0" HorizontalOptions="End">
-            <Label Text="Paid"  VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
+                <Label Text="Paid"  VerticalOptions="Center" FontAttributes="Bold"  TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>
             <CheckBox x:Name="cb_isPaid" IsChecked="False" CheckedChanged="on_isPaid_Changed" BackgroundColor="Transparent" ></CheckBox>
         </HorizontalStackLayout>
         <HorizontalStackLayout Grid.Row="4" Grid.Column="1">
-            <Label x:Name="l_currencyType" Text=""  VerticalOptions="Center" FontAttributes="Bold"  TextColor="White"></Label>
-            <Entry x:Name="l_amoutToPay" Text="" TextColor="White" ></Entry>
+                <Label x:Name="l_currencyType" Text=""  VerticalOptions="Center" FontAttributes="Bold"  TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>
+                <Entry x:Name="l_amoutToPay" Text="" TextColor="{AppThemeBinding Dark=White, Light=Black}" ></Entry>
         </HorizontalStackLayout>
 
         <HorizontalStackLayout Grid.Row="4" Grid.Column="2">
@@ -69,8 +69,8 @@
 
             </Picker>
         </HorizontalStackLayout>
-        <Button Text="Cancel" Grid.Row="5" Grid.Column="0" Clicked="bnt_cancel_clicked" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
-        <Button Text="Confirm" Grid.Row="5" Grid.Column="2" Clicked="bnt_confirm_clicked" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
+            <Button Text="Cancel" Grid.Row="5" Grid.Column="0" Clicked="bnt_cancel_clicked" BorderWidth="2" BorderColor="{AppThemeBinding Dark=White, Light=Black}" TextColor="{AppThemeBinding Dark=White, Light=Black}" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
+            <Button Text="Confirm" Grid.Row="5" Grid.Column="2" Clicked="bnt_confirm_clicked" BorderWidth="2" BorderColor="{AppThemeBinding Dark=White, Light=Black}" TextColor="{AppThemeBinding Dark=White, Light=Black}" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
     </Grid>
     </VerticalStackLayout>
 </ContentPage>

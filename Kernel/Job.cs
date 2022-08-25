@@ -734,7 +734,7 @@ namespace Kernel
                // RaisePropertyChanged("JobFormattedDetails");
                 if (IsCompleted)
                 {
-                    tmp = $"Compleated on {DateCompleated.ToShortDateString()}.";
+                    tmp = $"Completed on {DateCompleated.ToShortDateString()}.";
                     if (UseAlterativePrice < 0)
                         tmp += $"Price {Gloable.CurrenceSymbol}{Price}";
                     else
@@ -797,7 +797,7 @@ namespace Kernel
                             return $"Completed Yesterday";
 
                     }
-                    return $"Compleated {d} Days Ago";
+                    return $"Completed {d} Days Ago";
                 }
 
                 DueColorTextCode = Colors.White;

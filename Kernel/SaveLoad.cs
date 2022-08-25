@@ -199,6 +199,22 @@ namespace Kernel
                     {
                         j.DateCompleated = new DateTime(j.DateCompleated.Year, j.DateCompleated.Month, j.DateCompleated.Day);
                         j.DueDate = new DateTime(j.DueDate.Year, j.DueDate.Month, j.DueDate.Day);
+                        if (j.Address.Street == null)
+                            j.Address.Street = String.Empty;
+                        else
+                            j.Address.Street = j.Address.Street.Trim();
+
+                        if (j.Address.City == null)
+                            j.Address.City = String.Empty;
+                        else
+                            j.Address.City = j.Address.City.Trim();
+
+                        if (j.Address.Area == null)
+                            j.Address.Area = String.Empty;
+                        else
+                            j.Address.Area = j.Address.Area.Trim();
+
+
                     }
 
                     _Jobs.Clear();

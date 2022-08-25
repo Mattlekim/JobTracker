@@ -1712,7 +1712,7 @@ public partial class WorkPlanner : ContentPage
 
     public async static void TextCustomerReceipt(Job j, Page page)
     {
-        if (await page.DisplayAlert("Text Customer?", $"Do you want to text {j.JobFormattedStreet} a job compleated receipt?", "Yes", "No"))
+        if (await page.DisplayAlert("Text Customer?", $"Do you want to text {j.JobFormattedStreet} a job completed receipt?", "Yes", "No"))
         {
             TextIndividualCustomer(j, DateTime.Now, DefaultJobCompleateMessage, page);
         }

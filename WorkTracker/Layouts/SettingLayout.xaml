@@ -8,7 +8,7 @@
         <VerticalStackLayout>
             <Label Text="____________________________" HorizontalOptions="Center"></Label>
             <Label Text="General Settings" HorizontalOptions="Center" FontSize="Title"></Label>
-            <Label Text="App Version 1.1.80 ---- Released 17/08/22" VerticalOptions="Center" HorizontalOptions="Center" Padding="16" TextColor="Grey"></Label>
+            <Label Text="App Version 1.1.83 ---- Released 22/08/22" VerticalOptions="Center" HorizontalOptions="Center" Padding="16" TextColor="Grey"></Label>
             <VerticalStackLayout Padding="16">
                 <Label Text="Default New Job Settings"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
                 <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="4">

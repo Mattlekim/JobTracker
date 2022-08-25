@@ -71,7 +71,7 @@
                     </HorizontalStackLayout>
                 </Grid>
 
-                <Label x:Name="l_ballence" Text="Starting Ballence" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Label x:Name="l_ballence" Text="Starting Balance" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
                 <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
                     <HorizontalStackLayout>
                         <Entry x:Name="e_startingBallence" Keyboard="Numeric" WidthRequest="100"></Entry>

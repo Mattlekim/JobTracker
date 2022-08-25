@@ -8,9 +8,9 @@
         
         <Entry Placeholder="Property Name / Number"></Entry>
         <Entry Placeholder="Street" Text="{Binding Street}"></Entry>
-        <Entry Placeholder="Area"></Entry>
-        <Entry Placeholder="City / Town"></Entry>
-        <Entry Placeholder="PostCode"></Entry>
+        <Entry Placeholder="City / Town" Text="{Binding City}"></Entry>
+        <Entry Placeholder="Area" Text="{Binding Area}"></Entry>
+        <Entry Placeholder="PostCode" Text="{Binding Postcode}"></Entry>  
 
         <Entry Placeholder="Customer Name"></Entry>
         <Entry Placeholder="Phone Number"></Entry>

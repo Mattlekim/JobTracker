@@ -6,11 +6,20 @@ public partial class ViewCustomerDetails : ContentPage
 	List<Job> _customerJobs = new List<Job>();
 
 	public static Job CurrentJob;
+
+    public Action<Job> OnJobDetialsUpdated;
+
     public ViewCustomerDetails()
     {
         InitializeComponent();
         if (CurrentJob == null)
             return;
+
+        if (CurrentJob.HaveCanceled)
+            tbi_cancelJob.Text = "Resume Job";
+        else
+            tbi_cancelJob.Text = "Cancel Job";
+
         Job job = Job.Query(QueryType.CustomerId, CurrentJob.CustomerId).FirstOrDefault();
 
         while (job != null)
@@ -99,6 +108,34 @@ public partial class ViewCustomerDetails : ContentPage
         List<Job> jobs = new List<Job>();
         jobs.Add(CurrentJob);
         await WorkPlanner.TextCustomers(jobs, DateTime.Now, string.Empty, this);
+    }
+
+    private void tbi_EditDetails_Clicked(object sender, EventArgs e)
+    {
+        NewJob.AddNewJob = false;
+        NewJob.JobToAdd = CurrentJob;
+
+        NewJob nj = new NewJob();
+        nj.OnJobUpdated += (j) =>
+        {
+            if (OnJobDetialsUpdated != null)
+                OnJobDetialsUpdated(CurrentJob);
+        };
+
+        Navigation.PushAsync(nj);
+    }
+
+    private void tbi_Cancel_Job_Clicked(object sender, EventArgs e)
+    {
+        if (!CurrentJob.HaveCanceled)
+            CurrentJob.CancelJob();
+        else
+            CurrentJob.UnCancelJob();
+
+        if (CurrentJob.HaveCanceled)
+            tbi_cancelJob.Text = "Resume Job";
+        else
+            tbi_cancelJob.Text = "Cancel Job";
     }
 }
 
