@@ -87,6 +87,7 @@ public partial class PaperView : ContentPage
 
         public Job JobI4 { get; set; }
 
+		public bool IsQuote { get; set; } = false;
 
 		private string _jobNote = string.Empty;
         public string JobNote

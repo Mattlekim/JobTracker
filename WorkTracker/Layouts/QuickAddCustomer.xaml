@@ -74,6 +74,6 @@
         </HorizontalStackLayout>
    
 
-        <Button Text="Add Job" TextColor="{AppThemeBinding Dark=White, Light=Black}" BorderColor="{AppThemeBinding Dark=White, Light=Black}" BorderWidth="2" BackgroundColor="Transparent" Clicked="bnt_SaveJob_Clicked"></Button>
+        <Button x:Name="bnt_Add" Text="Add Job" TextColor="{AppThemeBinding Dark=White, Light=Black}" BorderColor="{AppThemeBinding Dark=White, Light=Black}" BorderWidth="2" BackgroundColor="Transparent" Clicked="bnt_SaveJob_Clicked"></Button>
     </VerticalStackLayout>
 </ContentPage>

@@ -15,9 +15,15 @@ public partial class QuickAddCustomer : ContentPage
 		InitializeComponent();
 		vsl_main.BindingContext = TheAddress;
         if (IsQuote)
+        {
             this.Title = "Add New Quote";
+            bnt_Add.Text = "Add Quote";
+        }
         else
+        {
             this.Title = "Add New Job";
+            bnt_Add.Text = "Add Job";
+        }
 
         e_frequcney.Text = $"{Settings.DefaultFrequence}";
         e_duration.Text = $"{Settings.DefaultJobDuration}";
@@ -43,8 +49,12 @@ public partial class QuickAddCustomer : ContentPage
 
         if (e_price.Text == null || e_price.Text == string.Empty)
         {
-            DisplayAlert("Error", "Price can not be empty!", "Ok");
-            return;
+            if (!IsQuote)
+            {
+                DisplayAlert("Error", "Price can not be empty!", "Ok");
+                return;
+            }
+            
         }
         int duration = 0;
         if (e_duration.Text != null && e_duration.Text != String.Empty)
@@ -70,8 +80,13 @@ public partial class QuickAddCustomer : ContentPage
         }
         catch
         {
-            DisplayAlert("Error", "Price not valid. Please enter price again", "Ok");
-            return;
+            if (IsQuote)
+                price = 0;
+            else
+            {
+                DisplayAlert("Error", "Price not valid. Please enter price again", "Ok");
+                return;
+            }
         }
 
         if (e_frequcney.Text == null || e_frequcney.Text == string.Empty)
@@ -153,6 +168,8 @@ public partial class QuickAddCustomer : ContentPage
         j.ENB = cb_enb.IsChecked;
 
         j.SetFrequence(freq, (FrequenceType)p_frequencyType.SelectedIndex);
+
+        j.DueDate = dp_StartDate.Date;
 
         if (IsQuote)
             Job.AddQuote(j);
