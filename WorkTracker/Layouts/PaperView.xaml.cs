@@ -587,7 +587,7 @@ public partial class PaperView : ContentPage
         foreach (Job j in jobs)
         {
             tmpString = $"{j.Address.Street} {j.Address.City} {j.Address.Area}";
-            tmpString.ToLower();
+            tmpString = tmpString.ToLower();
 			if (!location.Contains(tmpString))
             {
                 location.Add(tmpString);
