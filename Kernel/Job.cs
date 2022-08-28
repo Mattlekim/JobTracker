@@ -43,6 +43,11 @@ namespace Kernel
         private static List<Job> _Jobs = new List<Job>();
 
         /// <summary>
+        /// all the quotes we have
+        /// </summary>
+        private static List<Job> _Quotes = new List<Job>();
+
+        /// <summary>
         /// add a new job
         /// </summary>
         /// <param name="customerId">the customer the job belongs too</param>
@@ -59,6 +64,19 @@ namespace Kernel
             job.GenerateId();
             job.BaseJobId = job.Id;
             _Jobs.Add(job);
+            return ResultType.Success;
+        }
+
+        /// <summary>
+        /// add a new quote to the system
+        /// </summary>
+        /// <param name="Quote"></param>
+        /// <returns></returns>
+        public static ResultType AddQuote(Job Quote)
+        {
+            Quote.GenerateId();
+            Quote.BaseJobId = Quote.Id;
+            _Quotes.Add(Quote);
             return ResultType.Success;
         }
 
@@ -137,6 +155,17 @@ namespace Kernel
         {
             _tmpJobs.Clear();
             _tmpJobs.AddRange(_Jobs);
+            return _tmpJobs;
+        }
+
+        /// <summary>
+        /// query jobs
+        /// </summary>
+        /// <returns>returns all jobs</returns>
+        public static List<Job> QueryQuotes()
+        {
+            _tmpJobs.Clear();
+            _tmpJobs.AddRange(_Quotes);
             return _tmpJobs;
         }
 

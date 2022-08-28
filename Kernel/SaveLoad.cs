@@ -100,6 +100,8 @@ namespace Kernel
     {
         private static string _FilePath = "jobs.rjt";
 
+        private static string _FilePathQuotes = "quotes.rjt";
+
         public static void Save(string dir = null)
         {
             JobSaveData csd = new JobSaveData()
@@ -126,6 +128,9 @@ namespace Kernel
                 xs.Serialize(fs, csd);
 
             }
+
+            csd.Jobs = new List<Job>();
+            csd.Jobs.AddRange(_Quotes);
 
         }
 

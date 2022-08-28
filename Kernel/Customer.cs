@@ -14,7 +14,12 @@ namespace Kernel
         private static int _IdGenerator = 0;
 
 
+        /// <summary>
+        /// all the customers
+        /// </summary>
         private static List<Customer> _Customers = new List<Customer>();
+
+        
 
         public static ResultType Add(string houseNameNumber, string street)
         {
