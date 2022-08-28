@@ -6,34 +6,51 @@
     <VerticalStackLayout x:Name="vsl_main">
 
         
-        <Entry Placeholder="Property Name / Number"></Entry>
-        <Entry Placeholder="Street" Text="{Binding Street}"></Entry>
-        <Entry Placeholder="City / Town" Text="{Binding City}"></Entry>
-        <Entry Placeholder="Area" Text="{Binding Area}"></Entry>
-        <Entry Placeholder="PostCode" Text="{Binding Postcode}"></Entry>  
+        <Entry x:Name="e_number" Placeholder="Property Name / Number"></Entry>
+        <Entry x:Name="e_street" Placeholder="Street" Text="{Binding Street}"></Entry>
+        <Entry x:Name="e_city" Placeholder="City / Town" Text="{Binding City}"></Entry>
+        <Entry x:Name="e_area" Placeholder="Area" Text="{Binding Area}"></Entry>
+        <Entry x:Name="e_postcode" Placeholder="PostCode" Text="{Binding Postcode}"></Entry>
+        <Entry x:Name="e_notes" Placeholder="Notes"></Entry>
+        <Entry x:Name="e_duration" Placeholder="Duration" Keyboard="Numeric"></Entry>
+        <Entry x:Name="e_price" Placeholder="Price" Keyboard="Numeric"></Entry>
 
-        <Entry Placeholder="Customer Name"></Entry>
-        <Entry Placeholder="Phone Number"></Entry>
-        <Entry Placeholder="Email"></Entry>
-
+        <VerticalStackLayout Padding="20">
+        <BoxView HorizontalOptions="FillAndExpand" VerticalOptions="Center" HeightRequest="1" Color="{AppThemeBinding Light=black, Dark=white}"/>
+        </VerticalStackLayout>
+        <Entry x:Name="e_name" Placeholder="Customer Name"></Entry>
         <HorizontalStackLayout>
-            <Label Text="Text Night Before" VerticalOptions="Center"></Label>
-            <CheckBox></CheckBox>
-        </HorizontalStackLayout>
+            <Entry x:Name="e_phone" Placeholder="Phone Number" Keyboard="Telephone" VerticalOptions="Center" MinimumWidthRequest="180"></Entry>
+            <VerticalStackLayout>
+                <HorizontalStackLayout HorizontalOptions="End">
+                    <Label Text="Text Night Before" VerticalOptions="Center"></Label>
+                    <CheckBox x:Name="cb_tnb" ></CheckBox>
+                </HorizontalStackLayout>
 
-        <HorizontalStackLayout>
-            <Label Text="Text After Completion" VerticalOptions="Center"></Label>
-            <CheckBox></CheckBox>
+                <HorizontalStackLayout HorizontalOptions="End">
+                    <Label Text="Text After Completion" VerticalOptions="Center"></Label>
+                    <CheckBox x:Name="cb_tac"></CheckBox>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
         </HorizontalStackLayout>
+        <HorizontalStackLayout>
+        <Entry x:Name="e_email" Placeholder="Email" Keyboard="Email" VerticalOptions="Center" MinimumWidthRequest="200"></Entry>
+            <VerticalStackLayout>
 
-        <HorizontalStackLayout>
-            <Label Text="Email Night Before" VerticalOptions="Center"></Label>
-            <CheckBox></CheckBox>
-        </HorizontalStackLayout>
+                <HorizontalStackLayout HorizontalOptions="End">
+                    <Label Text="Email Night Before" VerticalOptions="Center"></Label>
+                    <CheckBox x:Name="cb_enb"></CheckBox>
+                </HorizontalStackLayout>
 
-        <HorizontalStackLayout>
-            <Label Text="Email Receipt" VerticalOptions="Center"></Label>
-            <CheckBox></CheckBox>
+                <HorizontalStackLayout HorizontalOptions="End">
+                    <Label Text="Email Receipt" VerticalOptions="Center"></Label>
+                    <CheckBox x:Name="cb_er"></CheckBox>
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+
         </HorizontalStackLayout>
+   
+
+        <Button Text="Add Job" TextColor="{AppThemeBinding Dark=White, Light=Black}" BorderColor="{AppThemeBinding Dark=White, Light=Black}" BorderWidth="2" BackgroundColor="Transparent" Clicked="bnt_SaveJob_Clicked"></Button>
     </VerticalStackLayout>
 </ContentPage>

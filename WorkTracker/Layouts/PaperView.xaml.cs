@@ -930,9 +930,12 @@ public partial class PaperView : ContentPage
             };
 
             QuickAddCustomer.TheAddress = address;
-
-            QuickAddCustomer qac = new QuickAddCustomer();
 			
+            QuickAddCustomer qac = new QuickAddCustomer();
+			qac.OnJobCreated = (Job j) =>
+			{
+				FullPageLoad();
+			};
 			await Navigation.PushAsync(qac);
 			return;
 		}
