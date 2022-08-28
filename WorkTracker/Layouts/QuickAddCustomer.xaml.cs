@@ -7,6 +7,8 @@ public partial class QuickAddCustomer : ContentPage
 {
 	public static Location TheAddress;
 
+    public static bool IsQuote = false;
+
     public Action<Job> OnJobCreated;
 	public QuickAddCustomer()
 	{
@@ -121,7 +123,10 @@ public partial class QuickAddCustomer : ContentPage
         j.EAC = cb_er.IsChecked;
         j.ENB = cb_enb.IsChecked;
 
-        Job.Add(j);
+        if (IsQuote)
+            Job.AddQuote(j);
+        else
+            Job.Add(j);
 
         Customer.Save();
         Job.Save();

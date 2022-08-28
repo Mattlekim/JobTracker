@@ -129,9 +129,28 @@ namespace Kernel
 
             }
 
-            csd.Jobs = new List<Job>();
-            csd.Jobs.AddRange(_Quotes);
 
+            if (_Quotes.Count > 0)
+            {
+
+                if (dir != null && dir != string.Empty)
+                {
+                    fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                    fileLocation = Path.Combine(fileLocation, _FilePathQuotes);
+                }
+                else
+                    fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePathQuotes);
+
+                csd.Jobs = new List<Job>();
+                csd.Jobs.AddRange(_Quotes);
+
+                using (FileStream fs = File.Create(fileLocation))
+                {
+                    XmlSerializer xs = new XmlSerializer(typeof(JobSaveData));
+                    xs.Serialize(fs, csd);
+
+                }
+            }
         }
 
         public static bool _Loaded = false;
@@ -231,6 +250,59 @@ namespace Kernel
             }
             catch (Exception ex)
             { }
+
+
+            
+            try
+            {
+                if (dir != null && dir != string.Empty)
+                {
+                    fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                    fileLocation = Path.Combine(fileLocation, _FilePathQuotes);
+                }
+                else
+                    fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePathQuotes);
+
+
+                using (FileStream fs = File.OpenRead(fileLocation))
+                {
+                    XmlSerializer xs = new XmlSerializer(typeof(JobSaveData));
+#pragma warning disable CS8605 // Unboxing a possibly null value.
+                    csd = (JobSaveData)xs.Deserialize(fs);
+#pragma warning restore CS8605 // Unboxing a possibly null value.
+
+                    foreach (Job j in csd.Jobs)
+                    {
+                        j.DateCompleated = new DateTime(j.DateCompleated.Year, j.DateCompleated.Month, j.DateCompleated.Day);
+                        j.DueDate = new DateTime(j.DueDate.Year, j.DueDate.Month, j.DueDate.Day);
+                        if (j.Address.Street == null)
+                            j.Address.Street = String.Empty;
+                        else
+                            j.Address.Street = j.Address.Street.Trim();
+
+                        if (j.Address.City == null)
+                            j.Address.City = String.Empty;
+                        else
+                            j.Address.City = j.Address.City.Trim();
+
+                        if (j.Address.Area == null)
+                            j.Address.Area = String.Empty;
+                        else
+                            j.Address.Area = j.Address.Area.Trim();
+
+
+                    }
+
+                    _Quotes.Clear();
+                    _Quotes.AddRange(csd.Jobs);
+                    
+                }
+
+            }
+            catch
+                {
+
+            }
 
         }
     }
