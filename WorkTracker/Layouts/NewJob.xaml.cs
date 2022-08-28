@@ -529,13 +529,13 @@ public partial class NewJob : ContentPage
                 p_customer.SelectedIndex = -1;
                 JobToAdd = new Job();
                 customer = null;
-                await sv_mainScrole.ScrollToAsync(0, 0, true);
+                sv_mainScrole.ScrollToAsync(0, 0, true);
             }
             else
-                await Navigation.PopToRootAsync();
+                Navigation.PopToRootAsync();
         }
         else
-            await Navigation.PopToRootAsync();
+            Navigation.PopToRootAsync();
 
     }
 
