@@ -917,9 +917,10 @@ public partial class PaperView : ContentPage
 		List<string> options = new List<string>();
 		options.Add("Quick Add");
         options.Add("Add Customer");
+        options.Add("Quick Quote");
         string result = await DisplayActionSheet($"{pi.Title}", "Cancel", "", options.ToArray());
 
-		if (result.Contains("Quick"))
+		if (result.Contains("Quick Add"))
 		{
 			//return;
             Location address = new Location()
@@ -929,8 +930,9 @@ public partial class PaperView : ContentPage
                 Area = pi.PropertyArea,
             };
 
+            QuickAddCustomer.IsQuote = false;
             QuickAddCustomer.TheAddress = address;
-			
+
             QuickAddCustomer qac = new QuickAddCustomer();
 			qac.OnJobCreated = (Job j) =>
 			{
@@ -940,10 +942,32 @@ public partial class PaperView : ContentPage
 			return;
 		}
 
-		if (result.Contains("Customer"))
+        if (result.Contains("Quick Quote"))
+        {
+            //return;
+            Location address = new Location()
+            {
+                Street = pi.PropertyStreet,
+                City = pi.PropertyCity,
+                Area = pi.PropertyArea,
+            };
+			QuickAddCustomer.IsQuote = true;
+            QuickAddCustomer.TheAddress = address;
+
+            QuickAddCustomer qac = new QuickAddCustomer();
+            qac.OnJobCreated = (Job j) =>
+            {
+                FullPageLoad();
+            };
+            await Navigation.PushAsync(qac);
+            return;
+        }
+
+        if (result.Contains("Customer"))
 		{
             NewJob.AddNewJob = true;
             NewJob.JobToAdd = null;
+			
             NewJob nj = new NewJob();
             nj.OnJobAdded += (Job j) => {
                 _fullRefresh = true;

@@ -12,12 +12,35 @@
         <Entry x:Name="e_area" Placeholder="Area" Text="{Binding Area}"></Entry>
         <Entry x:Name="e_postcode" Placeholder="PostCode" Text="{Binding Postcode}"></Entry>
         <Entry x:Name="e_notes" Placeholder="Notes"></Entry>
-        <Entry x:Name="e_duration" Placeholder="Duration" Keyboard="Numeric"></Entry>
+       
+        <HorizontalStackLayout>
+            <Entry x:Name="e_frequcney" MinimumWidthRequest="200" Placeholder="Job Frequency" Keyboard="Numeric"></Entry>
+            <Picker x:Name="p_frequencyType" SelectedIndex="0">
+                <Picker.Items>
+                    <x:String>Day</x:String>
+                    <x:String>Week</x:String>
+                    <x:String>Month</x:String>
+                    <x:String>Year</x:String>
+
+                </Picker.Items>
+            </Picker>
+        </HorizontalStackLayout>
+        
+        <HorizontalStackLayout>
+            <Entry x:Name="e_duration" MinimumWidthRequest="200" Placeholder="Duration" Keyboard="Numeric"></Entry>
+            <Label Text="Minutes" VerticalOptions="Center" ></Label>
+        </HorizontalStackLayout>
+
         <Entry x:Name="e_price" Placeholder="Price" Keyboard="Numeric"></Entry>
 
-        <VerticalStackLayout Padding="20">
-        <BoxView HorizontalOptions="FillAndExpand" VerticalOptions="Center" HeightRequest="1" Color="{AppThemeBinding Light=black, Dark=white}"/>
-        </VerticalStackLayout>
+        <HorizontalStackLayout>
+            <Label Text="Start Date:" VerticalOptions="Center" Padding="4"></Label>
+            <DatePicker x:Name="dp_StartDate"></DatePicker>
+        </HorizontalStackLayout>
+
+        <Label></Label>
+        <BoxView HorizontalOptions="FillAndExpand" VerticalOptions="Center" HeightRequest="2" Color="{AppThemeBinding Light=black, Dark=white}"/>
+        <Label></Label>
         <Entry x:Name="e_name" Placeholder="Customer Name"></Entry>
         <HorizontalStackLayout>
             <Entry x:Name="e_phone" Placeholder="Phone Number" Keyboard="Telephone" VerticalOptions="Center" MinimumWidthRequest="180"></Entry>

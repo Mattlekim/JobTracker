@@ -14,7 +14,17 @@ public partial class QuickAddCustomer : ContentPage
 	{
 		InitializeComponent();
 		vsl_main.BindingContext = TheAddress;
-	}
+        if (IsQuote)
+            this.Title = "Add New Quote";
+        else
+            this.Title = "Add New Job";
+
+        e_frequcney.Text = $"{Settings.DefaultFrequence}";
+        e_duration.Text = $"{Settings.DefaultJobDuration}";
+
+ 
+        p_frequencyType.SelectedItem = Settings.DefaultFrequenceType.ToString();
+    }
 
 	private void bnt_SaveJob_Clicked(object sender, EventArgs e)
 	{
@@ -52,6 +62,7 @@ public partial class QuickAddCustomer : ContentPage
         }
 
         float price = 0;
+        int freq = 0;
         
         try
         {
@@ -60,6 +71,22 @@ public partial class QuickAddCustomer : ContentPage
         catch
         {
             DisplayAlert("Error", "Price not valid. Please enter price again", "Ok");
+            return;
+        }
+
+        if (e_frequcney.Text == null || e_frequcney.Text == string.Empty)
+        {
+            DisplayAlert("Error", "Frequency must be 0 or bigger.'", "Ok");
+            return;
+        }
+
+        try
+        {
+            freq = Convert.ToInt32(e_frequcney.Text);
+        }
+        catch
+        {
+            DisplayAlert("Error", "Frequency not valid. Please Enter a number 0 or bigger.", "Ok");
             return;
         }
 
@@ -76,6 +103,8 @@ public partial class QuickAddCustomer : ContentPage
                 DisplayAlert("Error", "You must enter a email to use 'Email Night Before' or 'Email Recipt'", "Ok");
                 return;
             }
+
+
 
         Location address = new Location()
         {
@@ -122,6 +151,8 @@ public partial class QuickAddCustomer : ContentPage
         j.TAC = cb_tac.IsChecked;
         j.EAC = cb_er.IsChecked;
         j.ENB = cb_enb.IsChecked;
+
+        j.SetFrequence(freq, (FrequenceType)p_frequencyType.SelectedIndex);
 
         if (IsQuote)
             Job.AddQuote(j);
