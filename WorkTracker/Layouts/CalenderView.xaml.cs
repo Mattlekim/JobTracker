@@ -569,7 +569,8 @@ public partial class CalenderView : ContentPage
         }
 
         string result = await DisplayActionSheet($"{day.Date.DayOfWeek} {day.Date.ToShortDateString()}", "Cancel", "", options.ToArray());
-
+        if (result == null)
+            return;
         if (result.Contains("Bookin Remaining"))
         {
             BookJobFormcs.jobs = day.Jobs.ToList();

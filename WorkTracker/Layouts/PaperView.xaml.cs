@@ -557,9 +557,28 @@ public partial class PaperView : ContentPage
 			PaperViewFilter.Filter(ref jobs);
 
         jobs = jobs.OrderByDescending(x => x.OrderByDate).ToList();
+        
         PaperItem pi;
 
         List<PaperItem> tmpPaperwork = new List<PaperItem>();
+
+
+        foreach (Job j in jobs)
+        {
+
+            pi = tmpPaperwork.FirstOrDefault(x => x.BaseJobId == j.BaseJobId);
+            if (pi != null)
+            {
+                pi.AddInstance(j);
+            }
+            else
+            {
+                pi = new PaperItem();
+                pi.AddInstance(j);
+                tmpPaperwork.Add(pi);
+            }
+
+        }
 
 
         foreach (Job j in jobs)
@@ -750,7 +769,8 @@ public partial class PaperView : ContentPage
 			options.Add("Clear");
 		options.Add("Custom");
 		string result = await DisplayActionSheet($"Update Record", "Cancel", "", options.ToArray());
-
+		if (result == null)
+			return;
 		if (result.Contains("Done"))
 		{
 			if (result.Contains("-"))//marker for alternative price
@@ -835,38 +855,47 @@ public partial class PaperView : ContentPage
 
 	private async void grid_Ballence_Tapped(object sender, EventArgs e)
 	{
-        TappedEventArgs args = e as TappedEventArgs;
-        Job j = args.Parameter as Job;
+		TappedEventArgs args = e as TappedEventArgs;
+		Job j = args.Parameter as Job;
 
 		if (j == null)
 			return;
 
 		List<string> options = new List<string>();
-		options.Add("Clear Customer Balance");
-		options.Add("Change Customer Balance");
 
+		Customer c = j.GetCustomer();
+		if (c == null)
+			return;
+
+		if (c.Balance > 0)
+			options.Add("Clear Job Dept");
+		else
+			options.Add("Clear JOb Credit");
+
+		if (c.Balance > 0)
+            options.Add("Mark Job As Fully Paid Up");
+
+        options.Add("Change Customer Balance");
 
 		string bal = $"{Gloable.CurrenceSymbol}0.00";
 
-        float owed = 0;
+		float owed = 0;
 
-        if (j.GetCustomer != null)
-		{
-            owed = j.GetCustomer().Balance;
-            bal = $"{Gloable.CurrenceSymbol}{Math.Abs(owed)}";
-			if (owed > 0)
-				bal = $"{bal} owing.";
-			else
-                bal = $"{bal} in credit.";
+		owed = c.Balance;
+		bal = $"{Gloable.CurrenceSymbol}{Math.Abs(owed)}";
+		if (owed > 0)
+			bal = $"{bal} owing.";
+		else
+			bal = $"{bal} in credit.";
 
-        }
-		
 
-        string result = await DisplayActionSheet($"Balance {bal}", "Cancel", "", options.ToArray());
 
+		string result = await DisplayActionSheet($"Balance {bal}", "Cancel", "", options.ToArray());
+		if (result == null)
+			return;
 		if (result.Contains("Clear"))
 		{
-            string msg = string.Empty;
+			string msg = string.Empty;
 			if (owed > 0)
 			{
 				msg = $"The customers owes you {Gloable.CurrenceSymbol}{Math.Abs(owed)}. Are you sure you want to clear all the customer dept?";
@@ -874,22 +903,54 @@ public partial class PaperView : ContentPage
 			}
 			else
 			{
-                msg = $"The customers is {Gloable.CurrenceSymbol}{Math.Abs(owed)} in credit with you. Are you sure you want to clear all the customer credit?";
-                bal = "Clear Customer Credit?";
+				msg = $"The customers is {Gloable.CurrenceSymbol}{Math.Abs(owed)} in credit with you. Are you sure you want to clear all the customer credit?";
+				bal = "Clear Customer Credit?";
 			}
 
-			
-			
-			if (await DisplayAlert(bal, msg, "Confirm", "Cancel"))
+
+
+			if (await DisplayAlert(bal, msg, "Clear Balance", "Cancel"))
 			{
-				Customer c = j.GetCustomer();
+
 				if (c != null)
 					c.Balance = 0;
 				PaperItem pi = j.Data as PaperItem;
 				pi.Owing = $"Nothing Owed";
 				pi.UpdateColors();
 
-                Customer.Save();
+				Customer.Save();
+			}
+		}
+
+		if (result.Contains("Mark"))
+		{
+			string msg = string.Empty;
+
+			msg = $"The customers owes you {Gloable.CurrenceSymbol}{Math.Abs(owed)}. Mark them as fully paid up?";
+			bal = "Customer Paid?";
+
+			if (await DisplayAlert(bal, msg, "Yes Paid", "Cancel"))
+			{
+
+				//find every instance of job and mark it as paid
+				Job jInstance = null;
+				jInstance = Job.Query(QueryType.CustomerId, j.PreviousJobId).FirstOrDefault();
+				
+				while (jInstance != null)
+				{
+					j.IsPaidFor = true;
+                   
+
+                    jInstance = Job.Query(QueryType.CustomerId, j.PreviousJobId).FirstOrDefault();
+                }
+                Payment.Add(j.CustomerId, c.Balance, PaymentMethod.Cash, string.Empty);
+                if (c != null)
+					c.Balance = 0;
+				PaperItem pi = j.Data as PaperItem;
+				pi.Owing = $"Nothing Owed";
+				pi.UpdateColors();
+
+				Customer.Save();
 			}
 		}
     }
@@ -920,8 +981,9 @@ public partial class PaperView : ContentPage
         options.Add("Add Customer");
         options.Add("Quick Quote");
         string result = await DisplayActionSheet($"{pi.Title}", "Cancel", "", options.ToArray());
-
-		if (result.Contains("Quick Add"))
+        if (result == null)
+            return;
+        if (result.Contains("Quick Add"))
 		{
 			//return;
             Location address = new Location()
@@ -1004,8 +1066,9 @@ public partial class PaperView : ContentPage
         options.Add("Area");
         options.Add("Group");
         string result = await DisplayActionSheet("Select View", null, null, options.ToArray());
-
-		switch(result)
+        if (result == null)
+            return;
+        switch (result)
 		{
 			case "City":
 				SetFilter(Filter_City);
