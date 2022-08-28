@@ -55,6 +55,8 @@ public partial class PaperView : ContentPage
 		public string PropertyCity { get; set; }
 		public string PropertyArea { get; set; }
 		public string PropertyNumber { get; set; }
+
+		public int GroupId = 0;
 		public DateTime StartDate { get; set; } = new DateTime(2000, 1, 1);
 		public List<JobInstance> Instances { get; set; } = new List<JobInstance>();
 		public int BaseJobId { get; set; } = -1;
@@ -870,7 +872,7 @@ public partial class PaperView : ContentPage
 		if (c.Balance > 0)
 			options.Add("Clear Job Dept");
 		else
-			options.Add("Clear JOb Credit");
+			options.Add("Clear Job Credit");
 
 		if (c.Balance > 0)
             options.Add("Mark Job As Fully Paid Up");
@@ -934,25 +936,43 @@ public partial class PaperView : ContentPage
 
 				//find every instance of job and mark it as paid
 				Job jInstance = null;
-				jInstance = Job.Query(QueryType.CustomerId, j.PreviousJobId).FirstOrDefault();
+				jInstance = j;
 				
 				while (jInstance != null)
 				{
-					j.IsPaidFor = true;
+					if (jInstance.IsCompleted)
+						jInstance.IsPaidFor = true;
                    
 
-                    jInstance = Job.Query(QueryType.CustomerId, j.PreviousJobId).FirstOrDefault();
+                    jInstance = Job.Query(QueryType.CustomerId, jInstance.PreviousJobId).FirstOrDefault();
                 }
+
+                jInstance = Job.Query(QueryType.CustomerId, j.JobNextId).FirstOrDefault();
+
+                while (jInstance != null)
+                {
+                    if (jInstance.IsCompleted)
+                        jInstance.IsPaidFor = true;
+
+
+                    jInstance = Job.Query(QueryType.CustomerId, jInstance.JobNextId).FirstOrDefault();
+                }
+
                 Payment.Add(j.CustomerId, c.Balance, PaymentMethod.Cash, string.Empty);
                 if (c != null)
 					c.Balance = 0;
 				PaperItem pi = j.Data as PaperItem;
 				pi.Owing = $"Nothing Owed";
 				pi.UpdateColors();
+                pi.UpdatePaperRecordI3(j);
 
-				Customer.Save();
-			}
-		}
+                Customer.Save();
+				Job.Save();
+
+            
+            }
+        }
+		
     }
 
 	private bool _fullRefresh = false;
@@ -972,7 +992,7 @@ public partial class PaperView : ContentPage
 	{
         TappedEventArgs args = e as TappedEventArgs;
 		PaperItem pi = args.Parameter as PaperItem;
-
+		
 		if (pi.Title == " ")
 			return;
 
@@ -980,6 +1000,9 @@ public partial class PaperView : ContentPage
 		options.Add("Quick Add");
         options.Add("Add Customer");
         options.Add("Quick Quote");
+
+        options.Add("-----------");
+        options.Add("Mark All Jobs As Done");
         string result = await DisplayActionSheet($"{pi.Title}", "Cancel", "", options.ToArray());
         if (result == null)
             return;
