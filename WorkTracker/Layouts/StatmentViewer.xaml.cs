@@ -462,10 +462,14 @@ public partial class StatmentViewer : ContentPage
                 //now we look for a difference between the csvfile referecen and our modifyed reference!
                 if (refrences[i] != CsvFile.data[i][Ref])
                 {
-
+                    Customer customer = Payment.FindCustomerWithPaymentReference(CsvFile.data[i][Ref]);
+                    if (customer != null)
+                    {
+                        customer.PaymentRefrences.Add(refrences[i]);
+                    }
                 }
 
-                pay = Payment.AddToCustomer(CsvFile.data[i][Ref], (float)Convert.ToDouble(CsvFile.data[i][Amount]), dt, PaymentMethod.Bank, out customerFound);
+                pay = Payment.AddToCustomer(refrences[i], (float)Convert.ToDouble(CsvFile.data[i][Amount]), dt, PaymentMethod.Bank, out customerFound);
                 if (pay != null)
                     payments.Add(pay);
                 else
@@ -493,7 +497,10 @@ public partial class StatmentViewer : ContentPage
                 msg += $"{unmatch} payments not matched to customer";
 
             DisplayAlert($"Imported {payments.Count} payments. {failed.Count} not imported", msg, "Ok");
+            Customer.Save();
+            Payment.Save();
 
+            Navigation.PopAsync();
             
         }
         catch
