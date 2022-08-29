@@ -4,8 +4,19 @@
              x:Class="UiInterface.Layouts.LinkCustomerLayout"
              Title="LinkCustomerLayout">
     <StackLayout>
-        <Picker x:Name="p_customerList" Title="Select Customer"></Picker>
-        <Label x:Name="l_pRef" Text="Payment Reference"></Label>
-        <Button Text="Link Payment To Customer" Clicked="bnt_Link"></Button>
+        <Label x:Name="l_pRef" Text="Payment Reference" Padding="2" HorizontalOptions="Center" FontSize="Large" FontAttributes="Bold"></Label>
+
+        <!--Picker x:Name="p_customerList" Title="Select Customer"></Picker-->
+        <SearchBar x:Name="sb_Customers" MinimumWidthRequest="200" Placeholder="Search Customer" TextChanged="sb_TextChanged"></SearchBar>
+        <ListView x:Name="lv_Customers">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <ViewCell>
+                        <Label Text="{Binding FormattedAddress}"></Label>
+                    </ViewCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <Button Text="Link Payment To Customer" Clicked="bnt_Link" TextColor="Green" BorderColor="Green" BackgroundColor="Transparent" BorderWidth="2"></Button>
     </StackLayout>
 </ContentPage>

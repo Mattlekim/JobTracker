@@ -5,19 +5,13 @@
              Title="StatmentViewer">
     <ScrollView VerticalScrollBarVisibility="Always" Orientation="Both">
         <VerticalStackLayout>
-        <Label x:Name="l_nextField" Text="Make sure that the higlighted fields are in the correct posstions" HorizontalOptions="Start" BackgroundColor="DarkOrange" IsVisible="false" FontSize="Title"></Label>
-        <HorizontalStackLayout>
+            <Label x:Name="l_nextField" Text="Make sure that the higlighted fields are in the correct posstions" HorizontalOptions="Start" BackgroundColor="DarkOrange" IsVisible="false" FontSize="Title"></Label>
+            <HorizontalStackLayout HorizontalOptions="Center">
+                <Button Text="Import Payments" Clicked="bnt_importPayments" TextColor="Green" BorderColor="Green" BorderWidth="2" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
+            </HorizontalStackLayout>
+            <Line HorizontalOptions="StartAndExpand"></Line>
 
-
-        <Button Text="Import Payments" Clicked="bnt_importPayments"></Button>
-            
-        </HorizontalStackLayout>
-        <Line HorizontalOptions="StartAndExpand"></Line>
-       
-        <AbsoluteLayout x:Name="hsl_header"></AbsoluteLayout>
+            <AbsoluteLayout x:Name="hsl_header"></AbsoluteLayout>
         </VerticalStackLayout>
     </ScrollView>
-    
-
-
 </ContentPage>

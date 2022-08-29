@@ -2,9 +2,9 @@ namespace UiInterface.Layouts;
 using Kernel;
 public partial class StatmentViewer : ContentPage
 {
-	public static CSVFile CsvFile;
+    public static CSVFile CsvFile;
 
-	public static int Date = -1, Ref = -1, Amount = -1;
+    public static int Date = -1, Ref = -1, Amount = -1;
     public static bool DebitAndCreditTogether = false;
 
     private bool _selectingCollums = false;
@@ -159,12 +159,15 @@ public partial class StatmentViewer : ContentPage
                 {
                     if (x < 3)
                         if (linked)
-                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]], TextColor = Colors.Green }, x, row + 2);
+                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]], Padding = 2, TextColor = Colors.Green }, x, row + 2);
                         else
                             if (ingnore)
-                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]], TextColor = Colors.Grey }, x, row + 2);
+                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]], Padding = 2, TextColor = Colors.Grey }, x, row + 2);
                         else
-                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]] }, x, row + 2);
+                            if (x == 0)
+                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]], TextColor=Colors.LightGray, Padding = 2 }, x, row + 2); //the date coloum
+                        else
+                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]], Padding = 2 }, x, row + 2);
                 }
                 //if (add)
                 if (ingnore)
@@ -174,15 +177,41 @@ public partial class StatmentViewer : ContentPage
                 else
                 if (linked)
                 {
-                    _grid.Add(new Label() { Text = "Already Linked"}, 3, row + 2);
+                    HorizontalStackLayout hsl = new HorizontalStackLayout();
+                 //   hsl.Add(new Label() { Text = "Linked" });
+
+                    _paymentsToProcess.Add(y);
+                    Button b = new Button()
+                    {
+                        Text = "Remove Link",
+                        BackgroundColor = Colors.Transparent,
+                        BorderColor = Colors.Red,
+                        BorderWidth = 2,
+                        TextColor = Colors.Red,
+                        HorizontalOptions = LayoutOptions.Start,
+                        VerticalOptions = LayoutOptions.Center,
+                        Padding = 4,
+                        ClassId = CsvFile.data[y][Ref],
+
+                    };
+                    b.Clicked += bnt_RemoveLink_Clicked;
+                    // _grid.Add(b, 3, row + 2);
+                    hsl.Add(b);
+
+                    _grid.Add(hsl, 3, row + 2);
                     _paymentsToProcess.Add(y);
                 }
                 else
                 {
+                    HorizontalStackLayout hsl = new HorizontalStackLayout();
                     _paymentsToProcess.Add(y);
                     Button b = new Button()
                     {
                         Text = "Link",
+                        BackgroundColor = Colors.Transparent,
+                        BorderColor = Colors.Green,
+                        BorderWidth = 2,
+                        TextColor = Colors.Green,
                         HorizontalOptions = LayoutOptions.Start,
                         VerticalOptions = LayoutOptions.Center,
                         Padding = 4,
@@ -190,12 +219,16 @@ public partial class StatmentViewer : ContentPage
 
                     };
                     b.Clicked += B_Clicked;
-                    _grid.Add(b, 3, row + 2);
-
+                    // _grid.Add(b, 3, row + 2);
+                    hsl.Add(b);
 
                     b = new Button()
                     {
                         Text = "Ignore",
+                        BackgroundColor = Colors.Transparent,
+                        BorderColor = Colors.Blue,
+                        BorderWidth = 2,
+                        TextColor = Colors.Blue,
                         HorizontalOptions = LayoutOptions.Center,
                         VerticalOptions = LayoutOptions.Center,
                         Padding = 4,
@@ -203,7 +236,10 @@ public partial class StatmentViewer : ContentPage
 
                     };
                     b.Clicked += bnt_ignore;
-                    _grid.Add(b, 3, row + 2);
+                    //_grid.Add(b, 3, row + 2);
+                    hsl.Add(b);
+
+                    _grid.Add(hsl, 3, row + 2);
                 }
                 row++;
             }
@@ -220,6 +256,23 @@ public partial class StatmentViewer : ContentPage
         hsl_header.Add(_grid);
     }
 
+    private async void bnt_RemoveLink_Clicked(object sender, EventArgs e)
+    {
+        Button b = sender as Button;
+
+        LinkCustomerLayout.Reference = b.ClassId;
+
+        if (await DisplayAlert("Confirm", $"Are you sure you wish to remove the link for {b.ClassId}?", "Remove Link", "Cancel"))
+        {
+            Customer c = Customer.Query().FirstOrDefault(x=>x.PaymentRefrences.Contains(b.ClassId));
+            if (c!= null)
+            {
+                c.PaymentRefrences.Remove(b.ClassId);
+
+                BuildGrid();
+            }
+        }
+    }
     private void bnt_ignore(object sender, EventArgs e)
     {
         Button b = sender as Button;
@@ -287,9 +340,9 @@ public partial class StatmentViewer : ContentPage
     }
 
     public StatmentViewer()
-	{
-		//date ref amount
-		InitializeComponent();
+    {
+        //date ref amount
+        InitializeComponent();
 
         NavigatedTo += StatmentViewer_NavigatedTo;
 
