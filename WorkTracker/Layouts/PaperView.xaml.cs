@@ -662,6 +662,7 @@ public partial class PaperView : ContentPage
         //now check the dates
         PaperItem currentItem;
         PaperItem nextItem;
+		int groupId = 0;
         for (int i = 0; i < PaperItems.Count - 1; i++)
         {
             currentItem = PaperItems[i];
@@ -669,6 +670,8 @@ public partial class PaperView : ContentPage
 
             if (!currentItem.ShowJobInformation) //if this is just showing the street etc
             {
+                groupId++;
+
                 if (nextItem.JobI3 != null)
                 {
                     currentItem.I3 = nextItem.JobI3.OrderByDate.ToString("dd MMM yy");
@@ -676,17 +679,33 @@ public partial class PaperView : ContentPage
                 }
                 else
                     currentItem.I3RowSpan = 1;
+				currentItem.GroupId = groupId;
+                
             }
             else
             {
+                currentItem.GroupId = groupId;
                 if (currentItem.JobI3 != null && nextItem.JobI3 != null)
-                    if (currentItem.JobI3.OrderByDate != nextItem.JobI3.OrderByDate)
-                    {
-                        PaperItems.Insert(i + 1, new PaperItem() { ShowJobInformation = false });
-                    }
-            }
-        }
+					if (currentItem.JobI3.OrderByDate != nextItem.JobI3.OrderByDate)
+					{
+						PaperItem pai = new PaperItem();
+						pai = new PaperItem() { ShowJobInformation = false };
+						pai.GroupId = groupId;
+						PaperItems.Insert(i + 1, pai);
 
+					}
+					
+						
+            }
+
+			
+        }
+		PaperItems[PaperItems.Count - 1].GroupId = groupId;
+	/*	foreach (PaperItem p in PaperItems)
+		{
+			p.Title = $":: {p.GroupId}";
+			p.RaisePropertyChanged("PropertyStreet");
+		}*/
         c_jobList.ItemsSource = PaperItems;
     }
 
@@ -769,6 +788,7 @@ public partial class PaperView : ContentPage
 
 		if (j.IsCompleted || j.IsPaidFor)
 			options.Add("Clear");
+
 		options.Add("Custom");
 		string result = await DisplayActionSheet($"Update Record", "Cancel", "", options.ToArray());
 		if (result == null)
@@ -1001,8 +1021,20 @@ public partial class PaperView : ContentPage
         options.Add("Add Customer");
         options.Add("Quick Quote");
 
-        options.Add("-----------");
-        options.Add("Mark All Jobs As Done");
+		int count = 0;
+		foreach(PaperItem paperi in PaperItems)
+			if (paperi.GroupId == pi.GroupId)
+			{
+				if (paperi.JobI3 != null)
+					if (!paperi.JobI3.IsCompleted)
+						count++;
+			}
+
+		if (count > 1)
+		{
+			options.Add("-----------");
+			options.Add($"Mark {count} below as compleated");
+		}
         string result = await DisplayActionSheet($"{pi.Title}", "Cancel", "", options.ToArray());
         if (result == null)
             return;
@@ -1061,6 +1093,20 @@ public partial class PaperView : ContentPage
             await Navigation.PushAsync(nj);
             return;
 		}
+
+		if (result.Contains("Mark"))
+		{
+            foreach (PaperItem paperi in PaperItems)
+                if (paperi.GroupId == pi.GroupId)
+                {
+					if (paperi.JobI3 != null)
+						if (!paperi.JobI3.IsCompleted)
+						{
+							paperi.JobI3.MarkJobDone();
+							paperi.UpdatePaperRecordI3(paperi.JobI3);
+						}
+                }
+        }
     }
 
 	
