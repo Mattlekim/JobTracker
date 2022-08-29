@@ -426,7 +426,32 @@ public partial class StatmentViewer : ContentPage
         List<string> failed = new List<string>();
         int unmatch = 0;
 
-        try
+        //what if same person pays twice on same day
+        List<string> refrences = new List<string>();
+
+        for (int i = 0; i < CsvFile.data.Length; i++)
+            refrences.Add(CsvFile.data[i][Ref]);
+
+        List<string> checker = new List<string>();
+
+        string tmp = string.Empty;
+        int tmpint = 0;
+        
+        foreach (int i in _paymentsToProcess)
+        {
+     
+            tmp = CsvFile.data[i][Ref] + CsvFile.data[i][Date];
+
+            tmpint = checker.FindAll(x => x == tmp).Count;
+
+            if (tmpint > 0)
+                refrences[i] = $"{refrences[i]}{tmpint}";
+
+            checker.Add(tmp);
+
+        }
+
+            try
         {
             foreach (int i in _paymentsToProcess)
             {
