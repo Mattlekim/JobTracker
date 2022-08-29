@@ -195,7 +195,6 @@ public partial class StatmentViewer : ContentPage
                     HorizontalStackLayout hsl = new HorizontalStackLayout();
                  //   hsl.Add(new Label() { Text = "Linked" });
 
-                    _paymentsToProcess.Add(y);
                     Button b = new Button()
                     {
                         Text = "Remove Link",
@@ -439,7 +438,10 @@ public partial class StatmentViewer : ContentPage
         
         foreach (int i in _paymentsToProcess)
         {
-     
+            if (i == 20)
+            {
+
+            }
             tmp = CsvFile.data[i][Ref] + CsvFile.data[i][Date];
 
             tmpint = checker.FindAll(x => x == tmp).Count;
@@ -456,6 +458,13 @@ public partial class StatmentViewer : ContentPage
             foreach (int i in _paymentsToProcess)
             {
                 dt = UsfulFuctions.StringToDateTime(CsvFile.data[i][Date]);
+
+                //now we look for a difference between the csvfile referecen and our modifyed reference!
+                if (refrences[i] != CsvFile.data[i][Ref])
+                {
+
+                }
+
                 pay = Payment.AddToCustomer(CsvFile.data[i][Ref], (float)Convert.ToDouble(CsvFile.data[i][Amount]), dt, PaymentMethod.Bank, out customerFound);
                 if (pay != null)
                     payments.Add(pay);

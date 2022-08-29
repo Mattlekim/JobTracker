@@ -29,25 +29,40 @@ namespace Kernel
         /// </summary>
         private static List<Payment> _Payments = new List<Payment>();
 
-        public static Payment AddToCustomer(string paymentRef, float amount, DateTime date, PaymentMethod paymentType, out bool found)
+        public static Customer FindCustomerWithPaymentReference(string paymentRef)
         {
-            Payment p = new Payment();
-
             List<Customer> customers = Customer.Query();
             foreach (Customer c in customers)
                 foreach (string s in c.PaymentRefrences)
                 {
                     if (s == paymentRef)
                     {
-                        List<Payment> payments = _Payments.FindAll(x => x.CustomerReference == paymentRef && x.Amount == amount && x.Date == date);
+                        //if we have a match
+                        return c;
+                    }
+                }
 
+            return null;
+        }
+        public static Payment AddToCustomer(string paymentRef, float amount, DateTime date, PaymentMethod paymentType, out bool found)
+        {
+            Payment p = new Payment();
+
+            List<Customer> customers = Customer.Query();
+
+            List<Payment> payments = _Payments.FindAll(x => x.CustomerReference == paymentRef && x.Amount == amount && x.Date == date);
+
+            foreach (Customer c in customers)
+                foreach (string s in c.PaymentRefrences)
+                {
+                    if (s == paymentRef)
+                    {
                         found = true;
                         if (payments == null || payments.Count == 0)
                             return Add(c.Id, amount, paymentType, paymentRef, date);
                         return null;
                     }
                 }
-
             found = false;
             return null;
         }
