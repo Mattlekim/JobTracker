@@ -172,7 +172,22 @@ public partial class StatmentViewer : ContentPage
                 //if (add)
                 if (ingnore)
                 {
-                    _grid.Add(new Label() { Text = "Ingnored" }, 3, row + 2);
+                    Button b = new Button()
+                    {
+                        Text = "Resume",
+                        BackgroundColor = Colors.Transparent,
+                        BorderColor = Colors.Green,
+                        BorderWidth = 2,
+                        TextColor = Colors.Green,
+                        HorizontalOptions = LayoutOptions.Start,
+                        VerticalOptions = LayoutOptions.Center,
+                        Padding = 4,
+                        ClassId = CsvFile.data[y][Ref],
+
+                    };
+                    b.Clicked += bnt_CancelIgnored_Clicked;
+                    //_grid.Add(new Label() { Text = "Ingnored" }, 3, row + 2);
+                    _grid.Add(b, 3, row + 2);
                 }
                 else
                 if (linked)
@@ -256,6 +271,15 @@ public partial class StatmentViewer : ContentPage
         hsl_header.Add(_grid);
     }
 
+
+    private async void bnt_CancelIgnored_Clicked(object sender, EventArgs e)
+    {
+        Button b = sender as Button;
+
+        Payment.IgnorePaymentList.Remove(b.ClassId);
+        BuildGrid();
+        Payment.Save();
+    }
     private async void bnt_RemoveLink_Clicked(object sender, EventArgs e)
     {
         Button b = sender as Button;
@@ -443,6 +467,11 @@ public partial class StatmentViewer : ContentPage
             DisplayAlert("Error", "There was an error with import. Error Code 1001", "Ok");
         }
         //Payment.AddToCustomer()
+    }
+
+    private void bnt_Help_Clicked(object sender, EventArgs e)
+    {
+        DisplayAlert("Help", "Here you can update customers who have paid online.\nSimple click on link to link a payment to a customer, or click ignore to ignore that payment. \nOnce you are ready to update your records press on Import", "Ok");
     }
 
     private bool Skip = false;

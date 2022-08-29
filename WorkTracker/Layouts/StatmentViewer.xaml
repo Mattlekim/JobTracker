@@ -4,11 +4,21 @@
              x:Class="UiInterface.Layouts.StatmentViewer"
              Title="StatmentViewer">
     <ScrollView VerticalScrollBarVisibility="Always" Orientation="Both">
-        <VerticalStackLayout>
+        <VerticalStackLayout Padding="2">
             <Label x:Name="l_nextField" Text="Make sure that the higlighted fields are in the correct posstions" HorizontalOptions="Start" BackgroundColor="DarkOrange" IsVisible="false" FontSize="Title"></Label>
-            <HorizontalStackLayout HorizontalOptions="Center">
-                <Button Text="Import Payments" Clicked="bnt_importPayments" TextColor="Green" BorderColor="Green" BorderWidth="2" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
-            </HorizontalStackLayout>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Row="0" Grid.Column="0" Text="Import Payments" Clicked="bnt_importPayments" TextColor="Green" BorderColor="Green" BorderWidth="2" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
+                    <Button Grid.Row="0" Grid.Column="2" Text="Help" Clicked="bnt_Help_Clicked" TextColor="Orange" BorderColor="Orange" BorderWidth="2" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
+                </Grid>
+                
             <Line HorizontalOptions="StartAndExpand"></Line>
 
             <AbsoluteLayout x:Name="hsl_header"></AbsoluteLayout>
