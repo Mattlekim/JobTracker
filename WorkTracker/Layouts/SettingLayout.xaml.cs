@@ -412,6 +412,7 @@ public partial class SettingLayout : ContentPage
                     Job.Reset();
                     Job.Load();
                     Payment.Load();
+                    PaperView.ForceRefresh();
                     await DisplayAlert("Success", "Backup has be restored sucsessfuly. Application will now restart", "ok");
                     
                     
@@ -439,6 +440,8 @@ public partial class SettingLayout : ContentPage
                 Job.Save();
                 Customer.Save();
                 Payment.Save();
+
+                PaperView.ForceRefresh();
                 await DisplayAlert("Complete", "All data erased", "Ok");
             }
     }

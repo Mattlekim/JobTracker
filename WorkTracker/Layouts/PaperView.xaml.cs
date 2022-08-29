@@ -508,6 +508,12 @@ public partial class PaperView : ContentPage
 	public JobFilterBase PaperViewFilter;
 
 	private CityFilter Filter_City;
+
+	public static void ForceRefresh()
+	{
+		_fullRefresh = true;	
+	}
+	
 	public PaperView()
 	{
 		InitializeComponent();
@@ -523,8 +529,24 @@ public partial class PaperView : ContentPage
 
 
 
+		if (Job.Query().Count <= 0)
+		{
+			l_showNoJobs.IsEnabled = true;
+			l_showNoJobs.IsVisible = true;
 
-      //  SetFilter(cf);
+			bnt_ViewTutorial.IsVisible = true;
+			bnt_ViewTutorial.IsEnabled = true;
+		}
+		else
+		{
+			l_showNoJobs.IsEnabled = false;
+			l_showNoJobs.IsVisible = false;
+
+            bnt_ViewTutorial.IsVisible = false;
+			bnt_ViewTutorial.IsEnabled = false;
+        }
+
+        //  SetFilter(cf);
         FullPageLoad();
 
 		
@@ -700,7 +722,8 @@ public partial class PaperView : ContentPage
 
 			
         }
-		PaperItems[PaperItems.Count - 1].GroupId = groupId;
+		if (PaperItems.Count > 0)
+			PaperItems[PaperItems.Count - 1].GroupId = groupId;
 	/*	foreach (PaperItem p in PaperItems)
 		{
 			p.Title = $":: {p.GroupId}";
@@ -720,7 +743,23 @@ public partial class PaperView : ContentPage
 
 		if (_fullRefresh)
 		{
-			FullPageLoad();
+            if (Job.Query().Count <= 0)
+            {
+                l_showNoJobs.IsEnabled = true;
+                l_showNoJobs.IsVisible = true;
+
+                bnt_ViewTutorial.IsVisible = true;
+                bnt_ViewTutorial.IsEnabled = true;
+            }
+            else
+            {
+                l_showNoJobs.IsEnabled = false;
+                l_showNoJobs.IsVisible = false;
+
+                bnt_ViewTutorial.IsVisible = false;
+                bnt_ViewTutorial.IsEnabled = false;
+            }
+            FullPageLoad();
 			return;
 
 		}
@@ -995,7 +1034,7 @@ public partial class PaperView : ContentPage
 		
     }
 
-	private bool _fullRefresh = false;
+	private static bool _fullRefresh = false;
 	private void bnt_newJob_Clicked(object sender, EventArgs e)
 	{
 		NewJob.AddNewJob = true;
@@ -1172,5 +1211,10 @@ public partial class PaperView : ContentPage
 	private void tbi_ShowOptions_Clicked(object sender, EventArgs e)
 	{
         g_options.IsVisible = true;
+    }
+
+	private void bnt_ViewTutorial_Clicked(object sender, EventArgs e)
+	{
+
     }
 }

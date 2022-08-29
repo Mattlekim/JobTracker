@@ -21,9 +21,9 @@
             <ShellContent ContentTemplate="{DataTemplate local:PaperView}" IsVisible="True"/>
         </Tab>
 
-        <ShellContent Title="Work" Icon="work.png" ContentTemplate="{DataTemplate local:WorkPlanner}" >
+        <!--ShellContent Title="Work" Icon="work.png" ContentTemplate="{DataTemplate local:WorkPlanner}" >
           
-        </ShellContent>
+        </ShellContent-->
         <Tab Title="Calendar"
             Icon="planner.png"
              >

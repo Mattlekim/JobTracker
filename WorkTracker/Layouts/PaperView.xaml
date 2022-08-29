@@ -66,6 +66,9 @@
                 <ColumnDefinition></ColumnDefinition>
             </Grid.ColumnDefinitions>
         </Grid>
+
+        <Label x:Name="l_showNoJobs" Text="Welcome To Work Tracker. There are currently no jobs. Use the menu to add a job." FontSize="Large" HorizontalOptions="Center"></Label>
+        <Button x:Name="bnt_ViewTutorial"  Text="View Tutorial" HorizontalOptions="Center" TextColor="Green" BackgroundColor="Transparent" BorderColor="Green" BorderWidth="2" FontAttributes="Bold" Clicked="bnt_ViewTutorial_Clicked"></Button>
         <CollectionView x:Name="c_jobList" VerticalOptions="StartAndExpand">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
