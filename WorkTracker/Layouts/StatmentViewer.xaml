@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.StatmentViewer"
              Title="StatmentViewer">
-    <ScrollView VerticalScrollBarVisibility="Always" Orientation="Both">
+    <ScrollView x:Name="sv_main" VerticalScrollBarVisibility="Always" Orientation="Both">
         <VerticalStackLayout Padding="2">
             <Label x:Name="l_nextField" Text="Make sure that the higlighted fields are in the correct posstions" HorizontalOptions="Start" BackgroundColor="DarkOrange" IsVisible="false" FontSize="Title"></Label>
                 <Grid>

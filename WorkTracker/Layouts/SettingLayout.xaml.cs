@@ -81,9 +81,9 @@ public class Settings
         sd.DefaultJobDuration = DefaultJobDuration;
         sd.HaveShowenJobIntro = HaveShowenJobIntro;
 
-        sd.SymbolDone = PaperView.PaperItem.StringDone;
-        sd.SymbolPaid = PaperView.PaperItem.StringPaid;
-        sd.SymbolDonePaid = PaperView.PaperItem.StringDonePaid;
+        sd.SymbolDone = PaperItem.StringDone;
+        sd.SymbolPaid = PaperItem.StringPaid;
+        sd.SymbolDonePaid = PaperItem.StringDonePaid;
 
         using (FileStream fs = File.Create(fileLocation))
         {
@@ -134,18 +134,18 @@ public class Settings
                 DefaultJobDuration = sd.DefaultJobDuration;
                 HaveShowenJobIntro = sd.HaveShowenJobIntro;
 
-                PaperView.PaperItem.StringDone = sd.SymbolDone;
-                PaperView.PaperItem.StringPaid = sd.SymbolPaid;
-                PaperView.PaperItem.StringDonePaid = sd.SymbolDonePaid;
+                PaperItem.StringDone = sd.SymbolDone;
+                PaperItem.StringPaid = sd.SymbolPaid;
+                PaperItem.StringDonePaid = sd.SymbolDonePaid;
 
-                if (PaperView.PaperItem.StringPaid == null)
-                    PaperView.PaperItem.StringPaid = "/";
+                if (PaperItem.StringPaid == null)
+                    PaperItem.StringPaid = "/";
 
-                if (PaperView.PaperItem.StringDone == null)
-                    PaperView.PaperItem.StringDone = "\\";
+                if (PaperItem.StringDone == null)
+                    PaperItem.StringDone = "\\";
 
-                if (PaperView.PaperItem.StringDonePaid == null)
-                    PaperView.PaperItem.StringDonePaid = "X";
+                if (PaperItem.StringDonePaid == null)
+                    PaperItem.StringDonePaid = "X";
                 if (sd.JobNames != null && sd.JobNames.Count > 0)
                 {
                     Job.JobNames.Clear();
@@ -199,9 +199,9 @@ public partial class SettingLayout : ContentPage
         e_defaultDuration.Text = Settings.DefaultJobDuration.ToString();
 
         
-        e_pv_done.Text = PaperView.PaperItem.StringDone;
-        e_pv_paid.Text = PaperView.PaperItem.StringPaid;
-        e_pv_donepaid.Text = PaperView.PaperItem.StringDonePaid;
+        e_pv_done.Text = PaperItem.StringDone;
+        e_pv_paid.Text = PaperItem.StringPaid;
+        e_pv_donepaid.Text = PaperItem.StringDonePaid;
         SetZindexLables();
     }
 
@@ -240,9 +240,9 @@ public partial class SettingLayout : ContentPage
 
         Settings.DefaultJobDuration = (int)Convert.ToDecimal(e_defaultDuration.Text);
 
-        PaperView.PaperItem.StringDone = e_pv_done.Text;
-        PaperView.PaperItem.StringPaid = e_pv_paid.Text;
-        PaperView.PaperItem.StringDonePaid = e_pv_donepaid.Text;
+        PaperItem.StringDone = e_pv_done.Text;
+        PaperItem.StringPaid = e_pv_paid.Text;
+        PaperItem.StringDonePaid = e_pv_donepaid.Text;
 
         Settings.Save();
     }

@@ -113,6 +113,7 @@ public partial class StatmentViewer : ContentPage
         int row = 0;
         bool linked = false;
         bool ingnore = false;
+        int size = 0;
         if (!_selectingCollums)
 
             for (int y = 0; y < CsvFile.data.Length; y++)
@@ -155,6 +156,7 @@ public partial class StatmentViewer : ContentPage
               
 
                 _grid.RowDefinitions.Add(new RowDefinition());
+                size++;
                 for (int x = 0; x < 4; x++)
                 {
                     if (x < 3)
@@ -268,6 +270,9 @@ public partial class StatmentViewer : ContentPage
             }
 
         hsl_header.Add(_grid);
+
+        sv_main.MinimumHeightRequest = size * 60 + 100;
+        sv_main.VerticalScrollBarVisibility = ScrollBarVisibility.Always;
     }
 
 
@@ -291,6 +296,13 @@ public partial class StatmentViewer : ContentPage
             if (c!= null)
             {
                 c.PaymentRefrences.Remove(b.ClassId);
+                //remove alternativ refrences for example paying on same day
+                c.PaymentRefrences.Remove($"{b.ClassId}{1}");
+                c.PaymentRefrences.Remove($"{b.ClassId}{2}");
+                c.PaymentRefrences.Remove($"{b.ClassId}{3}");
+                c.PaymentRefrences.Remove($"{b.ClassId}{4}");
+
+
 
                 BuildGrid();
             }

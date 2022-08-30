@@ -6,6 +6,501 @@ using System.ComponentModel;
 
 using Kernel.Fiilters;
 
+public class JobInstance
+{
+    public DateTime JobDate { get; set; }
+    public bool Compleated { get; set; }
+    public bool Paid { get; set; }
+    public float Price { get; set; }
+    public string Label { get; set; }
+    public string Notes { get; set; }
+
+    public bool IsPlaceHolder { get; set; } = false;
+
+
+    public static JobInstance PlaceHolder()
+    {
+        return new JobInstance()
+        {
+            IsPlaceHolder = true
+        };
+    }
+}
+public class PaperItem : INotifyPropertyChanged
+{
+
+	public void RaisePropertyChanged(string propertyName)
+	{
+		PropertyChangedEventHandler handler = PropertyChanged;
+		if (handler != null)
+		{
+			handler(this, new PropertyChangedEventArgs(propertyName));
+		}
+	}
+
+	public static string StringPaid = "/", StringDone = "\\", StringDonePaid = "X", StringSkipped = "O", StringCanceld = "-";
+	public string Title { get; set; } = " ";
+	public string PropertyStreet { get; set; }
+	public string PropertyCity { get; set; }
+	public string PropertyArea { get; set; }
+	public string PropertyNumber { get; set; }
+
+	public int GroupId = 0;
+	public DateTime StartDate { get; set; } = new DateTime(2000, 1, 1);
+	public List<JobInstance> Instances { get; set; } = new List<JobInstance>();
+	public int BaseJobId { get; set; } = -1;
+
+	private bool _isCanceled;
+	public bool IsCanceled
+	{
+		get
+		{
+			return _isCanceled;
+		}
+		set
+		{
+			_isCanceled = value;
+			RaisePropertyChanged("IsCanceled");
+		}
+	}
+	public Job BaseJob { get; set; }
+
+	public Job _jobI3 { get; set; }
+	public Job JobI3
+	{
+		get { return _jobI3; }
+		set
+		{
+			_jobI3 = value;
+			RaisePropertyChanged("JobI3");
+		}
+	}
+
+	public Job JobI4 { get; set; }
+
+	public bool IsQuote { get; set; } = false;
+
+	private string _jobNote = string.Empty;
+	public string JobNote
+	{
+		get
+		{
+			return _jobNote;
+		}
+		set
+		{
+			_jobNote = value;
+			RaisePropertyChanged("JobNote");
+		}
+	}
+	public float TranslastionX { get; set; } = 0;
+
+
+	public FontAttributes FontAttri { get; set; } = FontAttributes.None;
+
+	public int RowSpan { get; set; } = 1;
+
+	public int _i3RowSpan = 1;
+	public int I3RowSpan
+	{
+		get
+		{
+			return _i3RowSpan;
+		}
+		set
+		{
+			_i3RowSpan = value;
+			RaisePropertyChanged("I3RowSpan");
+		}
+	}
+
+	private bool _isSet = false;
+
+	public float BasePice { get; set; } = 0;
+
+	public string Notes { get; set; } = "";
+
+	public bool TitleOnly;
+	public string Price
+	{
+		get
+
+		{
+			if (BasePice - (int)BasePice == 0)
+				return $"{Gloable.CurrenceSymbol}{BasePice}";
+			else
+				return $"{Gloable.CurrenceSymbol}{BasePice.ToString("n2")}";
+		}
+	}
+	public bool ShowJobInformation { get; set; } = true;
+
+	public bool NotShowJobInformation
+	{
+		get
+		{
+			return !ShowJobInformation;
+
+		}
+	}
+
+	public Color _owingColour = Colors.White;
+
+	public Color OwingColour
+	{
+		get { return _owingColour; }
+		set
+		{
+			_owingColour = value;
+			RaisePropertyChanged("OwingColour");
+		}
+	}
+
+	public string _owing = string.Empty;
+	public string Owing
+	{
+		get
+		{
+			return _owing;
+		}
+		set
+		{
+			_owing = value;
+			RaisePropertyChanged("Owing");
+		}
+	}
+	public string I2 { get; set; } = string.Empty;
+
+	private string _i3 = string.Empty;
+	public string I3
+	{
+		get { return _i3; }
+		set
+		{
+			_i3 = value;
+			RaisePropertyChanged("I3");
+		}
+	}
+
+	public string _i4 = string.Empty;
+	public string I4
+	{
+		get { return _i4; }
+		set
+		{
+			_i4 = value;
+			RaisePropertyChanged("I4");
+		}
+	}
+
+
+	public static Color DueColour = Color.FromArgb("1E2E41");
+	public static Color DueColourLight = Color.FromArgb("CCE5FF");
+	public Color BgColour { get; set; } = Colors.Transparent;
+
+	private bool _jobIsDue = false;
+
+
+	public bool JobIsDue
+	{
+		get
+		{
+			return _jobIsDue;
+		}
+		set
+		{
+			_jobIsDue = value;
+
+			if (IsCanceled)
+			{
+				BgColour = Colors.Transparent;
+				RaisePropertyChanged("BgColour");
+
+			}
+			else
+			if (value)
+			{
+				if (Application.Current.PlatformAppTheme == AppTheme.Dark)
+					BgColour = DueColour;
+				else
+					BgColour = DueColourLight;
+
+			}
+			else
+				BgColour = Colors.Transparent;
+			RaisePropertyChanged("BgColour");
+			RaisePropertyChanged("JobIsDue");
+		}
+	}
+
+	private int InstanceIndex = 0;
+
+	public event PropertyChangedEventHandler PropertyChanged;
+
+	public void UpdatePaperRecordI3(Job j)
+	{
+
+		if (j == null)
+			return;
+
+		string tmp = string.Empty;
+
+		if (j.IsCompleted)
+		{
+			if (j.IsPaidFor)
+				tmp = StringDonePaid;
+			else
+				tmp = StringDone;
+		}
+		else
+			if (j.IsPaidFor)
+			tmp = StringPaid;
+		else
+			tmp = ""; //blank ie is due but nothing to put here
+
+		if (j.UseAlterativePrice >= 0) //if there is an alternative price
+		{
+			try
+			{
+				JobNote = UsfulFuctions.GetFirstLettersFromWord(j.AlternativePrices[j.UseAlterativePrice].Description);
+			}
+			catch
+			{
+				JobNote = "?";
+			}
+		}
+		else
+			JobNote = string.Empty;
+
+		tmp = $"{JobNote} {tmp}";
+
+		JobIsDue = false;
+
+		if (UsfulFuctions.DifferenceSigned(j.DueDate, UsfulFuctions.DateNow) <= 0) //if due
+		{
+			//I4 = tmp;
+
+			if (tmp == String.Empty)
+			{
+				tmp = "_";
+
+			}
+
+			if (!j.IsCompleted)
+				JobIsDue = true;
+		}
+
+
+		I3 = tmp;
+
+		IsCanceled = j.HaveCanceled;
+		float bal = j.GetCustomer().Balance;
+
+		if (bal == 0)
+			Owing = "Nothing Owed";
+		else
+			if (bal > 0)
+			Owing = $"{Gloable.CurrenceSymbol}{Math.Abs(bal)} Owed";
+		else
+			Owing = $"{Gloable.CurrenceSymbol}{Math.Abs(bal)} In Credit";
+
+		UpdateColors();
+	}
+
+	private static Customer _TmpCustomer;
+	public void UpdateColors()
+	{
+		if (Owing.Contains("Nothing Owed"))
+		{
+			if (Application.Current.PlatformAppTheme == AppTheme.Dark)
+			{
+				OwingColour = Colors.White;
+			}
+			else
+			{
+
+				OwingColour = Colors.Black;
+				if (IsCanceled)
+					OwingColour = new Color(OwingColour.Red, OwingColour.Green, OwingColour.Blue, 0.5f);
+			}
+		}
+		else
+			if (Owing.Contains("In Credit"))
+			OwingColour = Colors.Green;
+		else
+			OwingColour = Colors.Red;
+	}
+	public void AddInstance(Job j)
+	{
+
+
+		if (BaseJobId == -1)
+		{
+			BaseJobId = j.BaseJobId;
+			BaseJob = Job.Query(QueryType.JobId, j.BaseJobId).FirstOrDefault();
+			float bal = j.GetCustomer().Balance;
+
+			if (bal == 0)
+				Owing = "Nothing Owed";
+			else
+				if (bal > 0)
+				Owing = $"{Gloable.CurrenceSymbol}{Math.Abs(bal)} Owed";
+			else
+				Owing = $"{Gloable.CurrenceSymbol}{Math.Abs(bal)} In Credit";
+
+			I3 = "0";
+
+			I4 = String.Empty;
+			if (j.TNB || j.ENB)
+				I4 += $"* ";
+
+            if (j.TAC || j.EAC)
+                I4 += $"@";
+
+        }
+
+		JobInstance ji = new JobInstance()
+		{
+			JobDate = j.DueDate,
+			Compleated = j.IsCompleted,
+			Notes = j.JobInstanceNotes,
+			Paid = j.IsPaidFor,
+			Price = j.Price,
+		};
+
+		string tmp = string.Empty;
+		if (j.IsCompleted)
+		{
+			if (j.IsPaidFor)
+				tmp = StringDonePaid;
+			else
+				tmp = StringDone;
+		}
+		else
+			if (j.IsPaidFor)
+			tmp = StringPaid;
+		else
+			tmp = ""; //blank ie is due but nothing to put here
+
+		JobNote = string.Empty;
+
+
+
+		//rows
+		//i4 is the last row to the right
+		//i3 is the second to last row
+
+		if (!j.IsCompleted) //so not compleated
+		{
+			if (UsfulFuctions.DifferenceSigned(j.DueDate, UsfulFuctions.DateNow) <= 0) //if due
+			{
+				//I4 = tmp;
+				if (tmp == String.Empty)
+					tmp = "_";
+				I3 = tmp;
+				JobI3 = j;
+				JobI3.Data = this;
+				JobIsDue = true;
+			}
+			else
+			{
+				JobIsDue = false;
+				//I4 = tmp;
+				//JobI4 = j;
+				Job pj = Job.Query(QueryType.JobId, j.PreviousJobId).FirstOrDefault();
+
+				if (pj != null)
+				{
+					tmp = String.Empty;
+					if (pj.IsCompleted)
+					{
+						if (pj.IsPaidFor)
+							tmp = StringDonePaid;
+						else
+							tmp = StringDone;
+					}
+					else
+						if (pj.IsPaidFor)
+						tmp = StringPaid;
+
+					if (pj.UseAlterativePrice >= 0) //if there is an alternative price
+					{
+						try
+						{
+							JobNote = UsfulFuctions.GetFirstLettersFromWord(pj.AlternativePrices[pj.UseAlterativePrice].Description);
+						}
+						catch
+						{
+							JobNote = "?";
+						}
+					}
+
+					tmp = $"{JobNote} {tmp}";
+					I3 = tmp;
+					JobI3 = pj;
+					JobI3.Data = this;
+				}
+
+			}
+		}
+
+		InstanceIndex++;
+		if (j.UseAlterativePrice >= 0)
+			if (j.AlternativePrices.Count > 0)
+			{
+				ji.Price = j.AlternativePrices[j.UseAlterativePrice].Price;
+				ji.Label = j.AlternativePrices[j.UseAlterativePrice].Description;
+			}
+
+		if (j.IsCompleted)
+			ji.JobDate = j.DateCompleated;
+
+		if (StartDate.Date < ji.JobDate)
+			StartDate = ji.JobDate;
+
+		Instances.Add(ji);
+
+		if (!_isSet)
+		{
+			_isSet = true;
+			if (j.Address != null)
+			{
+				Title = j.Address.Street;
+				PropertyNumber = j.Address.PropertyNameNumber;
+				PropertyStreet = j.Address.Street;
+				PropertyCity = j.Address.City;
+				PropertyArea = j.Address.Area;
+
+			}
+			BasePice = j.Price;
+			Notes = j.Notes;
+		}
+		if (j.JobNextId == -1) //ie no next job
+		{
+			PropertyStreet = j.Address.Street;
+			PropertyCity = j.Address.City;
+			PropertyArea = j.Address.Area;
+		}
+
+		if (j.HaveCanceled)
+			IsCanceled = true;
+		UpdateColors();
+	}
+
+	public void SyncRecordsToDate(DateTime date)
+	{
+		//search through all instances
+		//start at due date and work backwards
+		//due date should be the last in the record
+
+		//first of flip the array
+		Instances.Reverse();
+
+		if (Instances[0].JobDate < DateTime.Now)
+		{
+			//	Instances.Insert(0, JobInstance.PlaceHolder());
+		}
+	}
+}
 public partial class PaperView : ContentPage
 {
 
@@ -17,491 +512,8 @@ public partial class PaperView : ContentPage
 		public string Area;
 
 	}
-	public class JobInstance
-	{
-		public DateTime JobDate { get; set; }
-		public bool Compleated { get; set; }
-		public bool Paid { get; set; }
-		public float Price { get; set; }
-		public string Label { get; set; }
-		public string Notes { get; set; }
-		
-		public bool IsPlaceHolder { get; set; } = false;
-
-		
-        public static JobInstance PlaceHolder()
-        {
-			return new JobInstance()
-			{
-				IsPlaceHolder = true
-            };
-        }
-    }
-	public class PaperItem: INotifyPropertyChanged
-    {
-
-        public void RaisePropertyChanged(string propertyName)
-        {
-            PropertyChangedEventHandler handler = PropertyChanged;
-            if (handler != null)
-            {
-                handler(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
-
-        public static string StringPaid = "/", StringDone = "\\", StringDonePaid = "X", StringSkipped = "O", StringCanceld = "-";
-		public string Title { get; set; } = " ";
-		public string PropertyStreet { get; set; }
-		public string PropertyCity { get; set; }
-		public string PropertyArea { get; set; }
-		public string PropertyNumber { get; set; }
-
-		public int GroupId = 0;
-		public DateTime StartDate { get; set; } = new DateTime(2000, 1, 1);
-		public List<JobInstance> Instances { get; set; } = new List<JobInstance>();
-		public int BaseJobId { get; set; } = -1;
-
-		private bool _isCanceled;
-		public bool IsCanceled
-		{
-			get
-			{
-				return _isCanceled;
-			}
-			set
-			{
-				_isCanceled = value;
-                RaisePropertyChanged("IsCanceled");
-            }
-		}
-		public Job BaseJob { get; set; }
-
-		public Job _jobI3 { get; set; }
-		public Job JobI3
-		{
-			get { return _jobI3; }
-			set
-			{
-				_jobI3 = value;
-				RaisePropertyChanged("JobI3");
-			}
-		}
-
-        public Job JobI4 { get; set; }
-
-		public bool IsQuote { get; set; } = false;
-
-		private string _jobNote = string.Empty;
-        public string JobNote
-		{
-			get
-			{
-				return _jobNote;
-			}
-			set
-			{
-				_jobNote = value;
-				RaisePropertyChanged("JobNote");
-			}
-		}
-        public float TranslastionX { get; set; } = 0;
-
-
-		public FontAttributes FontAttri { get; set; } = FontAttributes.None;
-
-		public int RowSpan { get; set; } = 1;
-
-		public int _i3RowSpan = 1;
-		public int I3RowSpan
-		{
-			get
-			{
-				return _i3RowSpan;
-			}
-			set
-			{
-				_i3RowSpan = value;
-				RaisePropertyChanged("I3RowSpan");			}
-		}
-
-        private bool _isSet = false;
-
-		public float BasePice { get; set; } = 0;
-
-		public string Notes { get; set; } = "";
-
-		public bool TitleOnly;
-		public string Price
-		{
-			get
-
-			{
-				if (BasePice - (int)BasePice == 0)
-					return $"{Gloable.CurrenceSymbol}{BasePice}";
-				else
-					return $"{Gloable.CurrenceSymbol}{BasePice.ToString("n2")}";
-			}
-		}
-		public bool ShowJobInformation { get; set; } = true;
-
-        public bool NotShowJobInformation
-        {
-            get
-            {
-                return !ShowJobInformation;
-
-            }
-        }
-
-		public Color _owingColour = Colors.White;
-
-		public Color OwingColour
-		{
-			get { return _owingColour; }
-			set { _owingColour = value;
-				RaisePropertyChanged("OwingColour");
-			}
-		}
-
-		public string _owing = string.Empty;
-        public string Owing
-		{
-			get {
-				return _owing;
-			}
-			set
-			{
-				_owing = value;
-                RaisePropertyChanged("Owing");
-            }
-		}
-        public string I2 { get; set; } = string.Empty;
-
-		private string _i3 = string.Empty;
-        public string I3
-		{
-			get { return _i3; }
-			set
-			{
-				_i3 = value;
-				RaisePropertyChanged("I3");
-			}
-		}
-
-		public string _i4 = string.Empty;
-        public string I4
-		{
-			get { return _i4; }
-			set
-			{
-				_i4 = value;
-				RaisePropertyChanged("I4");
-			}
-		}
-
-
-		public static Color DueColour = Color.FromArgb("1E2E41");
-        public static Color DueColourLight = Color.FromArgb("CCE5FF");
-        public Color BgColour { get; set; } = Colors.Transparent;
-
-		private bool _jobIsDue = false;
-
-
-		public bool JobIsDue
-		{
-			get
-			{
-				return _jobIsDue;
-			}
-			set
-			{
-				_jobIsDue = value;
-
-				if (IsCanceled)
-				{
-                    BgColour = Colors.Transparent;
-                    RaisePropertyChanged("BgColour");
-                   
-				}
-				else
-				if (value)
-				{
-					if (Application.Current.PlatformAppTheme == AppTheme.Dark)
-						BgColour = DueColour;
-					else
-						BgColour = DueColourLight;
-
-				}
-				else
-					BgColour = Colors.Transparent;
-				RaisePropertyChanged("BgColour");
-				RaisePropertyChanged("JobIsDue");
-			}
-		}
-
-        private int InstanceIndex = 0;
-
-		public event PropertyChangedEventHandler PropertyChanged;
-
-		public void UpdatePaperRecordI3(Job j)
-		{
-
-			if (j == null)
-				return;
-
-            string tmp = string.Empty;
-
-            if (j.IsCompleted)
-			{
-				if (j.IsPaidFor)
-					tmp = StringDonePaid;
-				else
-					tmp = StringDone;
-			}
-			else
-				if (j.IsPaidFor)
-				tmp = StringPaid;
-			else
-				tmp = ""; //blank ie is due but nothing to put here
-
-			if (j.UseAlterativePrice >= 0) //if there is an alternative price
-			{
-				try
-				{
-					JobNote = UsfulFuctions.GetFirstLettersFromWord(j.AlternativePrices[j.UseAlterativePrice].Description);
-				}
-				catch
-				{
-					JobNote = "?";
-				}
-			}
-			else
-				JobNote = string.Empty;
-
-            tmp = $"{JobNote} {tmp}";
-
-            JobIsDue = false;
-
-            if (UsfulFuctions.DifferenceSigned(j.DueDate, UsfulFuctions.DateNow) <= 0) //if due
-			{
-				//I4 = tmp;
-
-				if (tmp == String.Empty)
-				{
-					tmp = "_";
-                   
-                }
-
-				if (!j.IsCompleted)
-                    JobIsDue = true;
-            }
-                
-
-            I3 = tmp;
-
-			IsCanceled = j.HaveCanceled;
-            float bal = j.GetCustomer().Balance;
-
-            if (bal == 0)
-                Owing = "Nothing Owed";
-            else
-                if (bal > 0)
-                Owing = $"{Gloable.CurrenceSymbol}{Math.Abs(bal)} Owed";
-            else
-                Owing = $"{Gloable.CurrenceSymbol}{Math.Abs(bal)} In Credit";
-
-			UpdateColors();
-        }
-
-		public void UpdateColors ()
-		{
-			if (Owing.Contains("Nothing Owed"))
-			{
-				if (Application.Current.PlatformAppTheme == AppTheme.Dark)
-				{
-					OwingColour = Colors.White;
-				}
-				else
-				{
-
-						OwingColour = Colors.Black;
-					if (IsCanceled)
-						OwingColour = new Color(OwingColour.Red, OwingColour.Green, OwingColour.Blue, 0.5f);
-                }
-            }
-			else
-				if (Owing.Contains("In Credit"))
-				OwingColour = Colors.Green;
-			else
-				OwingColour = Colors.Red;
-		}
-        public void AddInstance(Job j)
-        {
-			
-
-			if (BaseJobId == -1)
-            {
-				BaseJobId = j.BaseJobId;
-				BaseJob = Job.Query(QueryType.JobId, j.BaseJobId).FirstOrDefault();
-				float bal = j.GetCustomer().Balance;
-
-				if (bal == 0)
-					Owing = "Nothing Owed";
-				else
-					if (bal > 0)
-						Owing = $"{Gloable.CurrenceSymbol}{Math.Abs(bal)} Owed";
-					else
-						Owing = $"{Gloable.CurrenceSymbol}{Math.Abs(bal)} In Credit";
-
-				I3 = "0";
-
-			
-
-            }
-
-			JobInstance ji = new JobInstance()
-			{
-				JobDate = j.DueDate,
-				Compleated = j.IsCompleted,
-				Notes = j.JobInstanceNotes,
-				Paid = j.IsPaidFor,
-				Price = j.Price,
-			};
-
-			string tmp = string.Empty;
-			if (j.IsCompleted)
-			{
-				if (j.IsPaidFor)
-					tmp = StringDonePaid;
-				else
-					tmp = StringDone;
-			}
-			else
-				if (j.IsPaidFor)
-				tmp = StringPaid;
-			else
-				tmp = ""; //blank ie is due but nothing to put here
-
-			JobNote = string.Empty;
-			
-			
-			
-			//rows
-			//i4 is the last row to the right
-			//i3 is the second to last row
-
-			if (!j.IsCompleted) //so not compleated
-			{
-				if (UsfulFuctions.DifferenceSigned(j.DueDate, UsfulFuctions.DateNow) <= 0) //if due
-				{
-					//I4 = tmp;
-					if (tmp == String.Empty)
-						tmp = "_";
-					I3 = tmp;
-					JobI3 = j;
-					JobI3.Data = this;
-					JobIsDue = true;
-				}
-				else
-				{
-                    JobIsDue = false;
-                    I4 = tmp;
-                    JobI4 = j;
-                    Job pj = Job.Query(QueryType.JobId, j.PreviousJobId).FirstOrDefault();
-					
-                    if (pj != null)
-                    {
-                        tmp = String.Empty;
-                        if (pj.IsCompleted)
-                        {
-                            if (pj.IsPaidFor)
-                                tmp = StringDonePaid;
-                            else
-                                tmp = StringDone;
-                        }
-                        else
-                            if (pj.IsPaidFor)
-                            tmp = StringPaid;
-
-                        if (pj.UseAlterativePrice >= 0) //if there is an alternative price
-                        {
-                            try
-                            {
-                                JobNote = UsfulFuctions.GetFirstLettersFromWord(pj.AlternativePrices[pj.UseAlterativePrice].Description);
-                            }
-                            catch
-                            {
-                                JobNote = "?";
-                            }
-                        }
-
-                        tmp = $"{JobNote} {tmp}";
-                        I3 = tmp;
-                        JobI3 = pj;
-                        JobI3.Data = this;
-                    }
-                   
-                }
-			}
-
-			InstanceIndex++;
-			if (j.UseAlterativePrice >= 0)
-				if (j.AlternativePrices.Count > 0)
-				{
-					ji.Price = j.AlternativePrices[j.UseAlterativePrice].Price;
-					ji.Label = j.AlternativePrices[j.UseAlterativePrice].Description;
-				}
-
-			if (j.IsCompleted)
-				ji.JobDate = j.DateCompleated;
-
-			if (StartDate.Date < ji.JobDate)
-				StartDate = ji.JobDate;
-
-			Instances.Add(ji);
-
-			if (!_isSet)
-            {
-				_isSet = true;
-				if (j.Address != null)
-				{
-					Title = j.Address.Street;
-					PropertyNumber = j.Address.PropertyNameNumber;
-					PropertyStreet = j.Address.Street;
-					PropertyCity = j.Address.City;
-					PropertyArea = j.Address.Area;
-					
-				}
-				BasePice = j.Price;
-				Notes = j.Notes;
-            }
-            if (j.JobNextId == -1) //ie no next job
-            {
-                PropertyStreet = j.Address.Street;
-                PropertyCity = j.Address.City;
-                PropertyArea = j.Address.Area;
-            }
-
-			if (j.HaveCanceled)
-				IsCanceled = true;
-            UpdateColors();
-        }
-
-		public void SyncRecordsToDate(DateTime date)
-        {
-			//search through all instances
-			//start at due date and work backwards
-			//due date should be the last in the record
-
-			//first of flip the array
-			Instances.Reverse();
-
-			if (Instances[0].JobDate < DateTime.Now)
-            {
-			//	Instances.Insert(0, JobInstance.PlaceHolder());
-            }
-        }
-    }
+	
+	
 
 	public ObservableCollection<PaperItem> PaperItems = new ObservableCollection<PaperItem>();
 
@@ -516,7 +528,8 @@ public partial class PaperView : ContentPage
 	
 	public PaperView()
 	{
-		InitializeComponent();
+        
+        InitializeComponent();
 		//return;
 		NavigatedTo += PaperView_NavigatedTo;
 
@@ -562,7 +575,7 @@ public partial class PaperView : ContentPage
 			p_filter_selection.Items.Add(s);
 
         p_filter_selection.SelectedIndex = 0;
-        g_filters.BindingContext = PaperViewFilter;
+        //g_filters.BindingContext = PaperViewFilter;
 
 		g_filters.IsVisible = true;
     }
@@ -574,6 +587,7 @@ public partial class PaperView : ContentPage
     }
     private void FullPageLoad()
 	{
+		
         List<Job> jobs = Job.Query();
 		jobs.RemoveAll(x => x.JobNextId == -1 && x.IsCompleted && UsfulFuctions.DifferenceSigned(DateTime.Now, x.DateCompleated) > 30);
 
@@ -648,7 +662,13 @@ public partial class PaperView : ContentPage
 		int count = 0;
         foreach (string street in location)
         {
-            List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x => x.PropertyStreet.ToLower() == locationData[count].Street.ToLower() && x.PropertyArea == locationData[count].Area.ToLower() && x.PropertyCity.ToLower() == locationData[count].City.ToLower());
+			PaperViewLocationInfo loc = locationData[count];
+			if (loc.Area == null)
+				loc.Area = String.Empty;
+			if (loc.City == null)
+				loc.City = String.Empty;
+	
+            List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x => x.PropertyStreet.ToLower() == loc.Street.ToLower() && x.PropertyArea == loc.Area.ToLower() && x.PropertyCity.ToLower() == loc.City.ToLower());
             char[] tmp = street.ToCharArray();
             tmp[0] = char.ToUpper(tmp[0]);
 
@@ -730,6 +750,9 @@ public partial class PaperView : ContentPage
 			p.RaisePropertyChanged("PropertyStreet");
 		}*/
         c_jobList.ItemsSource = PaperItems;
+
+		
+
     }
 
 	private bool SkipNavigatTo = true;
@@ -832,6 +855,7 @@ public partial class PaperView : ContentPage
 		string result = await DisplayActionSheet($"Update Record", "Cancel", "", options.ToArray());
 		if (result == null)
 			return;
+		//if the job has been compleated
 		if (result.Contains("Done"))
 		{
 			if (result.Contains("-"))//marker for alternative price
@@ -843,16 +867,23 @@ public partial class PaperView : ContentPage
 					{
 						j.UseAlterativePrice = i;
 						j.MarkJobDone();
+
 						break;
 					}
 					i++;
 				}
 			}
 			else
-			if (CustomeMarkDate)
+			if (CustomeMarkDate) //if we have a custome mark date
+			{
 				j.MarkJobDone(DateToMarkWorkDone);
+			}
 			else
+			{
 				j.MarkJobDone();
+				if (j.TAC)
+					WorkPlanner.TextCustomerReceipt(j, this);
+			}
 		}
 
 		if (result.Contains("Paid"))
@@ -1214,6 +1245,11 @@ public partial class PaperView : ContentPage
     }
 
 	private void bnt_ViewTutorial_Clicked(object sender, EventArgs e)
+	{
+
+    }
+
+	private void text(object sender, EventArgs e)
 	{
 
     }
