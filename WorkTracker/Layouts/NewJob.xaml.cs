@@ -24,7 +24,8 @@ public partial class NewJob : ContentPage
 
 
         SetZindexLables();
-
+        if (JobToAdd == null)
+            JobToAdd = new Job();
     }
 
     private void SetZindexLables()
@@ -124,9 +125,9 @@ public partial class NewJob : ContentPage
         try
         {
             List<Customer> customers = Customer.Query();
-            p_customer.Items.Clear();
-            foreach (Customer c in customers)
-                p_customer.Items.Add($"{c.FormattedOverview} - {c.FormattedAddress} #{c.Id}");
+            //p_customer.Items.Clear();
+            //foreach (Customer c in customers)
+               // p_customer.Items.Add($"{c.FormattedOverview} - {c.FormattedAddress} #{c.Id}");
 
             if (AddNewJob)
             {
@@ -188,6 +189,13 @@ public partial class NewJob : ContentPage
 
             }
 
+            if (JobToAdd!= null)
+                if (JobToAdd.CustomerId != -1)
+                {
+                    bnt_findCustomer.Text = "Change";
+                    
+                }
+
             cp_title.Title = $"{JobToAdd.Address.PropertyNameNumber} {JobToAdd.Address.Street}";
             _bnt_Add.Text = "Save Changes";
             l_ballence.Text = "Customer Balance";
@@ -236,8 +244,10 @@ public partial class NewJob : ContentPage
             cust = Customer.Query("id", JobToAdd.CustomerId.ToString());
             if (cust.Count > 0)
             {
-                p_customer.Items.Add($"{cust[0].FormattedOverview} - {cust[0].FormattedAddress} #{cust[0].Id}");
-                p_customer.SelectedIndex = p_customer.Items.Count - 1;
+                //p_customer.Items.Add($"{cust[0].FormattedOverview} - {cust[0].FormattedAddress} #{cust[0].Id}");
+                //  p_customer.SelectedIndex = p_customer.Items.Count - 1;
+
+                l_existingCustomer.Text = $"{cust[0].FName}, {cust[0].FormattedAddress}";
             }
 
             if (JobToAdd.CustomerAddressDifferentToJob)
@@ -526,7 +536,7 @@ public partial class NewJob : ContentPage
                 t_d_houseNumberName.Text = String.Empty;
                 t_description.Text = String.Empty;
                 e_startingBallence.Text = "0.00";
-                p_customer.SelectedIndex = -1;
+                //p_customer.SelectedIndex = -1;
                 JobToAdd = new Job();
                 customer = null;
                 sv_mainScrole.ScrollToAsync(0, 0, true);
@@ -540,11 +550,14 @@ public partial class NewJob : ContentPage
     }
 
     private Customer customer;
+
+  
     private void p_customerSelected(object sender, EventArgs e)
     {
-        
+
         //lets get the id from the string
-        string s = p_customer.SelectedItem as string;
+        //string s = p_customer.SelectedItem as string;
+        string s = string.Empty;
         if (s == null)
             return;
 
@@ -627,5 +640,63 @@ public partial class NewJob : ContentPage
     private void bnt_existingCustomerHelp_Clicked(object sender, EventArgs e)
     {
         DisplayAlert("Existing Customer", "You would use this option if an existing customer requests that you do an extra job. Maybe a different property or different work on the same propertiy.", "Ok");
+     
+    }
+
+    private void bnt_FindCustomer_Clicked(object sender, EventArgs e)
+    {
+        LinkCustomerLayout lcl = new LinkCustomerLayout();
+        LinkCustomerLayout.TextOutput = "";
+        lcl.OnFound += CustomerFound;
+
+        Navigation.PushAsync(lcl);
+    }
+
+    private void CustomerFound(Customer c)
+    {
+        //lets get the id from the string
+        //string s = p_customer.SelectedItem as string;
+      
+        customer = c;
+
+        JobToAdd.CustomerId = customer.Id;
+
+        bool autoFillInAddress = true;
+        if (t_houseNumberName.Text != null && t_houseNumberName.Text != String.Empty)
+            autoFillInAddress = false;
+
+        if (t_street.Text != null && t_street.Text != String.Empty)
+            autoFillInAddress = false;
+
+        if (t_city.Text != null && t_city.Text != String.Empty)
+            autoFillInAddress = false;
+
+        if (t_area.Text != null && t_area.Text != String.Empty)
+            autoFillInAddress = false;
+
+        if (t_postcode.Text != null && t_postcode.Text != String.Empty)
+            autoFillInAddress = false;
+
+        if (autoFillInAddress)
+        {
+            t_houseNumberName.Text = customer.Address.PropertyNameNumber;
+            t_street.Text = customer.Address.Street;
+            t_city.Text = customer.Address.City;
+            t_area.Text = customer.Address.Area;
+            t_postcode.Text = customer.Address.Postcode;
+        }
+
+        t_d_houseNumberName.Text = customer.Address.PropertyNameNumber;
+        t_d_street.Text = customer.Address.Street;
+        t_d_city.Text = customer.Address.City;
+        t_d_area.Text = customer.Address.Area;
+        t_d_postcode.Text = customer.Address.Postcode;
+
+        t_customerEmail.Text = customer.Email;
+        t_customerName.Text = customer.FName;
+        t_customerPhone.Text = customer.Phone;
+
+        l_existingCustomer.Text = $"{customer.FName}, {customer.FormattedAddress}";
+        bnt_findCustomer.Text = "Change";
     }
 }

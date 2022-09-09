@@ -227,6 +227,15 @@ namespace Kernel
             };
         }
 
+        public void AddBallenceCorrection(string note, float newBallence)
+        {
+            //calcuate what payment amount we need to add
+            float amount = Balance - newBallence;
+
+            Payment.Add(Id, amount, PaymentMethod.BallenceCorrection, "", note);
+            Payment.Save();
+        }
+
         private static Customer _garbaeCollectorLimiter;
         public Customer DeepCopy()
         {

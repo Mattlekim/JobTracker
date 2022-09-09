@@ -133,6 +133,13 @@ namespace Kernel
             {
                 if (ThePayment == null)
                     return String.Empty;
+
+                if (ThePayment.PaymentMethod == PaymentMethod.BallenceCorrection)
+                {
+
+                    return $"Ballence Correction On {ThePayment.PaymentDaysAgo} {ThePayment.Date}";
+                }
+
                 return $"Payment recived {ThePayment.PaymentDaysAgo} {ThePayment.Date}";
             }
         }
@@ -146,14 +153,17 @@ namespace Kernel
                     return $"Job Address: {TheJob.Address.PropertyNameNumber} {TheJob.Address.Street} {TheJob.Address.City}";
                 else
                 {
-                    return $"Paid by {ThePayment.PaymentType} {Gloable.CurrenceSymbol}{ThePayment.Amount}";
+                    if (ThePayment.PaymentMethod != PaymentMethod.BallenceCorrection)
+                        return $"Paid by {ThePayment.PaymentType} {Gloable.CurrenceSymbol}{ThePayment.Amount}";
 
+                    return string.Empty;
                 }
             }
         }
         public string FormattedLine2
         {
-            get { 
+            get
+            {
                 if (IsJob)
                 {
                     if (TheJob.IsCompleted)
@@ -170,9 +180,12 @@ namespace Kernel
                     else
                         return "NA";
                 }
-                
+
                 if (ThePayment.PaymentMethod == PaymentMethod.Bank)
-                    return $"Payment reference: {ThePayment.CustomerReference}"; 
+                    return $"Payment reference: {ThePayment.CustomerReference}";
+                else
+                    if (ThePayment.PaymentMethod == PaymentMethod.BallenceCorrection)
+                    return $"Notes: {ThePayment.Note}";
                 else
                     return "Payment Reference: NA";
 

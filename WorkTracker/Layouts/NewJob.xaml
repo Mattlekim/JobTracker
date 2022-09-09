@@ -145,14 +145,18 @@
                         <ColumnDefinition></ColumnDefinition>
                         <ColumnDefinition Width="0.5*"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
-                    <Label Grid.Row="0" Grid.Column="0" Text="Existing Customer" VerticalOptions="Center"  TranslationY="4" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                    <Button Grid.Row="0" Grid.Column="1" Text="Help?" VerticalOptions="Center" TranslationY="4" Padding="4" BackgroundColor="{AppThemeBinding Light=white, Dark=#121212}" TranslationX="-4" HorizontalOptions="End"  
+                    <Label Grid.Row="0" Grid.Column="0" Text="Existing Customer" VerticalOptions="Center"  TranslationY="4" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" Padding="8"></Label>
+
+                    <Button Grid.Row="0" Grid.Column="1" Text="Help?" VerticalOptions="Center" TranslationY="4" Padding="4" BorderColor="#f0a000" BorderWidth="2" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" TextColor="#f0a000" FontAttributes="Bold" TranslationX="-4" HorizontalOptions="End"  
                             Clicked="bnt_existingCustomerHelp_Clicked"></Button>
                 </Grid>
                 <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
-                    <HorizontalStackLayout>
-                        <Picker x:Name="p_customer" SelectedIndexChanged="p_customerSelected" VerticalOptions="Center" MinimumWidthRequest="200"></Picker>
-                        <Label TranslationX="8" Text="(Optional)" TextColor="LightGray" VerticalOptions="Center"></Label>
+                    <HorizontalStackLayout Padding="4">
+                        <!--Picker x:Name="p_customer" SelectedIndexChanged="p_customerSelected" VerticalOptions="Center" MinimumWidthRequest="200"></Picker-->
+                        
+                        <Label x:Name="l_existingCustomer" TranslationX="8" Text="(Optional)" TextColor="LightGray" VerticalOptions="Center" Padding="4" MaximumWidthRequest="210" MinimumWidthRequest="210"></Label>
+                        <Button x:Name="bnt_findCustomer" Text="Find Customer" BackgroundColor="Transparent" TextColor="Blue" BorderColor="Blue" BorderWidth="2" TranslationX="8"
+                                Clicked="bnt_FindCustomer_Clicked"></Button>
                     </HorizontalStackLayout>
                 </Border>
 

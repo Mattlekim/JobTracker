@@ -288,7 +288,7 @@ public partial class StatmentViewer : ContentPage
     {
         Button b = sender as Button;
 
-        LinkCustomerLayout.Reference = b.ClassId;
+        LinkCustomerLayout.TextOutput = $"Payment Reference: {b.ClassId}";
 
         if (await DisplayAlert("Confirm", $"Are you sure you wish to remove the link for {b.ClassId}?", "Remove Link", "Cancel"))
         {
@@ -321,8 +321,29 @@ public partial class StatmentViewer : ContentPage
     {
         Button b = sender as Button;
 
-        LinkCustomerLayout.Reference = b.ClassId;
-        Navigation.PushAsync(new LinkCustomerLayout());
+        LinkCustomerLayout.TextOutput = $"Payment Reference: {b.ClassId}";
+
+
+        LinkCustomerLayout lcl = new LinkCustomerLayout();
+        lcl.DefaultSearch = b.ClassId;
+        lcl.AutoClose = false;
+        lcl.OnFound += async (Customer c) =>
+        {
+            if (await DisplayAlert("Link?", $"Are you sure you want to link {c.FormattedAddress} to the reference '{b.ClassId}'", "Yes", "No"))
+            {
+                if (c.PaymentRefrences.Contains(b.ClassId))
+                    await DisplayAlert("Already Linked", $"This payment reference has already been linked", "Ok");
+                else
+                    c.PaymentRefrences.Add(b.ClassId);
+
+                Customer.Save();
+                await Navigation.PopAsync();
+            }
+        };
+
+        Navigation.PushAsync(lcl);
+
+
     }
 
     private async void UpdateFields()

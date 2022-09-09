@@ -18,5 +18,6 @@ namespace Kernel
         Check,
         GoCardless,
         Other,
+        BallenceCorrection
     }
 }

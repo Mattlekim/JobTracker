@@ -82,6 +82,11 @@ namespace Kernel
             return Add(customerId, amount,method, reference, DateTime.Now);
         }
 
+        public static Payment Add(int customerId, float amount, PaymentMethod method, string reference, string note)
+        {
+            return Add(customerId, amount, method, reference, DateTime.Now, note);
+        }
+
         public static Payment Get(int id)
         {
             List<Payment> p = _Payments.FindAll(x => x.Id == id);
@@ -117,6 +122,25 @@ namespace Kernel
                 PaymentMethod = method,
                 Date = date,
                 CustomerReference = reference,
+            };
+            payment.GenerateId();
+            payment.CrossReferenceWithJobs();
+            payment.UpdateCustomerBalance();
+            _Payments.Add(payment);
+            return payment;
+        }
+
+        public static Payment Add(int customerId, float amount, PaymentMethod method, string reference, DateTime date, string note)
+        {
+
+            Payment payment = new Payment()
+            {
+                CustomerId = customerId,
+                Amount = amount,
+                PaymentMethod = method,
+                Date = date,
+                CustomerReference = reference,
+                Note = note,
             };
             payment.GenerateId();
             payment.CrossReferenceWithJobs();
@@ -177,6 +201,8 @@ namespace Kernel
         /// the payment method for this payment
         /// </summary>
         public PaymentMethod PaymentMethod { get; set; }
+
+        public string Note { get; set; }
 
         /// <summary>
         /// the amount paid

@@ -10,6 +10,7 @@ public partial class BookJobFormcs : ContentPage
         float value = 0;
         int estimatedTime = 0;
         bool timeIsEstimate = false;
+
         foreach (Job j in jobs)
         {
             strings.Add(j.GetCustomer()?.FormattedAddress);
@@ -28,7 +29,7 @@ public partial class BookJobFormcs : ContentPage
             l_estimatedTime.Text = $"Unknown amount of time to complete";
         else
             if (timeIsEstimate)
-            l_estimatedTime.Text = $"More than {estimatedTime}";
+                l_estimatedTime.Text = $"More than {estimatedTime}";
         else
             l_estimatedTime.Text = $"{estimatedTime}";
 
@@ -62,10 +63,8 @@ public partial class BookJobFormcs : ContentPage
                     sendEmail = true;
                     msgBody += "\n\nThe following customers will be emailed";
                 }
-
                 msgBody = $"{msgBody}\n{j.JobFormattedStreet}";
             }
-
         }
         
         if (msgBody.Length > 0)

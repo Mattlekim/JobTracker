@@ -337,6 +337,12 @@ public class PaperItem : INotifyPropertyChanged
 		{
 			BaseJobId = j.BaseJobId;
 			BaseJob = Job.Query(QueryType.JobId, j.BaseJobId).FirstOrDefault();
+			if (j.GetCustomer() == null)
+			{
+				Owing = "Error";
+				return;
+			}
+
 			float bal = j.GetCustomer().Balance;
 
 			if (bal == 0)
@@ -990,22 +996,24 @@ public partial class PaperView : ContentPage
 			string msg = string.Empty;
 			if (owed > 0)
 			{
-				msg = $"The customers owes you {Gloable.CurrenceSymbol}{Math.Abs(owed)}. Are you sure you want to clear all the customer dept?";
-				bal = "Clear Customer Dept?";
+				bal = $"The customers owes you {Gloable.CurrenceSymbol}{Math.Abs(owed)}. Are you sure you want to clear all the customer debt?";
+				msg = "Reason for clearing customer debt";
 			}
 			else
 			{
-				msg = $"The customers is {Gloable.CurrenceSymbol}{Math.Abs(owed)} in credit with you. Are you sure you want to clear all the customer credit?";
-				bal = "Clear Customer Credit?";
-			}
+				bal = $"The customers is {Gloable.CurrenceSymbol}{Math.Abs(owed)} in credit with you. Are you sure you want to clear all the customer credit?";
+                msg = "Reason for clearing customer credit";
+            }
 
 
 
-			if (await DisplayAlert(bal, msg, "Clear Balance", "Cancel"))
+			string note = await DisplayPromptAsync(bal, msg, "Clear Balance", "Cancel", null, 20, Keyboard.Numeric);
+
+			if (note != null)
 			{
 
 				if (c != null)
-					c.Balance = 0;
+					c.AddBallenceCorrection(note, 0);
 				PaperItem pi = j.Data as PaperItem;
 				pi.Owing = $"Nothing Owed";
 				pi.UpdateColors();
@@ -1060,6 +1068,73 @@ public partial class PaperView : ContentPage
 				Job.Save();
 
             
+            }
+        }
+
+		if (result.Contains("Change"))
+		{
+
+            string note = await DisplayPromptAsync("Change Ballence", "Enter the new ballence you wish the customer to have", "Change Balance", "Cancel", null, 20, Keyboard.Numeric);
+
+            if (note != null)
+            {
+
+				if (c != null)
+				{
+					float newBallence = 0; 
+					try
+					{
+                        newBallence = (float)Convert.ToDouble(note);
+
+						
+                            note = await DisplayPromptAsync("Update Ballence?", "Waring. To proced confirm new ballence", "Update Balance", "Cancel", null, 20, Keyboard.Numeric);
+
+                            if (note != null)
+                            {
+
+							float checkBallence = 0;
+
+							try
+							{
+								checkBallence = (float)Convert.ToDouble(note);
+
+								if (checkBallence == newBallence)
+								{
+									if (c != null)
+										c.AddBallenceCorrection(note, newBallence);
+									PaperItem pi = j.Data as PaperItem;
+									pi.Owing = $"Nothing Owed";
+									pi.UpdateColors();
+
+									Customer.Save();
+									return;
+								}
+								else
+								{
+                                    await DisplayAlert("Error", "Amounts dont match. Aborting", "Ok");
+                                    return;
+								}
+							}
+							catch
+							{
+                                await DisplayAlert("Error", "Amounts dont match. Aborting", "Ok");
+                                return;
+							}
+
+
+                               
+                            }
+                        
+                    }
+					catch
+					{
+
+						await DisplayAlert("Error", "Invalid amount", "Ok");
+						return;
+					}
+
+				}
+                   
             }
         }
 		

@@ -122,6 +122,9 @@
 	  <Compile Update="Layouts\Jobs.xaml.cs">
 	    <DependentUpon>%(Filename)</DependentUpon>
 	  </Compile>
+	  <Compile Update="Layouts\FindCustomer.xaml.cs">
+	    <DependentUpon>FindCustomer.xaml</DependentUpon>
+	  </Compile>
 	  <Compile Update="Layouts\NewCustomer.xaml.cs">
 	    <DependentUpon>%(Filename)</DependentUpon>
 	  </Compile>
@@ -146,7 +149,7 @@
 	  <MauiXaml Update="Layouts\Jobs.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Layouts\LinkCustomerLayout.xaml">
+	  <MauiXaml Update="Layouts\FindCustomer.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\NewCustomer.xaml">

@@ -13,7 +13,9 @@ public partial class Payments : ContentPage
     private void RefreshPage(object sender, NavigatedToEventArgs e)
     {
         lv_Payments.ItemsSource = null;
-        lv_Payments.ItemsSource = Payment.Query();
+        List<Payment> payments = Payment.Query();
+        payments.RemoveAll(x => x.PaymentMethod == PaymentMethod.BallenceCorrection || UsfulFuctions.DifferenceSigned(DateTime.Now, x.Date) > 14);
+        lv_Payments.ItemsSource = payments;
     }
 
     private void list_child_added(object sender, ElementEventArgs e)
