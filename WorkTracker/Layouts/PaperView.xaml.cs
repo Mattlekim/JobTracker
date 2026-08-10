@@ -801,6 +801,9 @@ public partial class PaperView : ContentPage
 		if (!j.IsCompleted)
 			options.Add($"Skip  {PaperItem.StringSkipped}");
 
+		if (!j.IsCompleted)
+			options.Add(j.IsBookedIn ? "Unbook" : "Book In");
+
 		if (j.IsCompleted || j.IsPaidFor || j.HaveSkipped)
 			options.Add("Clear");
 
@@ -808,6 +811,21 @@ public partial class PaperView : ContentPage
 		string result = await DisplayActionSheet($"Update Record", "Cancel", "", options.ToArray());
 		if (result == null)
 			return;
+
+		if (result == "Book In")
+		{
+			BookJobFormcs.jobs = new List<Job> { j };
+			await Navigation.PushAsync(new BookJobFormcs());
+			return;
+		}
+
+		if (result == "Unbook")
+		{
+			j.UnBookInJob();
+			Job.Save();
+			return;
+		}
+
 		if (result.Contains("Done"))
 		{
 			if (result.Contains("-"))//marker for alternative price
@@ -1039,6 +1057,7 @@ public partial class PaperView : ContentPage
 		options.Add("Quick Add");
         options.Add("Add Customer");
         options.Add("Quick Quote");
+        options.Add("Add All Houses");
 
 		int count = 0;
 		foreach(PaperItem paperi in PaperItems)
@@ -1100,6 +1119,12 @@ public partial class PaperView : ContentPage
             return;
         }
 
+        if (result == "Add All Houses")
+        {
+            await AddAllHouses(pi);
+            return;
+        }
+
         if (result.Contains("Customer"))
 		{
             NewJob.AddNewJob = true;
@@ -1129,6 +1154,98 @@ public partial class PaperView : ContentPage
     }
 
 	
+	private async Task AddAllHouses(PaperItem pi)
+	{
+		string numbers = await DisplayPromptAsync("Add All Houses",
+			$"House numbers for {pi.PropertyStreet} (e.g. 1,3,5-11 - a range keeps to one side of the street):",
+			"Next", "Cancel");
+		if (string.IsNullOrWhiteSpace(numbers))
+			return;
+
+		string priceText = await DisplayPromptAsync("Add All Houses", "Price for each job:",
+			"Next", "Cancel", keyboard: Keyboard.Numeric);
+		if (priceText == null)
+			return;
+		float.TryParse(priceText, out float price);
+
+		string freqText = await DisplayPromptAsync("Add All Houses", "Frequency (weeks):",
+			"Add", "Cancel", initialValue: "4", keyboard: Keyboard.Numeric);
+		if (freqText == null)
+			return;
+		if (!int.TryParse(freqText, out int weeks) || weeks <= 0)
+			weeks = 4;
+
+		int added = 0, skipped = 0;
+		foreach (string house in ParseHouseNumbers(numbers))
+		{
+			bool exists = Customer.Query().Any(c => c.Address != null
+				&& string.Equals(c.Address.PropertyNameNumber?.Trim(), house, StringComparison.OrdinalIgnoreCase)
+				&& string.Equals(c.Address.Street?.Trim(), pi.PropertyStreet?.Trim(), StringComparison.OrdinalIgnoreCase));
+			if (exists)
+			{
+				skipped++;
+				continue;
+			}
+
+			Location address = new Location()
+			{
+				PropertyNameNumber = house,
+				Street = pi.PropertyStreet,
+				City = pi.PropertyCity ?? string.Empty,
+				Area = pi.PropertyArea ?? string.Empty,
+				Postcode = string.Empty,
+			};
+
+			Customer customer = new Customer { Address = address };
+			Customer.Add(customer);
+
+			Job job = new Job
+			{
+				CustomerId = customer.Id,
+				Address = address,
+				Price = price,
+			};
+			job.SetFrequence(weeks, FrequenceType.Week);
+			job.DueDate = UsfulFuctions.DateNow;
+			Job.Add(job);
+			added++;
+		}
+
+		Customer.Save();
+		Job.Save();
+		FullPageLoad();
+
+		string summary = $"Added {added} house(s) on {pi.PropertyStreet}.";
+		if (skipped > 0)
+			summary += $"\nSkipped {skipped} that already exist.";
+		await DisplayAlert("Add All Houses", summary, "Ok");
+	}
+
+	/// <summary>"1,3,5-11" -> 1,3,5,7,9,11. A range whose ends share odd/even
+	/// steps by two (one side of the street), otherwise by one.</summary>
+	public static List<string> ParseHouseNumbers(string input)
+	{
+		List<string> result = new List<string>();
+		foreach (string token in input.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries))
+		{
+			System.Text.RegularExpressions.Match range =
+				System.Text.RegularExpressions.Regex.Match(token.Trim(), @"^(\d+)\s*-\s*(\d+)$");
+			if (range.Success)
+			{
+				int from = int.Parse(range.Groups[1].Value);
+				int to = int.Parse(range.Groups[2].Value);
+				if (to < from)
+					(from, to) = (to, from);
+				int step = (from % 2 == to % 2) ? 2 : 1;
+				for (int n = from; n <= to && result.Count < 500; n += step)
+					result.Add(n.ToString());
+			}
+			else
+				result.Add(token.Trim());
+		}
+		return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+	}
+
 	private void tbi_DoneDate_Clicked(object sender, EventArgs e)
 	{
 		dp_DoneDate.IsEnabled = true;

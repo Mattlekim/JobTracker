@@ -474,6 +474,26 @@ public partial class SettingLayout : ContentPage
         }
     }
 
+    private async void bnt_exportXlsx_Clicked(object sender, EventArgs e)
+    {
+        try
+        {
+            string path = Path.Combine(FileSystem.CacheDirectory, $"Round {DateTime.Now:yyyy-MM-dd}.xlsx");
+            using (FileStream fs = File.Create(path))
+                ImportExport.RoundSheetWriter.Write(fs, Job.Query());
+
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = "Export Round",
+                File = new ShareFile(path),
+            });
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Export Failed", $"Could not export the round: {ex.Message}", "ok");
+        }
+    }
+
     private static string GuessCityFromFileName(string fileName)
     {
         string name = Path.GetFileNameWithoutExtension(fileName ?? string.Empty);
