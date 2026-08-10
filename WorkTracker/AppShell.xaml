@@ -22,6 +22,10 @@
             <ShellContent Title="Overview" Route="work_overview" x:Name="sc_workOverview" ContentTemplate="{DataTemplate local:PaperView}"/>
             <ShellContent Title="List" Route="work_list" x:Name="sc_workList" ContentTemplate="{DataTemplate local:WorkPlanner}"/>
         </Tab>
+        <Tab Title="Booked"
+            Icon="booked.png">
+            <ShellContent ContentTemplate="{DataTemplate local:BookedWork}" />
+        </Tab>
         <Tab Title="Calendar"
             Icon="planner.png"
              >

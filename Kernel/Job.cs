@@ -398,7 +398,17 @@ namespace Kernel
         [XmlIgnore]
         public Color AltColour { get; set; } = Colors.Transparent;
         [XmlIgnore]
-        public bool IsSelected;
+        private bool _isSelected;
+        [XmlIgnore]
+        public bool IsSelected
+        {
+            get { return _isSelected; }
+            set
+            {
+                _isSelected = value;
+                RaisePropertyChanged("IsSelected");
+            }
+        }
 
         [XmlIgnore]
         public DateTime tmpDate;

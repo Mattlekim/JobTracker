@@ -1234,10 +1234,8 @@ public partial class WorkPlanner : ContentPage
     public List<int> _selectedJobs = new List<int>();
     private void cb_streetSelected(object sender, CheckedChangedEventArgs e)
     {
-        if (e.Value == false)
-            return;
         CheckBox ck = sender as CheckBox;
-      
+
 
         int id = Convert.ToInt32(ck.ClassId);
         if (ck.IsChecked)
@@ -1393,7 +1391,10 @@ public partial class WorkPlanner : ContentPage
             sv = o as SwipeView;
             if (sv != null)
             {
-                sv.IsEnabled = false;
+                //winui disables the whole subtree (checkboxes included) when a
+                //parent is disabled, and mouse users cannot swipe anyway
+                if (DeviceInfo.Platform != DevicePlatform.WinUI)
+                    sv.IsEnabled = false;
                 sv.Close();
             }
         }
@@ -1564,6 +1565,18 @@ public partial class WorkPlanner : ContentPage
         if (_selectingJobs)
         {
             lv_Jobs.SelectedItem = null;
+            //clicking anywhere on the row toggles the job while selecting
+            if (j != null && j.CustomerId != -1)
+            {
+                j.IsSelected = !j.IsSelected;
+                if (j.IsSelected)
+                {
+                    if (!_selectedJobs.Contains(j.Id))
+                        _selectedJobs.Add(j.Id);
+                }
+                else
+                    _selectedJobs.Remove(j.Id);
+            }
             return;
         }
 
