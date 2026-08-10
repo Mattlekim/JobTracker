@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,11 +23,9 @@ jobs:
       # Pin the build to the .NET 8 SDK so the runner's newer preinstalled
       # SDKs (and their workload versions) are not picked up instead
       - name: Pin .NET SDK version
-        shell: pwsh
         run: |
-          $version = "${{ steps.setup-dotnet.outputs.dotnet-version }}"
-          @{ sdk = @{ version = $version } } | ConvertTo-Json | Out-File -Encoding utf8 global.json
-          Get-Content global.json
+          echo "{ \"sdk\": { \"version\": \"${{ steps.setup-dotnet.outputs.dotnet-version }}\" } }" > global.json
+          cat global.json
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -36,25 +34,23 @@ jobs:
           java-version: '17'
 
       - name: Install Android SDK components
-        shell: pwsh
         run: |
-          $sdkManager = Join-Path $env:ANDROID_HOME "cmdline-tools\latest\bin\sdkmanager.bat"
-          & $sdkManager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
-          if ($LASTEXITCODE -ne 0) { throw "sdkmanager failed with exit code $LASTEXITCODE" }
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android
 
+      # TargetFrameworks is overridden to android-only because the iOS and
+      # MacCatalyst workloads cannot be installed on a Linux runner
       - name: Publish Android APK
-        shell: pwsh
         run: >
           dotnet publish WorkTracker/WorkTracker.csproj
           -f net8.0-android
           -c Release
           -p:TargetFrameworks=net8.0-android
           -p:AndroidPackageFormat=apk
-          -p:AndroidSdkDirectory=$env:ANDROID_HOME
-          -p:JavaSdkDirectory=$env:JAVA_HOME
+          -p:AndroidSdkDirectory=$ANDROID_HOME
+          -p:JavaSdkDirectory=$JAVA_HOME
           -o artifacts
 
       - name: Upload APK artifact
