@@ -123,13 +123,16 @@ public partial class NewJob : ContentPage
     {
         try
         {
+            //build the list first and assign once - adding hundreds of items one
+            //at a time makes the picker re-layout on every add and hangs the page
             List<Customer> customers = Customer.Query();
-            p_customer.Items.Clear();
+            List<string> customerItems = new List<string>();
             foreach (Customer c in customers)
-                p_customer.Items.Add($"{c.FormattedOverview} - {c.FormattedAddress} #{c.Id}");
+                customerItems.Add($"{c.FormattedOverview} - {c.FormattedAddress} #{c.Id}");
 
             if (AddNewJob)
             {
+                p_customer.ItemsSource = customerItems;
                 e_frequence.Text = $"{Settings.DefaultFrequence}";
                 p_frequencyType.SelectedItem = Settings.DefaultFrequenceType.ToString();
 
@@ -234,11 +237,24 @@ public partial class NewJob : ContentPage
                 cb_alternativePrice.IsChecked = false;
             List<Customer> cust = new List<Customer>();
             cust = Customer.Query("id", JobToAdd.CustomerId.ToString());
+            int customerIndex = -1;
             if (cust.Count > 0)
             {
-                p_customer.Items.Add($"{cust[0].FormattedOverview} - {cust[0].FormattedAddress} #{cust[0].Id}");
-                p_customer.SelectedIndex = p_customer.Items.Count - 1;
+                //select the existing entry - adding a duplicate makes the picker
+                //bounce between the two identical items and fire selection forever
+                string entry = $"{cust[0].FormattedOverview} - {cust[0].FormattedAddress} #{cust[0].Id}";
+                customerIndex = customerItems.IndexOf(entry);
+                if (customerIndex == -1)
+                {
+                    customerItems.Add(entry);
+                    customerIndex = customerItems.Count - 1;
+                }
             }
+            _suppressCustomerSelected = true;
+            p_customer.ItemsSource = customerItems;
+            if (customerIndex != -1)
+                p_customer.SelectedIndex = customerIndex;
+            _suppressCustomerSelected = false;
 
             if (JobToAdd.CustomerAddressDifferentToJob)
             {
@@ -540,9 +556,12 @@ public partial class NewJob : ContentPage
     }
 
     private Customer customer;
+    private bool _suppressCustomerSelected = false;
     private void p_customerSelected(object sender, EventArgs e)
     {
-        
+        if (_suppressCustomerSelected)
+            return;
+
         //lets get the id from the string
         string s = p_customer.SelectedItem as string;
         if (s == null)

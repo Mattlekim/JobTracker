@@ -12,6 +12,9 @@ namespace WorkTracker
             Payment.Load();
             Settings.Load();
 
+            //pulls newer cloud data in the background and pushes future saves
+            UiInterface.CloudSync.Start();
+
             InitializeComponent();
 
             //reopen whichever work view (overview / list) was used last

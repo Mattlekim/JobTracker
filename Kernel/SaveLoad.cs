@@ -50,6 +50,7 @@ namespace Kernel
                 xs.Serialize(fs, csd);
 
             }
+            SyncNotifier.NotifySaved();
         }
         public static void Load(string dir = null)
         {
@@ -151,6 +152,7 @@ namespace Kernel
 
                 }
             }
+            SyncNotifier.NotifySaved();
         }
 
         public static bool _Loaded = false;
@@ -347,7 +349,7 @@ namespace Kernel
                 xs.Serialize(fs, psd);
 
             }
-
+            SyncNotifier.NotifySaved();
         }
 
         public static void Load(string dir = null)

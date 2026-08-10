@@ -204,6 +204,39 @@ public partial class PaperView : ContentPage
         public static Color DueColourLight = Color.FromArgb("CCE5FF");
         public Color BgColour { get; set; } = Colors.Transparent;
 
+		/// <summary>
+		/// street header rows get extra top padding to act as a spacer between streets
+		/// </summary>
+		public Thickness TitlePadding { get; set; } = new Thickness(4);
+
+		private bool _tnb;
+		/// <summary>
+		/// text night before flag shown as a red badge on the row
+		/// </summary>
+		public bool TNB
+		{
+			get { return _tnb; }
+			set
+			{
+				_tnb = value;
+				RaisePropertyChanged("TNB");
+			}
+		}
+
+		private Color _rowColour = Colors.Transparent;
+		/// <summary>
+		/// alternating row background, used instead of ruled separator lines
+		/// </summary>
+		public Color RowColour
+		{
+			get { return _rowColour; }
+			set
+			{
+				_rowColour = value;
+				RaisePropertyChanged("RowColour");
+			}
+		}
+
 		private bool _jobIsDue = false;
 
 
@@ -303,6 +336,7 @@ public partial class PaperView : ContentPage
             I3 = tmp;
 
 			IsCanceled = j.HaveCanceled;
+			TNB = j.TNB;
             float bal = j.GetCustomer().Balance;
 
             if (bal == 0)
@@ -480,6 +514,7 @@ public partial class PaperView : ContentPage
 				}
 				BasePice = j.Price;
 				Notes = j.Notes;
+				TNB = j.TNB;
             }
             if (j.JobNextId == -1) //ie no next job
             {
@@ -656,6 +691,7 @@ public partial class PaperView : ContentPage
 				PropertyStreet = locationData[count].Street,
                 PropertyArea = locationData[count].Area,
                 PropertyCity = locationData[count].City,
+                TitlePadding = new Thickness(4, 18, 4, 4), //spacer between streets
             });
             if (jobsToAdd != null && jobsToAdd.Count > 0)
             {
@@ -687,7 +723,7 @@ public partial class PaperView : ContentPage
 
                 if (nextItem.JobI3 != null)
                 {
-                    currentItem.I3 = nextItem.JobI3.OrderByDate.ToString("dd MMM yy");
+                    currentItem.I3 = nextItem.JobI3.OrderByDate.ToString("dd/MM/yy");
                     currentItem.I3RowSpan = 2;
                 }
                 else
@@ -715,11 +751,26 @@ public partial class PaperView : ContentPage
         }
 		if (PaperItems.Count > 0)
 			PaperItems[PaperItems.Count - 1].GroupId = groupId;
-	/*	foreach (PaperItem p in PaperItems)
+
+		//alternating row backgrounds instead of ruled lines; restart at each street
+		bool darkTheme = Application.Current.PlatformAppTheme == AppTheme.Dark;
+		bool alt = false;
+		foreach (PaperItem p in PaperItems)
 		{
-			p.Title = $":: {p.GroupId}";
-			p.RaisePropertyChanged("PropertyStreet");
-		}*/
+			if (!p.ShowJobInformation) //street headers and spacer rows stay plain
+			{
+				p.RowColour = Colors.Transparent;
+				alt = false;
+				continue;
+			}
+
+			if (darkTheme)
+				p.RowColour = alt ? WorkPlanner.MainColorDark : WorkPlanner.altColorDark;
+			else
+				p.RowColour = alt ? WorkPlanner.MainColor : WorkPlanner.altColor;
+			alt = !alt;
+		}
+
         c_jobList.ItemsSource = PaperItems;
     }
 
@@ -754,10 +805,12 @@ public partial class PaperView : ContentPage
         //get the last instance of the job
         Job nextJob;
 		nextJob = j;
+		//visited guard: a corrupt JobNextId cycle would otherwise loop forever
+		HashSet<int> seenJobs = new HashSet<int>() { nextJob.Id };
 		while (nextJob.JobNextId != -1)
 		{
 			nextJob = Job.Query(QueryType.JobId, nextJob.JobNextId).FirstOrDefault();
-			if (nextJob == null)
+			if (nextJob == null || !seenJobs.Add(nextJob.Id))
 				break;
 		}
 
@@ -779,9 +832,18 @@ public partial class PaperView : ContentPage
 	{
 		TappedEventArgs args = e as TappedEventArgs;
 		Job j = args.Parameter as Job;
+		PaperItem tappedItem = (sender as Element)?.BindingContext as PaperItem;
+
+		//jobs with no history yet (new or not due) have no I3 record - fall
+		//back to the row's upcoming job so they can still be actioned
+		if (j == null && tappedItem != null)
+			j = tappedItem.JobI3 ?? tappedItem.JobI4 ?? tappedItem.BaseJob;
 
 		if (j == null)
 			return;
+
+		if (tappedItem == null)
+			tappedItem = j.Data as PaperItem;
 
 		List<string> options = new List<string>();
 		if (!j.IsCompleted)
@@ -807,10 +869,25 @@ public partial class PaperView : ContentPage
 		if (j.IsCompleted || j.IsPaidFor || j.HaveSkipped)
 			options.Add("Clear");
 
+		options.Add(j.HaveCanceled ? "Resume Job" : "Cancel Job");
 		options.Add("Custom");
-		string result = await DisplayActionSheet($"Update Record", "Cancel", "", options.ToArray());
+		string result = await DisplayActionSheet($"Update Record", "Cancel", null, options.ToArray());
 		if (result == null)
 			return;
+
+		if (result == "Cancel Job")
+		{
+			j.CancelJob();
+			tappedItem?.UpdatePaperRecordI3(j);
+			return;
+		}
+
+		if (result == "Resume Job")
+		{
+			j.UnCancelJob();
+			tappedItem?.UpdatePaperRecordI3(j);
+			return;
+		}
 
 		if (result == "Book In")
 		{
@@ -900,16 +977,16 @@ public partial class PaperView : ContentPage
 		{
 			UpdateJobInstance.CurrentJob = j;
 			UpdateJobInstance uJi = new UpdateJobInstance();
+			Job customJob = j;
+			PaperItem customItem = tappedItem;
 			uJi.OnConfirmed = (() => {
-                PaperItem pi = j.Data as PaperItem;
-                pi.UpdatePaperRecordI3(j);
+                customItem?.UpdatePaperRecordI3(customJob);
             });
 			await Navigation.PushAsync(uJi);
 			return;
 		}
 
-		PaperItem pi = j.Data as PaperItem;
-		pi.UpdatePaperRecordI3(j);
+		tappedItem?.UpdatePaperRecordI3(j);
 	}
 
 	private async void grid_Ballence_Tapped(object sender, EventArgs e)
@@ -949,7 +1026,7 @@ public partial class PaperView : ContentPage
 
 
 
-		string result = await DisplayActionSheet($"Balance {bal}", "Cancel", "", options.ToArray());
+		string result = await DisplayActionSheet($"Balance {bal}", "Cancel", null, options.ToArray());
 		if (result == null)
 			return;
 		if (result.Contains("Clear"))
@@ -1055,9 +1132,9 @@ public partial class PaperView : ContentPage
 
 		List<string> options = new List<string>();
 		options.Add("Quick Add");
+		options.Add("Add Range");
         options.Add("Add Customer");
         options.Add("Quick Quote");
-        options.Add("Add All Houses");
 
 		int count = 0;
 		foreach(PaperItem paperi in PaperItems)
@@ -1073,7 +1150,7 @@ public partial class PaperView : ContentPage
 			options.Add("-----------");
 			options.Add($"Mark {count} below as compleated");
 		}
-        string result = await DisplayActionSheet($"{pi.Title}", "Cancel", "", options.ToArray());
+        string result = await DisplayActionSheet($"{pi.Title}", "Cancel", null, options.ToArray());
         if (result == null)
             return;
         if (result.Contains("Quick Add"))
@@ -1119,7 +1196,7 @@ public partial class PaperView : ContentPage
             return;
         }
 
-        if (result == "Add All Houses")
+        if (result == "Add Range")
         {
             await AddAllHouses(pi);
             return;
@@ -1156,19 +1233,19 @@ public partial class PaperView : ContentPage
 	
 	private async Task AddAllHouses(PaperItem pi)
 	{
-		string numbers = await DisplayPromptAsync("Add All Houses",
+		string numbers = await DisplayPromptAsync("Add Range",
 			$"House numbers for {pi.PropertyStreet} (e.g. 1,3,5-11 - a range keeps to one side of the street):",
 			"Next", "Cancel");
 		if (string.IsNullOrWhiteSpace(numbers))
 			return;
 
-		string priceText = await DisplayPromptAsync("Add All Houses", "Price for each job:",
+		string priceText = await DisplayPromptAsync("Add Range", "Price for each job:",
 			"Next", "Cancel", keyboard: Keyboard.Numeric);
 		if (priceText == null)
 			return;
 		float.TryParse(priceText, out float price);
 
-		string freqText = await DisplayPromptAsync("Add All Houses", "Frequency (weeks):",
+		string freqText = await DisplayPromptAsync("Add Range", "Frequency (weeks):",
 			"Add", "Cancel", initialValue: "4", keyboard: Keyboard.Numeric);
 		if (freqText == null)
 			return;
@@ -1218,7 +1295,7 @@ public partial class PaperView : ContentPage
 		string summary = $"Added {added} house(s) on {pi.PropertyStreet}.";
 		if (skipped > 0)
 			summary += $"\nSkipped {skipped} that already exist.";
-		await DisplayAlert("Add All Houses", summary, "Ok");
+		await DisplayAlert("Add Range", summary, "Ok");
 	}
 
 	/// <summary>"1,3,5-11" -> 1,3,5,7,9,11. A range whose ends share odd/even

@@ -106,6 +106,36 @@
 
             </VerticalStackLayout>
 
+            <!-- cloud sync -->
+            <Label Text="____________________________" HorizontalOptions="Center"></Label>
+            <Label Text="Cloud Sync" HorizontalOptions="Center" FontSize="Title"></Label>
+            <VerticalStackLayout Padding="16">
+                <Label Text="Sync your data with Google Drive so your phone and PC share the same round. Sign in once on each device." TextColor="Grey"></Label>
+                <Label></Label>
+
+                <!-- shown until signed in -->
+                <VerticalStackLayout x:Name="vsl_cloudSetup">
+                    <Label Text="Paste the Client ID and Client Secret from your Google Cloud project (OAuth client type: 'TVs and Limited Input devices')."></Label>
+                    <Entry x:Name="e_cloudClientId" Placeholder="Client ID"></Entry>
+                    <Entry x:Name="e_cloudClientSecret" Placeholder="Client Secret" IsPassword="True"></Entry>
+                    <Label></Label>
+                    <Button Text="Connect Google Drive" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_cloudConnect_Clicked"></Button>
+                </VerticalStackLayout>
+
+                <!-- shown when signed in -->
+                <VerticalStackLayout x:Name="vsl_cloudConnected" IsVisible="false">
+                    <HorizontalStackLayout>
+                        <Label Text="Auto sync" VerticalOptions="Center"></Label>
+                        <Switch x:Name="sw_cloudAuto" Toggled="sw_cloudAuto_Toggled"></Switch>
+                    </HorizontalStackLayout>
+                    <Label x:Name="l_cloudStatus" Text="" TextColor="Grey"></Label>
+                    <Label></Label>
+                    <Button Text="Sync Now" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_cloudSyncNow_Clicked"></Button>
+                    <Label></Label>
+                    <Button Text="Disconnect" BackgroundColor="Transparent" TextColor="Red" BorderColor="Red" BorderWidth="2" Clicked="bnt_cloudDisconnect_Clicked"></Button>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
             <Label Text="____________________________" HorizontalOptions="Center"></Label>
             <Label Text="Default Messages" HorizontalOptions="Center" FontSize="Title"></Label>
             

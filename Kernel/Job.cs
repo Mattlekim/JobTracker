@@ -503,6 +503,7 @@ namespace Kernel
             //tmp = JobFormattedOwed;
             RaisePropertyChanged("JobFormattedOwed");
             RaisePropertyChanged("JobFormattedDueTime");
+            RaisePropertyChanged("ShowOwed");
         }
         public void MarkJobPaid()
         {
@@ -957,7 +958,16 @@ namespace Kernel
         {
             get
             {
-                return Notes != null && Notes != String.Empty;
+                return !string.IsNullOrWhiteSpace(Notes);
+            }
+        }
+
+        [XmlIgnore]
+        public bool HaveJobName
+        {
+            get
+            {
+                return !string.IsNullOrWhiteSpace(Name);
             }
         }
 
@@ -1008,6 +1018,19 @@ namespace Kernel
 
             OwedColorCode = Colors.Green;
             return;
+        }
+
+        /// <summary>
+        /// hide the owed tag when there is no customer or nothing owed
+        /// </summary>
+        [XmlIgnore]
+        public bool ShowOwed
+        {
+            get
+            {
+                MatchCustomer();
+                return _customer != null && _customer.Balance != 0;
+            }
         }
 
         public string JobFormattedOwed

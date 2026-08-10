@@ -393,45 +393,36 @@ public partial class CalenderView : ContentPage
         Label l = null;
         for (int i = 0; i < _calenderDays.Count; i++)
         {
-            //day number on top, then the figures separated into aligned columns:
-            //jobs total | job count | payments total
-            Grid cell = new Grid();
-            cell.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-            cell.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-            cell.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-            cell.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-            cell.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            //day number on top, then each figure on its own row
+            VerticalStackLayout cell = new VerticalStackLayout();
             cell.VerticalOptions = LayoutOptions.Start;
 
             l = new Label() { FontSize = 10 };
             l.BindingContext = _calenderDays[i];
             l.SetBinding(Label.TextProperty, "Day");
             l.SetBinding(Label.TextColorProperty, "TextColor");
-            cell.Add(l, 0, 0);
-            Grid.SetColumnSpan(l, 3);
+            cell.Add(l);
 
             l = new Label() { FontSize = 12 };
             l.BindingContext = _calenderDays[i];
             l.SetBinding(Label.TextProperty, "FormatAmount");
             l.SetBinding(Label.TextColorProperty, "TextColor");
             l.SetBinding(Label.IsVisibleProperty, "ShowAmount");
-            cell.Add(l, 0, 1);
+            cell.Add(l);
 
             l = new Label() { FontSize = 12 };
             l.BindingContext = _calenderDays[i];
             l.SetBinding(Label.TextProperty, "FormatJobCount");
             l.SetBinding(Label.TextColorProperty, "TextColor");
             l.SetBinding(Label.IsVisibleProperty, "ShowJobCount");
-            l.HorizontalOptions = LayoutOptions.Center;
-            cell.Add(l, 1, 1);
+            cell.Add(l);
 
             l = new Label() { FontSize = 12 };
             l.BindingContext = _calenderDays[i];
             l.SetBinding(Label.TextProperty, "FormatPayments");
             l.SetBinding(Label.TextColorProperty, "TextColor");
             l.SetBinding(Label.IsVisibleProperty, "ShowPayments");
-            l.HorizontalOptions = LayoutOptions.End;
-            cell.Add(l, 2, 1);
+            cell.Add(l);
 
             border = new Border();
             border.ClassId = i.ToString();
@@ -607,7 +598,7 @@ public partial class CalenderView : ContentPage
             options.Add("Message All Jobs");
         }
 
-        string result = await DisplayActionSheet($"{day.Date.DayOfWeek} {day.Date.ToShortDateString()}", "Cancel", "", options.ToArray());
+        string result = await DisplayActionSheet($"{day.Date.DayOfWeek} {day.Date.ToShortDateString()}", "Cancel", null, options.ToArray());
         if (result == null)
             return;
         if (result.Contains("Bookin Remaining"))

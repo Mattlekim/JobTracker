@@ -24,6 +24,7 @@ public class BookingCatch
 }
 public partial class WorkPlanner : ContentPage
 {
+
     private const string bntAddText = "Add Job";
     private const string bntBookWorkText = "Select Jobs";
     private const string bntFilterText = "Filter";
@@ -157,10 +158,6 @@ public partial class WorkPlanner : ContentPage
             Booking.AddBooking(bc.Jobs, bc.Jobs[0].DateJobBookinFor);
         }
 
-        lv_Jobs.ItemsSource = _sourceJobs;
-
-        //Grid g = NameScopeExtensions.FindByName<Grid>(this, "g_workList");
-        
         NavigatedTo += WorkPlanner_NavigatedTo;
         SizeChanged += (s, e) => UpdateMoreInfoLayout();
     }
@@ -342,28 +339,21 @@ public partial class WorkPlanner : ContentPage
         //lv_Jobs.ItemsSource = GetJobs(fullrefresh);
 
         Job.RefreshJobs();
-        _sourceJobs.Clear();
         _tmpJobs = GetJobs();
+        bool darkTheme = Application.Current.PlatformAppTheme == AppTheme.Dark;
         for (int i = 0; i < _tmpJobs.Count; i++)
         {
-            if (Application.Current.PlatformAppTheme == AppTheme.Dark)
-            {
-                if (altColour)
-                    _tmpJobs[i].AltColour = MainColorDark;
-                else
-                    _tmpJobs[i].AltColour = altColorDark;
-            }
+            if (darkTheme)
+                _tmpJobs[i].AltColour = altColour ? MainColorDark : altColorDark;
             else
-            {
-                if (altColour)
-                    _tmpJobs[i].AltColour = MainColor;
-                else
-                    _tmpJobs[i].AltColour = altColor;
-            }
-            _sourceJobs.Add(_tmpJobs[i]);
+                _tmpJobs[i].AltColour = altColour ? MainColor : altColor;
             altColour = !altColour;
-            //_jobsToAddFrom = i;
         }
+
+        //swap the whole collection in one go: clearing and re-adding one job at a
+        //time makes the list re-layout on every add, which is what made this page slow
+        _sourceJobs = new ObservableCollection<Job>(_tmpJobs);
+        lv_Jobs.ItemsSource = _sourceJobs;
 
 
         /*foreach (Job j in tmpJobs)
@@ -381,7 +371,7 @@ public partial class WorkPlanner : ContentPage
         float amountCleaned = 0;
         int bookedInJobs = 0;
         DateTime today = UsfulFuctions.DateNow;
-        foreach (Job j in lv_Jobs.ItemsSource)
+        foreach (Job j in _sourceJobs)
         {
             bookedInJobs++;
             if (j.IsCompleted)
@@ -1913,28 +1903,4 @@ public partial class WorkPlanner : ContentPage
         
     }
 
-    Grid g_jobList;
-    private void g_childAdded(object sender, ElementEventArgs e)
-    {
-        if (g_jobList == null)
-            g_jobList = sender as Grid;
-    }
-
-    private void test(object sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == "IsVisible")
-        {
-            CheckBox cb = sender as CheckBox;
-            Grid g = cb.Parent as Grid;
-            if (cb.IsVisible)
-            {
-                g.TranslationX = 0;
-            }
-            else
-            {
-                g.TranslationX = -32;
-            }
-
-        }
-    }
 }

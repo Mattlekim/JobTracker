@@ -22,7 +22,10 @@ public partial class ViewCustomerDetails : ContentPage
 
         Job job = Job.Query(QueryType.CustomerId, CurrentJob.CustomerId).FirstOrDefault();
 
-        while (job != null)
+        //visited guard: a corrupt JobNextId pointing back at an earlier job
+        //would otherwise loop forever
+        HashSet<int> seenJobs = new HashSet<int>();
+        while (job != null && seenJobs.Add(job.Id))
         {
             _customerJobs.Add(job);
             job = Job.Query(QueryType.JobId, job.JobNextId).FirstOrDefault();

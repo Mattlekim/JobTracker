@@ -168,6 +168,89 @@ public partial class SettingLayout : ContentPage
 
         NavigatedTo += SettingLayout_NavigatedTo;
         NavigatingFrom += SettingLayout_NavigatingFrom;
+
+        RefreshCloudSection();
+        CloudSync.StatusChanged += (status) =>
+            MainThread.BeginInvokeOnMainThread(() => l_cloudStatus.Text = status);
+    }
+
+    private void RefreshCloudSection()
+    {
+        vsl_cloudSetup.IsVisible = !CloudSync.IsSignedIn;
+        vsl_cloudConnected.IsVisible = CloudSync.IsSignedIn;
+        e_cloudClientId.Text = CloudSync.ClientId;
+        e_cloudClientSecret.Text = CloudSync.ClientSecret;
+        sw_cloudAuto.IsToggled = CloudSync.AutoSync;
+        l_cloudStatus.Text = $"Last sync: {CloudSync.LastSyncText}";
+    }
+
+    private async void bnt_cloudConnect_Clicked(object sender, EventArgs e)
+    {
+        CloudSync.ClientId = e_cloudClientId.Text?.Trim();
+        CloudSync.ClientSecret = e_cloudClientSecret.Text?.Trim();
+
+        if (string.IsNullOrWhiteSpace(CloudSync.ClientId) || string.IsNullOrWhiteSpace(CloudSync.ClientSecret))
+        {
+            await DisplayAlert("Cloud Sync",
+                "You need a Client ID and Client Secret first.\n\n" +
+                "1. Go to console.cloud.google.com and create a project\n" +
+                "2. Enable the 'Google Drive API'\n" +
+                "3. Create OAuth credentials of type 'TVs and Limited Input devices'\n" +
+                "4. Paste the Client ID and Client Secret here", "Ok");
+            return;
+        }
+
+        try
+        {
+            CloudSync.DeviceCodeInfo info = await CloudSync.BeginSignInAsync();
+
+            await Clipboard.SetTextAsync(info.UserCode);
+            bool open = await DisplayAlert("Connect Google Drive",
+                $"Your code is:\n\n{info.UserCode}\n\n(it has been copied to the clipboard)\n\n" +
+                $"Press Open to go to {info.VerificationUrl}, sign in with your Google account and enter the code. " +
+                "Then come back here and wait a moment.",
+                "Open", "Cancel");
+            if (!open)
+                return;
+
+            await Browser.OpenAsync(info.VerificationUrl, BrowserLaunchMode.SystemPreferred);
+
+            using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+            bool ok = await CloudSync.WaitForSignInAsync(info, cts.Token);
+            if (ok)
+            {
+                RefreshCloudSection();
+                await DisplayAlert("Cloud Sync", "Connected! Your data will now sync with Google Drive.", "Ok");
+                string result = await CloudSync.SyncNowAsync();
+                l_cloudStatus.Text = result;
+            }
+            else
+                await DisplayAlert("Cloud Sync", "Sign in was not completed. Try again.", "Ok");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Cloud Sync", $"Could not connect: {ex.Message}", "Ok");
+        }
+    }
+
+    private async void bnt_cloudSyncNow_Clicked(object sender, EventArgs e)
+    {
+        l_cloudStatus.Text = "Syncing...";
+        string result = await CloudSync.SyncNowAsync();
+        l_cloudStatus.Text = result;
+    }
+
+    private async void bnt_cloudDisconnect_Clicked(object sender, EventArgs e)
+    {
+        if (!await DisplayAlert("Cloud Sync", "Disconnect Google Drive? Your local data stays on this device.", "Disconnect", "Cancel"))
+            return;
+        CloudSync.SignOut();
+        RefreshCloudSection();
+    }
+
+    private void sw_cloudAuto_Toggled(object sender, ToggledEventArgs e)
+    {
+        CloudSync.AutoSync = e.Value;
     }
 
     private void SettingLayout_NavigatedTo(object sender, NavigatedToEventArgs e)
