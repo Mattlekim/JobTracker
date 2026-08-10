@@ -314,15 +314,22 @@
                                     Text="ENB" TextColor="White" BackgroundColor="DarkRed" IsVisible="{Binding ENB}" Padding="6" FontAttributes="Bold" TranslationX="16"></Label>
                                 </HorizontalStackLayout>
 
-                                <HorizontalStackLayout Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2">
-                                    <Label BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4"></Label>
-                                    <Label BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" TranslationX="8" Padding="4">
+                                <!-- grid (not stack) so the notes label is width-bounded and
+                                     truncates instead of painting over the swipe buttons -->
+                                <Grid Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                        <ColumnDefinition Width="*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Label Grid.Column="0" BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4"></Label>
+                                    <Label Grid.Column="1" BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" TranslationX="8" Padding="4">
                                         <Label.GestureRecognizers>
                                             <TapGestureRecognizer Tapped="Money_Owed_Filter"></TapGestureRecognizer>
                                         </Label.GestureRecognizers>
                                     </Label>
-                                    <Label BackgroundColor="Orange" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}"></Label>
-                                </HorizontalStackLayout>
+                                    <Label Grid.Column="2" BackgroundColor="Orange" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"></Label>
+                                </Grid>
                             </Grid>
 
 
