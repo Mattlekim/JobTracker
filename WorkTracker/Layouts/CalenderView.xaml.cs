@@ -68,6 +68,29 @@ public class CalenderDay: INotifyPropertyChanged
             return $"{Jobs.Count} Jobs";
         }
     }
+
+    public float PaymentsTotal;
+
+    private bool _showPayments;
+    public bool ShowPayments
+    {
+        get
+        {
+            return _showPayments;
+        }
+        set
+        {
+            _showPayments = value;
+            RaisePropertyChanged("ShowPayments");
+        }
+    }
+    public string FormatPayments
+    {
+        get
+        {
+            return $"Paid {Gloable.CurrenceSymbol}{PaymentsTotal}";
+        }
+    }
 	public ObservableCollection<Job> Jobs = new ObservableCollection<Job>();
 
     private Color _bgColor = Colors.Transparent;
@@ -211,8 +234,16 @@ public class CalenderDay: INotifyPropertyChanged
             ShowJobCount = false;
         else
             ShowJobCount = true;
+
+        PaymentsTotal = 0;
+        foreach (Payment p in Payment.Query())
+            if (UsfulFuctions.Difference(p.Date, Date) == 0)
+                PaymentsTotal += p.Amount;
+        ShowPayments = PaymentsTotal != 0;
+
         RaisePropertyChanged("FormatAmount");
         RaisePropertyChanged("FormatJobCount");
+        RaisePropertyChanged("FormatPayments");
         
         ResetColor();
 		if (UsfulFuctions.Difference(Date, DateNow) == 0)
@@ -288,34 +319,35 @@ public partial class CalenderView : ContentPage
         l_date.Text = $"{_months[_date.Month - 1]} {_date.Year}";
 
         CalenderDay.DateNow = _date;
-        _date.AddDays(1);
-        int monday = (int)DayOfWeek.Monday + 1;
 
-        int startDayOfWeek = (int)new DateTime(_date.Year, _date.Month, 1).DayOfWeek; //get the frist of the month
-        int daysInMonth = DateTime.DaysInMonth(_date.Year, _date.Month);
+        //calender always starts on the monday on or before the 1st of the month
+        //and shows 6 full weeks so every month fits
+        DateTime firstOfMonth = new DateTime(_date.Year, _date.Month, 1);
+        DateTime startDate = firstOfMonth.AddDays(-(((int)firstOfMonth.DayOfWeek + 6) % 7));
 
-        DateTime lastMonth = _date.AddMonths(-1); //go back one month
-        DateTime nextMonth = _date.AddMonths(1);
-        int daysInLastMonth = DateTime.DaysInMonth(lastMonth.Year, lastMonth.Month);
-        DateTime[] dates = new DateTime[7 * 5];
-
-        int todaysLocation = startDayOfWeek + _date.Day;
         int x = 0, y = 1;
-
-     
 
         VerticalStackLayout vsl = null;
         Border border = null;
         _calenderDays.Clear();
-        for (int i = monday; i < 7 * 5 + monday; i++)
+        for (int i = 0; i < 7 * 6; i++)
         {
-            if (i <= startDayOfWeek)
-                _calenderDays.Add(new CalenderDay(daysInLastMonth - (startDayOfWeek - i), new DateTime(lastMonth.Year, lastMonth.Month, daysInLastMonth - (startDayOfWeek - i))));
-            else
-                if (i - startDayOfWeek > daysInMonth)
-                _calenderDays.Add(new CalenderDay(i - startDayOfWeek - daysInMonth, new DateTime(nextMonth.Year, nextMonth.Month, i - startDayOfWeek - daysInMonth)));
-            else
-                _calenderDays.Add(new CalenderDay(i - startDayOfWeek, new DateTime(_date.Year, _date.Month, i - startDayOfWeek)));
+            DateTime d = startDate.AddDays(i);
+            _calenderDays.Add(new CalenderDay(d.Day, d));
+        }
+
+        //day of week headers along the top row
+        for (int i = 0; i < _days.Count; i++)
+        {
+            Label dayHeader = new Label()
+            {
+                Text = _days[i],
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center
+            };
+            g_calender.Add(dayHeader, i, 0);
         }
 
         //now we go through all jobs and find out when they where cleanded
@@ -391,6 +423,14 @@ public partial class CalenderView : ContentPage
             l.SetBinding(Label.IsVisibleProperty, "ShowJobCount");
 
             vsl.Add(l);
+
+            l = new Label() { FontSize = 12 };
+            l.BindingContext = _calenderDays[i];
+            l.SetBinding(Label.TextProperty, "FormatPayments");
+            l.SetBinding(Label.TextColorProperty, "TextColor");
+            l.SetBinding(Label.IsVisibleProperty, "ShowPayments");
+
+            vsl.Add(l);
             // vsl.Add(new Label() { Text = $"{_calenderDays[i].EstimatedDuration}" });
 
 
@@ -401,6 +441,7 @@ public partial class CalenderView : ContentPage
             border.StrokeThickness = 1;
             border.StrokeShape = new Rectangle();
             border.Padding = 1;
+            border.MinimumHeightRequest = 42; //keep empty days tappable and the grid legible
             border.Content = vsl;
             //border.BackgroundColor = _calenderDays[i].BgColour;
             border.BindingContext = _calenderDays[i];
@@ -881,52 +922,18 @@ public partial class CalenderView : ContentPage
         l_date.Text = $"{_months[_date.Month - 1]} {_date.Year}";
 
         CalenderDay.DateNow = _date;
-        _date.AddDays(1);
-        int monday = (int)DayOfWeek.Monday + 1;
 
-        int startDayOfWeek = (int)new DateTime(_date.Year, _date.Month, 1).DayOfWeek; //get the frist of the month
-        int daysInMonth = DateTime.DaysInMonth(_date.Year, _date.Month);
+        //same layout rule as BuildPage: 6 full weeks starting on the monday
+        //on or before the 1st of the month
+        DateTime firstOfMonth = new DateTime(_date.Year, _date.Month, 1);
+        DateTime startDate = firstOfMonth.AddDays(-(((int)firstOfMonth.DayOfWeek + 6) % 7));
 
-        DateTime lastMonth = _date.AddMonths(-1); //go back one month
-        DateTime nextMonth = _date.AddMonths(1);
-        int daysInLastMonth = DateTime.DaysInMonth(lastMonth.Year, lastMonth.Month);
-        DateTime[] dates = new DateTime[7 * 5];
-
-        int todaysLocation = startDayOfWeek + _date.Day;
-        int x = 0, y = 1;
-
-
-
-        VerticalStackLayout vsl = null;
-        Border border = null;
-      
-
-        //now we go through all jobs and find out when they where cleanded
-        //we only want jobs within range
-
-       
-
-        int c = 0;
-        for (int i = monday; i < 7 * 5 + monday; i++)
+        for (int i = 0; i < _calenderDays.Count; i++)
         {
-            if (i <= startDayOfWeek)
-            {
-                _calenderDays[c].Day = daysInLastMonth - (startDayOfWeek - i);
-                _calenderDays[c].Date = new DateTime(lastMonth.Year, lastMonth.Month, daysInLastMonth - (startDayOfWeek - i));
-            }
-            else
-                if (i - startDayOfWeek > daysInMonth)
-            {
-                _calenderDays[c].Day = i - startDayOfWeek - daysInMonth;
-                _calenderDays[c].Date = new DateTime(nextMonth.Year, nextMonth.Month, i - startDayOfWeek - daysInMonth);
-            }
-            else
-            {
-                _calenderDays[c].Day = i - startDayOfWeek;
-                _calenderDays[c].Date = new DateTime(_date.Year, _date.Month, i - startDayOfWeek);
-            }
-            _calenderDays[c].Jobs.Clear();
-            c++;
+            DateTime d = startDate.AddDays(i);
+            _calenderDays[i].Day = d.Day;
+            _calenderDays[i].Date = d;
+            _calenderDays[i].Jobs.Clear();
         }
 
         List<Job> jobs = Job.Query();
@@ -968,14 +975,30 @@ public partial class CalenderView : ContentPage
 
         _jobsToDisplay.Clear();
         foreach (Job j in _selectedDay.Jobs)
+        {
+            j.CollapsedInList = j.IsCompleted;
             _jobsToDisplay.Add(j);
+        }
+
+        float jobTotal = 0;
+        foreach (Job j in _selectedDay.Jobs)
+            jobTotal += j.Price;
+
+        float paymentsTotal = 0;
+        foreach (Payment p in Payment.Query())
+            if (UsfulFuctions.Difference(p.Date, _selectedDay.Date) == 0)
+                paymentsTotal += p.Amount;
+
+        l_dayJobTotal.Text = $"Jobs {Gloable.CurrenceSymbol}{jobTotal}";
+        l_dayPaymentTotal.Text = $"Paid {Gloable.CurrenceSymbol}{paymentsTotal}";
     }
 
     private void On_Job_More(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
-
-        RefreshPageDate();
+        if (j == null)
+            return;
+        WorkPlanner.ShowJobInfo(j, this);
     }
 
     private void On_Job_Skipped(object sender, EventArgs e)
@@ -1000,6 +1023,12 @@ public partial class CalenderView : ContentPage
 
     
 
+    private void CollapsedJob_Tapped(object sender, TappedEventArgs e)
+    {
+        if ((sender as Element)?.BindingContext is Job j)
+            j.CollapsedInList = false;
+    }
+
     private void bnt_info_Clicked(object sender, EventArgs e)
     {
         ImageButton ib = sender as ImageButton;
@@ -1012,21 +1041,4 @@ public partial class CalenderView : ContentPage
 
     }
 
-    private bool _gridIsVisble = true;
-    private void bnt_minimizeCalender_Clicked(object sender, EventArgs e)
-    {
-        g_calender.IsVisible = _gridIsVisble = !_gridIsVisble;
-        hsl_monthSelector.IsVisible = _gridIsVisble;
-        if (!g_calender.IsVisible)
-        {
-            bnt_minimizeCalender.Text = ">";
-            bnt_minimizeCalender1.Text = ">";
-
-        }
-        else
-        {
-            bnt_minimizeCalender.Text = "<";
-            bnt_minimizeCalender1.Text = "<";
-        }
-    }
 }

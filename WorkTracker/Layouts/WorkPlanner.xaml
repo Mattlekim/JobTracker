@@ -11,8 +11,19 @@
     </ContentPage.ToolbarItems>
 
 
-    <StackLayout>
-        <VerticalStackLayout>
+    <Grid x:Name="g_root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+            <!-- side panel column, opened by code when the window is wide enough -->
+            <ColumnDefinition x:Name="cd_sidePanel" Width="0"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <VerticalStackLayout x:Name="vsl_header" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
 
             <Label x:Name="l_filterResultsText" Text="Filtering Results" FontAttributes="Bold" FontSize="Medium" TextColor="White" BackgroundColor="#2E7D32" IsVisible="false" ></Label>
             <!-- Filter stuff-->
@@ -121,8 +132,11 @@
                 <Button Text="Reschedule" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" HorizontalOptions="Center" VerticalOptions="Center" Padding="8" Clicked="bnt_ReschedualConfirm_Clicked"></Button>
             </HorizontalStackLayout>
             
-            <!--  Job more info stuff-->
-            <Grid BackgroundColor="#00796B" x:Name="g_more" IsVisible="false" >
+        </VerticalStackLayout>
+
+        <!--  Job more info stuff. Stacked above the list by default; moved into
+              the side column by code when the window is wide enough -->
+        <Grid BackgroundColor="#00796B" x:Name="g_more" IsVisible="false" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" VerticalOptions="Start" >
                 <Grid.RowDefinitions>
                     <RowDefinition></RowDefinition>
                     <RowDefinition></RowDefinition>
@@ -189,11 +203,10 @@
                 </HorizontalStackLayout>
                 <Button Text="Cancel" Grid.Row="5" Grid.Column="0" Clicked="bnt_cancel_clicked" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
                 <Button Text="Confirm" Grid.Row="5" Grid.Column="2" Clicked="bnt_confirm_clicked" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
-            </Grid>
-        </VerticalStackLayout>
+        </Grid>
 
         <!-- shown for 10 seconds after cancelling a job from the list -->
-        <Border x:Name="g_undoCancel" IsVisible="false" BackgroundColor="#323232" StrokeThickness="0" StrokeShape="RoundRectangle 10" Margin="12,4" Padding="14,6">
+        <Border x:Name="g_undoCancel" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" IsVisible="false" BackgroundColor="#323232" StrokeThickness="0" StrokeShape="RoundRectangle 10" Margin="12,4" Padding="14,6">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"></ColumnDefinition>
@@ -204,7 +217,7 @@
             </Grid>
         </Border>
 
-        <CollectionView
+        <CollectionView Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                     x:Name="lv_Jobs" SelectionMode="Single" SelectionChanged="lv_Jobs_SelectionChanged" VerticalOptions="FillAndExpand" RemainingItemsThreshold="0">
             <CollectionView.ItemTemplate>
                 <DataTemplate >
@@ -371,5 +384,5 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-    </StackLayout>
+    </Grid>
 </ContentPage>

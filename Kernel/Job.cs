@@ -411,6 +411,25 @@ namespace Kernel
         }
 
         [XmlIgnore]
+        private bool _collapsedInList;
+        /// <summary>
+        /// ui state: completed jobs show as a narrow faded row in day lists until tapped
+        /// </summary>
+        [XmlIgnore]
+        public bool CollapsedInList
+        {
+            get { return _collapsedInList; }
+            set
+            {
+                _collapsedInList = value;
+                RaisePropertyChanged("CollapsedInList");
+                RaisePropertyChanged("ExpandedInList");
+            }
+        }
+        [XmlIgnore]
+        public bool ExpandedInList { get { return !_collapsedInList; } }
+
+        [XmlIgnore]
         public DateTime tmpDate;
 
         public void UnBookInJob()

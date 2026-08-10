@@ -162,6 +162,38 @@ public partial class WorkPlanner : ContentPage
         //Grid g = NameScopeExtensions.FindByName<Grid>(this, "g_workList");
         
         NavigatedTo += WorkPlanner_NavigatedTo;
+        SizeChanged += (s, e) => UpdateMoreInfoLayout();
+    }
+
+    // minimum window width before the more-info panel docks beside the job list
+    private const double MoreInfoSideBySideMinWidth = 900;
+
+    private void UpdateMoreInfoLayout()
+    {
+        bool sideBySide = g_more.IsVisible && Width >= MoreInfoSideBySideMinWidth;
+
+        if (sideBySide)
+        {
+            cd_sidePanel.Width = new GridLength(0.45, GridUnitType.Star);
+            Grid.SetRow(g_more, 0);
+            Grid.SetRowSpan(g_more, 4);
+            Grid.SetColumn(g_more, 1);
+            Grid.SetColumnSpan(g_more, 1);
+            Grid.SetColumnSpan(vsl_header, 1);
+            Grid.SetColumnSpan(g_undoCancel, 1);
+            Grid.SetColumnSpan(lv_Jobs, 1);
+        }
+        else
+        {
+            cd_sidePanel.Width = new GridLength(0);
+            Grid.SetRow(g_more, 1);
+            Grid.SetRowSpan(g_more, 1);
+            Grid.SetColumn(g_more, 0);
+            Grid.SetColumnSpan(g_more, 2);
+            Grid.SetColumnSpan(vsl_header, 2);
+            Grid.SetColumnSpan(g_undoCancel, 2);
+            Grid.SetColumnSpan(lv_Jobs, 2);
+        }
     }
 
     private void Bnt_textCreateGroup_Clicked(object sender, EventArgs e)
@@ -886,7 +918,10 @@ public partial class WorkPlanner : ContentPage
     private void swip_ended(object sender, SwipeEndedEventArgs e)
     {
         if (e.IsOpen)
+        {
             g_more.IsVisible = false;
+            UpdateMoreInfoLayout();
+        }
        
 
     }
@@ -897,6 +932,7 @@ public partial class WorkPlanner : ContentPage
         if (_currentJob == null)
             return;
         g_more.IsVisible = true;
+        UpdateMoreInfoLayout();
         l_customerDescription.Text = $"{_currentJob.JobFormattedStreet} {_currentJob.JobFormattedCity}";
         p_paymentType.Items.Clear();
         foreach (string s in Enum.GetNames(typeof(PaymentMethod)))
@@ -1049,6 +1085,7 @@ public partial class WorkPlanner : ContentPage
     private void bnt_cancel_clicked(object sender, EventArgs e)
     {
         g_more.IsVisible = false;
+        UpdateMoreInfoLayout();
         _currentJob = null;
     }
 
@@ -1086,6 +1123,7 @@ public partial class WorkPlanner : ContentPage
         }
 
         g_more.IsVisible = false;
+        UpdateMoreInfoLayout();
         if (_currentJob.IsCompleted && !cb_isCompleated.IsChecked)
             _currentJob.UnMarkJobDone(true);
 
@@ -1462,11 +1500,18 @@ public partial class WorkPlanner : ContentPage
 
         try
         {
-            List<string> numbers = new List<string>();
-          
+            Customer c = j.GetCustomer();
+            if (c == null || string.IsNullOrWhiteSpace(c.Phone))
+            {
+                page.DisplayAlert("Failed", "This customer has no phone number.", "OK");
+                return;
+            }
+
+            List<string> numbers = new List<string>() { c.Phone };
+
             SmsMessage message = new SmsMessage(ReplaceTags(msg, dt, j), numbers);
             Sms.ComposeAsync(message);
-
+            j.HaveBeenText = true;
         }
         catch (FeatureNotSupportedException ex)
         {

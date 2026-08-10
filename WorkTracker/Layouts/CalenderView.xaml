@@ -3,23 +3,31 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.CalenderView"
              Title="Calendar">
-    <StackLayout>
-        <HorizontalStackLayout HorizontalOptions="CenterAndExpand" x:Name="hsl_monthSelector">
-            <Button Text="&lt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontSize="Micro" VerticalOptions="Center" Clicked="bnt_previousMonthClicked"
-                    BorderWidth="2"></Button>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <HorizontalStackLayout Grid.Row="0" HorizontalOptions="Center" x:Name="hsl_monthSelector">
+            <Button Text="&lt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" VerticalOptions="Center" Clicked="bnt_previousMonthClicked"
+                    BorderWidth="2" Padding="0" WidthRequest="44" HeightRequest="38"></Button>
             <Label x:Name="l_date" Text="May 2022" HorizontalOptions="Center" FontSize="Default" FontAttributes="Bold" VerticalOptions="Center" Padding="8"></Label>
-            <Button Text="&gt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontSize="Micro" VerticalOptions="Center" Clicked="bnt_nextMonthClicked"
-                     BorderWidth="2"></Button>
+            <Button Text="&gt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" VerticalOptions="Center" Clicked="bnt_nextMonthClicked"
+                     BorderWidth="2" Padding="0" WidthRequest="44" HeightRequest="38"></Button>
         </HorizontalStackLayout>
         <!--                         THIS IS THE CALENDER GRID      ALL LABLES ARE ADDED IN THE CS FILE             -->
-        <Grid x:Name="g_calender" TranslationY="-14">
+        <Grid x:Name="g_calender" Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="20"></RowDefinition>
-                <RowDefinition></RowDefinition>
-                <RowDefinition></RowDefinition>
-                <RowDefinition></RowDefinition>
-                <RowDefinition></RowDefinition>
-                <RowDefinition></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition></ColumnDefinition>
@@ -31,17 +39,17 @@
                 <ColumnDefinition></ColumnDefinition>
             </Grid.ColumnDefinitions>
         </Grid>
-        <HorizontalStackLayout BackgroundColor="Transparent" HorizontalOptions="CenterAndExpand" TranslationY="-0">
-            <Button x:Name="bnt_minimizeCalender" Text="&lt;" Rotation="90" HorizontalOptions="Start" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" Clicked="bnt_minimizeCalender_Clicked"
-                     BorderColor="Orange" BorderWidth="2" Padding="8"></Button>
-            <Label x:Name="l_currentDayName" FontSize="Default" FontAttributes="Bold" HorizontalOptions="CenterAndExpand" VerticalOptions="Center" Padding="8"></Label>
-            <Button x:Name="bnt_minimizeCalender1" Text="&lt;" Rotation="90" HorizontalOptions="Start" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" Clicked="bnt_minimizeCalender_Clicked"
-                    BorderColor="Orange" BorderWidth="2" Padding="8"></Button>
-        </HorizontalStackLayout>
+        <VerticalStackLayout Grid.Row="2" HorizontalOptions="Center" Margin="0,0,0,12">
+            <Label x:Name="l_currentDayName" FontSize="Default" FontAttributes="Bold" HorizontalOptions="Center" Padding="8,8,8,4"></Label>
+            <HorizontalStackLayout HorizontalOptions="Center">
+                <Label x:Name="l_dayJobTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#2E7D32" Padding="6"></Label>
+                <Label x:Name="l_dayPaymentTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#00796B" Padding="6" Margin="8,0,0,0"></Label>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
         <!--                       THIS IS THE LIST OF JOBS TO DISPLAY!!!!                       -->
-        <Label x:Name="l_noJobs" FontSize="Title" HorizontalOptions="CenterAndExpand" Text="No Jobs To Do" Padding="16"></Label>
-        <CollectionView
-                    x:Name="lv_Jobs" SelectionMode="None" VerticalOptions="FillAndExpand" RemainingItemsThreshold="0" TranslationY="-16">
+        <Label x:Name="l_noJobs" Grid.Row="3" FontSize="Title" HorizontalOptions="Center" Text="No Jobs To Do" Padding="16"></Label>
+        <CollectionView Grid.Row="4"
+                    x:Name="lv_Jobs" SelectionMode="None" RemainingItemsThreshold="0">
             <CollectionView.ItemTemplate>
                 <DataTemplate >
 
@@ -96,7 +104,29 @@
                         <!--            job list for jobs                              -->
 
                         <VerticalStackLayout Padding="2" BackgroundColor="{Binding AltColour}">
-                            <Grid>
+                            <!-- swipe gestures only work with touch, so desktop
+                                 (right click) gets the same actions as a menu -->
+                            <FlyoutBase.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Done" CommandParameter="{Binding Id}" Clicked="On_Job_Compleated" />
+                                    <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding Id}" Clicked="On_Job_Paid" />
+                                    <MenuFlyoutItem Text="More" CommandParameter="{Binding Id}" Clicked="On_Job_More" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
+                                    <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding Id}" Clicked="On_Job_Canceled" />
+                                    <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding Id}" Clicked="On_Job_Detials" />
+                                </MenuFlyout>
+                            </FlyoutBase.ContextFlyout>
+                            <!-- completed jobs show as this narrow faded row; tap to expand -->
+                            <HorizontalStackLayout IsVisible="{Binding CollapsedInList}" Opacity="0.4" Padding="2">
+                                <HorizontalStackLayout.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="CollapsedJob_Tapped"></TapGestureRecognizer>
+                                </HorizontalStackLayout.GestureRecognizers>
+                                <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" Padding="4,2" />
+                                <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" Padding="4,2" />
+                                <Label Text="{Binding JobFormattedCity}" Padding="4,2" />
+                            </HorizontalStackLayout>
+                            <Grid IsVisible="{Binding ExpandedInList}">
                                 <Grid.RowDefinitions>
                                     <RowDefinition></RowDefinition>
                                     <RowDefinition></RowDefinition>
@@ -144,17 +174,24 @@
                                     Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="6" FontAttributes="Bold" TranslationX="20"></Label>
                                 </HorizontalStackLayout>
 
-                                <HorizontalStackLayout Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2">
-                                    <Label BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4"></Label>
-                                    <Label BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" TranslationX="8" Padding="4">
+                                <!-- grid (not stack) so the notes label is width-bounded and
+                                     truncates instead of painting over the swipe buttons -->
+                                <Grid Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                        <ColumnDefinition Width="*"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Label Grid.Column="0" BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4"></Label>
+                                    <Label Grid.Column="1" BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" TranslationX="8" Padding="4">
                                     </Label>
-                                    <Label BackgroundColor="#FB8C00" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}"></Label>
-                                </HorizontalStackLayout>
+                                    <Label Grid.Column="2" BackgroundColor="#FB8C00" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"></Label>
+                                </Grid>
                             </Grid>
                         </VerticalStackLayout>
                     </SwipeView>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-    </StackLayout>
+    </Grid>
 </ContentPage>

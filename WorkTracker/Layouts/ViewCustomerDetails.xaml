@@ -13,8 +13,10 @@
 
         <Label></Label>
 
-        <VerticalStackLayout Padding="8">
-            <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4" >
+        <!-- grid overlay so the "Customer" caption always sits on the box's top
+             border no matter how tall the box is -->
+        <Grid Padding="8">
+            <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4" Margin="0,14,0,0" >
                 <VerticalStackLayout>
 
                     <VerticalStackLayout Padding="8" HorizontalOptions="Center">
@@ -45,13 +47,13 @@
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Border>
-            <Label Text="Customer" FontAttributes="Bold" FontSize="Large" HorizontalOptions="Center" TranslationY="-175" BackgroundColor="{AppThemeBinding Light=white, Dark=black}"></Label>
-        </VerticalStackLayout>
+            <Label Text="Customer" FontAttributes="Bold" FontSize="Large" HorizontalOptions="Center" VerticalOptions="Start" Padding="8,0" BackgroundColor="{AppThemeBinding Light=white, Dark=black}"></Label>
+        </Grid>
 
 
 
-        <Label Text="_________________________________" HorizontalOptions="Center" TranslationY="-20"></Label>
-        <Label Text="History" FontAttributes="Bold" FontSize="Title" HorizontalOptions="Center" TranslationY="-20"></Label>
+        <Label Text="_________________________________" HorizontalOptions="Center"></Label>
+        <Label Text="History" FontAttributes="Bold" FontSize="Title" HorizontalOptions="Center"></Label>
         
         <CollectionView x:Name="cv_jobList" VerticalOptions="FillAndExpand" SelectionMode="Single">
             
