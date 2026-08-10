@@ -525,9 +525,18 @@ public partial class PaperView : ContentPage
 
 
       //  SetFilter(cf);
-        FullPageLoad();
+        try
+        {
+            FullPageLoad();
+        }
+        catch (Exception ex)
+        {
+            // Never let a data problem stop the app from opening -
+            // record it so the crash log page can surface it.
+            WorkTracker.CrashLogger.Log("PaperView.FullPageLoad", ex);
+        }
 
-		
+
 	}
 
 	public void SetFilter(JobFilterBase jfb)
