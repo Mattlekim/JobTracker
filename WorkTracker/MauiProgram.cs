@@ -15,6 +15,13 @@
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
+#if ANDROID
+            builder.ConfigureMauiHandlers(handlers =>
+            {
+                handlers.AddHandler(typeof(Shell), typeof(NoSwipeShellRenderer));
+            });
+#endif
+
             return builder.Build();
             
             

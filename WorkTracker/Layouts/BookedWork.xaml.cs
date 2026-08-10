@@ -43,4 +43,52 @@ public partial class BookedWork : ContentPage
             return;
         WorkPlanner.EditJobDetails(j, this);
     }
+
+    //swipe items and context menu items are both MenuItems carrying the job
+    private static Job JobFrom(object sender)
+        => (sender as MenuItem)?.CommandParameter as Job;
+
+    private void On_Job_Compleated(object sender, EventArgs e)
+    {
+        Job j = JobFrom(sender);
+        if (j == null)
+            return;
+        WorkPlanner.MarkJobDone(j, this);
+        Reload();
+    }
+
+    private void On_Job_Paid(object sender, EventArgs e)
+    {
+        Job j = JobFrom(sender);
+        if (j == null)
+            return;
+        WorkPlanner.MarkJobPaid(j);
+        Reload();
+    }
+
+    private void On_Job_Skipped(object sender, EventArgs e)
+    {
+        Job j = JobFrom(sender);
+        if (j == null)
+            return;
+        WorkPlanner.MarkJobSkipped(j);
+        Reload();
+    }
+
+    private async void On_Job_Canceled(object sender, EventArgs e)
+    {
+        Job j = JobFrom(sender);
+        if (j == null)
+            return;
+        await WorkPlanner.MarkJobCancled(j, this);
+        Reload();
+    }
+
+    private void On_Job_Details(object sender, EventArgs e)
+    {
+        Job j = JobFrom(sender);
+        if (j == null)
+            return;
+        WorkPlanner.EditJobDetails(j, this);
+    }
 }

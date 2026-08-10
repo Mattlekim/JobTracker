@@ -19,26 +19,54 @@
 
         <CollectionView.ItemTemplate>
             <DataTemplate>
-                <Border StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="8,3"
-                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="job_Tapped" CommandParameter="{Binding .}"/>
-                    </Border.GestureRecognizers>
-                    <Grid Padding="12,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <VerticalStackLayout Grid.Column="0" Spacing="2">
-                            <Label Text="{Binding JobFormattedStreet}" FontAttributes="Bold"/>
-                            <HorizontalStackLayout Spacing="8">
-                                <Label Text="{Binding Name}" TextColor="White" BackgroundColor="#EF6C00" Padding="6,2" FontAttributes="Bold" FontSize="12"/>
-                                <Label Text="Done" TextColor="White" BackgroundColor="#4CAF50" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding IsCompleted}"/>
-                            </HorizontalStackLayout>
-                        </VerticalStackLayout>
-                        <Label Grid.Column="1" Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" VerticalOptions="Center"/>
-                    </Grid>
-                </Border>
+                <SwipeView>
+                    <SwipeView.LeftItems>
+                        <SwipeItems>
+                            <SwipeItem Text="Done" IconImageSource="tick.png" CommandParameter="{Binding .}" BackgroundColor="#4CAF50" Invoked="On_Job_Compleated"/>
+                            <SwipeItem Text="Done &amp; Paid" IconImageSource="donepaid.png" CommandParameter="{Binding .}" BackgroundColor="#2E7D32" Invoked="On_Job_Paid"/>
+                        </SwipeItems>
+                    </SwipeView.LeftItems>
+                    <SwipeView.RightItems>
+                        <SwipeItems>
+                            <SwipeItem Text="Skip" IconImageSource="skip.png" CommandParameter="{Binding .}" BackgroundColor="#FB8C00" Invoked="On_Job_Skipped"/>
+                            <SwipeItem Text="Cancel" IconImageSource="cancel.png" CommandParameter="{Binding .}" BackgroundColor="#E53935" Invoked="On_Job_Canceled"/>
+                            <SwipeItem Text="Edit Details" IconImageSource="edit.png" CommandParameter="{Binding .}" BackgroundColor="#1E88E5" Invoked="On_Job_Details"/>
+                        </SwipeItems>
+                    </SwipeView.RightItems>
+
+                    <Border StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="8,3"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="job_Tapped" CommandParameter="{Binding .}"/>
+                        </Border.GestureRecognizers>
+                        <!-- swipe gestures only work with touch, so desktop
+                             (right click) gets the same actions as a menu -->
+                        <FlyoutBase.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Done" CommandParameter="{Binding .}" Clicked="On_Job_Compleated"/>
+                                <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding .}" Clicked="On_Job_Paid"/>
+                                <MenuFlyoutSeparator/>
+                                <MenuFlyoutItem Text="Skip" CommandParameter="{Binding .}" Clicked="On_Job_Skipped"/>
+                                <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding .}" Clicked="On_Job_Canceled"/>
+                                <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding .}" Clicked="On_Job_Details"/>
+                            </MenuFlyout>
+                        </FlyoutBase.ContextFlyout>
+                        <Grid Padding="12,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="{Binding JobFormattedStreet}" FontAttributes="Bold"/>
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{Binding Name}" TextColor="White" BackgroundColor="#EF6C00" Padding="6,2" FontAttributes="Bold" FontSize="12"/>
+                                    <Label Text="Done" TextColor="White" BackgroundColor="#4CAF50" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding IsCompleted}"/>
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" VerticalOptions="Center"/>
+                        </Grid>
+                    </Border>
+                </SwipeView>
             </DataTemplate>
         </CollectionView.ItemTemplate>
     </CollectionView>
