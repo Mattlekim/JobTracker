@@ -427,6 +427,57 @@ public partial class SettingLayout : ContentPage
         }
     }
 
+    private async void bnt_importXlsx_Clicked(object sender, EventArgs e)
+    {
+        FileResult fr = await FilePicker.Default.PickAsync(new PickOptions
+        {
+            PickerTitle = "Select a round spreadsheet (.xlsx)",
+        });
+        if (fr == null)
+            return;
+
+        if (!fr.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            await DisplayAlert("Unsupported File", "This is not an Excel file. You need a .xlsx file.", "ok");
+            return;
+        }
+
+        // the sheet has streets but no city/area - ask once for the file
+        string city = await DisplayPromptAsync("Import", "City for the customers in this sheet (optional):",
+            "Next", "Cancel", initialValue: GuessCityFromFileName(fr.FileName));
+        if (city == null)
+            return;
+        string area = await DisplayPromptAsync("Import", "Area for the customers in this sheet (optional):",
+            "Import", "Cancel", initialValue: "");
+        if (area == null)
+            return;
+
+        try
+        {
+            ImportExport.ImportResult result;
+            using (Stream stream = await fr.OpenReadAsync())
+                result = ImportExport.CustomerImporter.Import(stream, city.Trim(), area.Trim());
+
+            string summary = $"Customers created: {result.Created}\nCustomers updated: {result.Updated}";
+            if (result.MissingPrice > 0)
+                summary += $"\n\n{result.MissingPrice} customer(s) had no readable price - they were imported with price 0 and a note, please set their price manually.";
+            if (result.Problems.Count > 0)
+                summary += $"\n\n{result.Problems.Count} row(s) failed:\n" + string.Join("\n", result.Problems.Take(5));
+            await DisplayAlert("Import Complete", summary, "Ok");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Import Failed", $"Could not import this file: {ex.Message}", "ok");
+        }
+    }
+
+    private static string GuessCityFromFileName(string fileName)
+    {
+        string name = Path.GetFileNameWithoutExtension(fileName ?? string.Empty);
+        int cut = name.IndexOfAny(new[] { '_', '-', ' ' });
+        return cut > 0 ? name.Substring(0, cut) : name;
+    }
+
     private async void bnt_deleteData_Clicked(object sender, EventArgs e)
     {
         if (await DisplayAlert("WARING!!!", "This can not be undone. Are you sure you wish to delete all data?", "Yes", "No"))

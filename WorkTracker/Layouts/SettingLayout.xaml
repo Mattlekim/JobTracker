@@ -97,6 +97,8 @@
                 <Label></Label>
                 <Button Text="Restore From Backup" BackgroundColor="Transparent" TextColor="Orange" BorderColor="Orange" BorderWidth="2" Clicked="bnt_restorBackup_Clicked"></Button>
                 <Label></Label>
+                <Button Text="Import Customers From Excel" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_importXlsx_Clicked"></Button>
+                <Label></Label>
                 <Button Text="Delete All Data" BackgroundColor="Transparent" TextColor="Red" BorderColor="Red" BorderWidth="2" Clicked="bnt_deleteData_Clicked"></Button>
 
 
