@@ -264,6 +264,9 @@ public partial class PaperView : ContentPage
 			else
 				tmp = ""; //blank ie is due but nothing to put here
 
+			if (tmp == string.Empty && j.HaveSkipped)
+				tmp = StringSkipped;
+
 			if (j.UseAlterativePrice >= 0) //if there is an alternative price
 			{
 				try
@@ -381,6 +384,9 @@ public partial class PaperView : ContentPage
 				tmp = StringPaid;
 			else
 				tmp = ""; //blank ie is due but nothing to put here
+
+			if (tmp == string.Empty && j.HaveSkipped)
+				tmp = StringSkipped;
 
 			JobNote = string.Empty;
 			
@@ -507,15 +513,12 @@ public partial class PaperView : ContentPage
 
 	public JobFilterBase PaperViewFilter;
 
-	private CityFilter Filter_City;
 	public PaperView()
 	{
 		InitializeComponent();
 		//return;
 		NavigatedTo += PaperView_NavigatedTo;
 		DataRefreshNotifier.DataChanged += () => _fullRefresh = true;
-
-        Filter_City = new CityFilter(Job.Query());
 
 		g_filters.BindingContext = PaperViewFilter;
 
@@ -798,7 +801,7 @@ public partial class PaperView : ContentPage
 		if (!j.IsCompleted)
 			options.Add($"Skip  {PaperItem.StringSkipped}");
 
-		if (j.IsCompleted || j.IsPaidFor)
+		if (j.IsCompleted || j.IsPaidFor || j.HaveSkipped)
 			options.Add("Clear");
 
 		options.Add("Custom");
@@ -868,6 +871,10 @@ public partial class PaperView : ContentPage
 			if (j.IsPaidFor)
 			{
 				j.UnMarkJobPaid();
+			}
+			if (j.HaveSkipped)
+			{
+				j.UnSkipJob();
 			}
 		}
 
@@ -1151,12 +1158,20 @@ public partial class PaperView : ContentPage
             return;
         switch (result)
 		{
+			case "All Jobs":
+				PaperViewFilter = null;
+				g_filters.IsVisible = false;
+				FullPageLoad();
+				break;
 			case "City":
-				SetFilter(Filter_City);
+				SetFilter(new CityFilter(Job.Query()));
+				break;
+			case "Area":
+				SetFilter(new AreaFilter(Job.Query()));
 				break;
 		}
 
-		
+
     }
 
 	private DateTime DateToMarkWorkDone = DateTime.Now;

@@ -16,14 +16,12 @@
             Icon="work.png">
             <ShellContent ContentTemplate="{DataTemplate local:JobsList}" IsVisible="False"/>
         </Tab>
-        <Tab Title="Jobs"
-            Icon="work.png">
-            <ShellContent ContentTemplate="{DataTemplate local:PaperView}" IsVisible="True"/>
+        <Tab Title="Work"
+            Icon="work.png"
+            x:Name="tab_work">
+            <ShellContent Title="Overview" Route="work_overview" x:Name="sc_workOverview" ContentTemplate="{DataTemplate local:PaperView}"/>
+            <ShellContent Title="List" Route="work_list" x:Name="sc_workList" ContentTemplate="{DataTemplate local:WorkPlanner}"/>
         </Tab>
-
-        <ShellContent Title="Work" Icon="work.png" ContentTemplate="{DataTemplate local:WorkPlanner}" >
-          
-        </ShellContent>
         <Tab Title="Calendar"
             Icon="planner.png"
              >

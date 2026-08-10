@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.UpdateJobInstance"
@@ -18,7 +18,7 @@
             <ColumnDefinition></ColumnDefinition>
             <ColumnDefinition></ColumnDefinition>
         </Grid.ColumnDefinitions>
-        <Label x:Name="l_customerDescription" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="" FontAttributes="Bold" FontSize="Medium" BackgroundColor="#005555"
+        <Label x:Name="l_customerDescription" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="" FontAttributes="Bold" FontSize="Medium" BackgroundColor="#00695C"
                        VerticalOptions="CenterAndExpand" Padding="8" ></Label>
         <HorizontalStackLayout Grid.Row="1" Grid.Column="0" HorizontalOptions="Start">
                 <Label Text="Job Information:" VerticalOptions="Center" FontAttributes="Bold" Padding="4"  TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>

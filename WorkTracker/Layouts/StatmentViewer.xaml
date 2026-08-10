@@ -1,11 +1,11 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.StatmentViewer"
              Title="StatmentViewer">
     <ScrollView VerticalScrollBarVisibility="Always" Orientation="Both">
         <VerticalStackLayout>
-        <Label x:Name="l_nextField" Text="Make sure that the higlighted fields are in the correct posstions" HorizontalOptions="Start" BackgroundColor="DarkOrange" IsVisible="false" FontSize="Title"></Label>
+        <Label x:Name="l_nextField" Text="Make sure that the higlighted fields are in the correct posstions" HorizontalOptions="Start" BackgroundColor="#EF6C00" IsVisible="false" FontSize="Title"></Label>
         <HorizontalStackLayout>
 
 

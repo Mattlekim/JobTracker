@@ -461,10 +461,10 @@ public partial class WorkPlanner : ContentPage
   
 
     private bool altColour = false;
-    public static Color altColor = new Color(235, 235, 255);
-    public static Color altColorDark = new Color(25, 25, 45);
+    public static Color altColor = Color.FromArgb("#EDF2F7");
+    public static Color altColorDark = Color.FromArgb("#262A2E");
     public static Color MainColor = Colors.White;
-    public static Color MainColorDark = Colors.Black;
+    public static Color MainColorDark = Color.FromArgb("#1E1E1E");
    /* private void list_child_added(object sender, ElementEventArgs e)
     {
         return;

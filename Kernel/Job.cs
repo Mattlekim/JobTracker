@@ -545,6 +545,7 @@ namespace Kernel
                 return;
 
             IsCompleted = true;
+            HaveSkipped = false;
             DateCompleated = date;
             if (Frequence > 0)
                 JobNextId = GenerateNextDueDate();
@@ -611,6 +612,17 @@ namespace Kernel
         public void SkipJob()
         {
             DueDate = DueDate.AddDays(7 * Frequence);
+            HaveSkipped = true;
+            Job.Save();
+        }
+
+        public void UnSkipJob()
+        {
+            if (!HaveSkipped)
+                return;
+            DueDate = DueDate.AddDays(-7 * Frequence);
+            HaveSkipped = false;
+            Job.Save();
         }
 
         public void CancelJob()
@@ -1061,6 +1073,8 @@ namespace Kernel
         /// if the job has been canceld or not
         /// </summary>
         public bool HaveCanceled { get; set; } = false;
+
+        public bool HaveSkipped { get; set; } = false;
 
         public DateTime DateCanceled { get; set; }
         public static void Delete(string id)

@@ -129,26 +129,26 @@
                                 <HorizontalStackLayout  Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2">
                                     <Label Text="Bookin" IsVisible="{Binding IsBookedIn}" FontAttributes="Bold" Padding="6" BackgroundColor="OrangeRed" />
                                     <Label 
-                                    Text="{Binding Name}" FontAttributes="Bold" Padding="6" BackgroundColor="DarkOrange" TranslationX="4">
+                                    Text="{Binding Name}" FontAttributes="Bold" Padding="6" BackgroundColor="#EF6C00" TranslationX="4">
                                     </Label>
                                     <Label 
-                                    Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" Padding="6" BackgroundColor="DarkGreen" TranslationX="8">
+                                    Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" Padding="6" BackgroundColor="#2E7D32" TranslationX="8">
                                         
                                     </Label>
                                     <Label 
                                         Text="Canceled" FontAttributes="Bold" Padding="6" BackgroundColor="Red" TextColor="White" TranslationX="12" IsVisible="{Binding HaveCanceled}">
                                     </Label>
                                     <Label 
-                                    Text="TNB" TextColor="White" BackgroundColor="DarkRed" IsVisible="{Binding TNB}" Padding="6" FontAttributes="Bold" TranslationX="16"></Label>
+                                    Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="6" FontAttributes="Bold" TranslationX="16"></Label>
                                     <Label 
-                                    Text="ENB" TextColor="White" BackgroundColor="DarkRed" IsVisible="{Binding ENB}" Padding="6" FontAttributes="Bold" TranslationX="20"></Label>
+                                    Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="6" FontAttributes="Bold" TranslationX="20"></Label>
                                 </HorizontalStackLayout>
 
                                 <HorizontalStackLayout Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2">
                                     <Label BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4"></Label>
                                     <Label BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" TranslationX="8" Padding="4">
                                     </Label>
-                                    <Label BackgroundColor="Orange" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}"></Label>
+                                    <Label BackgroundColor="#FB8C00" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}"></Label>
                                 </HorizontalStackLayout>
                             </Grid>
                         </VerticalStackLayout>

@@ -14,7 +14,7 @@
     <StackLayout>
         <VerticalStackLayout>
 
-            <Label x:Name="l_filterResultsText" Text="Filtering Results" FontAttributes="Bold" FontSize="Medium" TextColor="White" BackgroundColor="#164C00" IsVisible="false" ></Label>
+            <Label x:Name="l_filterResultsText" Text="Filtering Results" FontAttributes="Bold" FontSize="Medium" TextColor="White" BackgroundColor="#2E7D32" IsVisible="false" ></Label>
             <!-- Filter stuff-->
             <Grid x:Name="g_filter" BackgroundColor="Transparent" IsVisible="false">
                 <Grid.RowDefinitions>
@@ -30,16 +30,16 @@
                     <ColumnDefinition></ColumnDefinition>
                     <ColumnDefinition></ColumnDefinition>
                 </Grid.ColumnDefinitions>
-                <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"  Text="Primary Filter" FontAttributes="Bold" FontSize="Medium" TextColor="White" BackgroundColor="#164C00"></Label>
-                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BackgroundColor="#164C00">
+                <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"  Text="Primary Filter" FontAttributes="Bold" FontSize="Medium" TextColor="White" BackgroundColor="#2E7D32"></Label>
+                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BackgroundColor="#2E7D32">
                     <Label Text="From" TextColor="White" VerticalOptions="Center"></Label>
                     <DatePicker x:Name="dp_StartSearchDate" DateSelected="UpdateMasterFileterStart"></DatePicker>
                     <Label Text="To" TextColor="White" VerticalOptions="Center"></Label>
                     <DatePicker x:Name="dp_EndSearchDate" DateSelected="UpdateMasterFileterEnd"></DatePicker>
-                    <CheckBox IsChecked="true" BackgroundColor="#164C00" CheckedChanged="cb_UpdateMasterFilter"></CheckBox>
+                    <CheckBox IsChecked="true" BackgroundColor="#2E7D32" CheckedChanged="cb_UpdateMasterFilter"></CheckBox>
 
                 </HorizontalStackLayout>
-                <HorizontalStackLayout Grid.Row="1" Grid.Column="2" BackgroundColor="#164C00">
+                <HorizontalStackLayout Grid.Row="1" Grid.Column="2" BackgroundColor="#2E7D32">
                     <Label Text="View" TextColor="White" VerticalOptions="Center"></Label>
                     <Picker MinimumWidthRequest="60" SelectedItem="Jobs" x:Name="p_viewFilter" IsEnabled="false">
                         <Picker.Items>
@@ -48,17 +48,17 @@
                         </Picker.Items>
                     </Picker>
                 </HorizontalStackLayout>
-                <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" BackgroundColor="DarkGreen"  >
+                <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" BackgroundColor="#2E7D32"  >
                     <Label  Text="Secondry Filter" FontAttributes="Bold" FontSize="Medium" TextColor="White" ></Label>
                 </HorizontalStackLayout>
-                <HorizontalStackLayout Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" BackgroundColor="DarkGreen" >
-                    <Label Text="Filter By: " VerticalOptions="Center"></Label>
-                    <Label x:Name="l_filterBy" Text="" VerticalOptions="Center"></Label>
+                <HorizontalStackLayout Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" BackgroundColor="#2E7D32" >
+                    <Label Text="Filter By: " TextColor="White" VerticalOptions="Center"></Label>
+                    <Label x:Name="l_filterBy" Text="" TextColor="White" VerticalOptions="Center"></Label>
                 </HorizontalStackLayout>
 
-                <HorizontalStackLayout Grid.Row="2" Grid.Column="1" BackgroundColor="DarkGreen" >
+                <HorizontalStackLayout Grid.Row="2" Grid.Column="1" BackgroundColor="#2E7D32" >
                     
-                    <Label Text="(Click on job tag to set)" VerticalOptions="Center" TextColor="DarkGrey"></Label>
+                    <Label Text="(Click on job tag to set)" VerticalOptions="Center" TextColor="#C8E6C9"></Label>
                 </HorizontalStackLayout>
 
                 <HorizontalStackLayout Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
@@ -122,7 +122,7 @@
             </HorizontalStackLayout>
             
             <!--  Job more info stuff-->
-            <Grid BackgroundColor="DarkCyan" x:Name="g_more" IsVisible="false" >
+            <Grid BackgroundColor="#00796B" x:Name="g_more" IsVisible="false" >
                 <Grid.RowDefinitions>
                     <RowDefinition></RowDefinition>
                     <RowDefinition></RowDefinition>
@@ -136,7 +136,7 @@
                     <ColumnDefinition></ColumnDefinition>
                     <ColumnDefinition></ColumnDefinition>
                 </Grid.ColumnDefinitions>
-                <Label x:Name="l_customerDescription" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="" FontAttributes="Bold" FontSize="Medium" BackgroundColor="#005555"
+                <Label x:Name="l_customerDescription" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="" FontAttributes="Bold" FontSize="Medium" BackgroundColor="#00695C"
                        VerticalOptions="CenterAndExpand" Padding="8" ></Label>
                 <HorizontalStackLayout Grid.Row="1" Grid.Column="0" HorizontalOptions="Start">
                     <Label Text="Job Information:" VerticalOptions="Center" FontAttributes="Bold" Padding="4"  TextColor="{AppThemeBinding Dark=White, Light=Black}"></Label>
@@ -193,14 +193,16 @@
         </VerticalStackLayout>
 
         <!-- shown for 10 seconds after cancelling a job from the list -->
-        <Grid x:Name="g_undoCancel" IsVisible="false" BackgroundColor="#333333" Padding="8,4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"></ColumnDefinition>
-                <ColumnDefinition Width="Auto"></ColumnDefinition>
-            </Grid.ColumnDefinitions>
-            <Label Text="Job cancelled" TextColor="White" FontAttributes="Bold" VerticalOptions="Center"></Label>
-            <Button Grid.Column="1" Text="Undo" Clicked="bnt_undoCancel_Clicked" BackgroundColor="Transparent" TextColor="Orange" BorderColor="Orange" BorderWidth="2" Padding="8,2"></Button>
-        </Grid>
+        <Border x:Name="g_undoCancel" IsVisible="false" BackgroundColor="#323232" StrokeThickness="0" StrokeShape="RoundRectangle 10" Margin="12,4" Padding="14,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="Auto"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Label Text="Job cancelled" TextColor="White" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                <Button Grid.Column="1" Text="Undo" Clicked="bnt_undoCancel_Clicked" BackgroundColor="Transparent" TextColor="{StaticResource PrimaryAccent}" Padding="8,2"></Button>
+            </Grid>
+        </Border>
 
         <CollectionView
                     x:Name="lv_Jobs" SelectionMode="Single" SelectionChanged="lv_Jobs_SelectionChanged" VerticalOptions="FillAndExpand" RemainingItemsThreshold="0">
@@ -257,7 +259,8 @@
 
                         <!--            job list for jobs                              -->
                         
-                        <VerticalStackLayout Padding="2" BackgroundColor="{Binding AltColour}" x:Name="test">
+                        <Border BackgroundColor="{Binding AltColour}" StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="8,3">
+                        <VerticalStackLayout Padding="2" x:Name="test">
                             <!-- swipe gestures only work with touch, so desktop
                                  (right click) gets the same actions as a menu -->
                             <FlyoutBase.ContextFlyout>
@@ -316,13 +319,13 @@
 
                                 <HorizontalStackLayout  Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="2">
                                     <Label 
-                                    Text="{Binding Name}" FontAttributes="Bold" Padding="6" BackgroundColor="DarkOrange">
+                                    Text="{Binding Name}" FontAttributes="Bold" Padding="6" BackgroundColor="#EF6C00">
                                         <Label.GestureRecognizers>
                                             <TapGestureRecognizer Tapped="Job_Type_Filter"></TapGestureRecognizer>
                                         </Label.GestureRecognizers>
                                     </Label>
                                     <Label 
-                                    Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" Padding="6" BackgroundColor="DarkGreen" TranslationX="4">
+                                    Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" Padding="6" BackgroundColor="#2E7D32" TranslationX="4">
                                         <Label.GestureRecognizers>
                                             <TapGestureRecognizer Tapped="Job_Price_Filter"></TapGestureRecognizer>
                                         </Label.GestureRecognizers>
@@ -333,9 +336,9 @@
                                     </Label>
 
                                     <Label 
-                                    Text="TNB" TextColor="White" BackgroundColor="DarkRed" IsVisible="{Binding TNB}" Padding="6" FontAttributes="Bold" TranslationX="12"></Label>
+                                    Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="6" FontAttributes="Bold" TranslationX="12"></Label>
                                     <Label 
-                                    Text="ENB" TextColor="White" BackgroundColor="DarkRed" IsVisible="{Binding ENB}" Padding="6" FontAttributes="Bold" TranslationX="16"></Label>
+                                    Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="6" FontAttributes="Bold" TranslationX="16"></Label>
                                 </HorizontalStackLayout>
 
                                 <!-- grid (not stack) so the notes label is width-bounded and
@@ -352,7 +355,7 @@
                                             <TapGestureRecognizer Tapped="Money_Owed_Filter"></TapGestureRecognizer>
                                         </Label.GestureRecognizers>
                                     </Label>
-                                    <Label Grid.Column="2" BackgroundColor="Orange" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"></Label>
+                                    <Label Grid.Column="2" BackgroundColor="#FB8C00" Text="{Binding JobFormattedStringNotes}" TextColor="White" FontAttributes="Bold" TranslationX="16" Padding="4" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"></Label>
                                 </Grid>
                             </Grid>
 
@@ -360,7 +363,7 @@
                             
                           
                         </VerticalStackLayout>
-
+                        </Border>
 
                     </SwipeView>
 

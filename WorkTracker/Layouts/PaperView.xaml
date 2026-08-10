@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.PaperView"
@@ -15,7 +15,7 @@
     </ContentPage.ToolbarItems>
     <StackLayout>
         <DatePicker x:Name="dp_DoneDate" IsVisible="false"></DatePicker>
-        <Grid x:Name="g_filters" BackgroundColor="#005555" IsVisible="false">
+        <Grid x:Name="g_filters" BackgroundColor="#00695C" IsVisible="false">
             <Grid.RowDefinitions>
                 <RowDefinition></RowDefinition>
             </Grid.RowDefinitions>
@@ -96,7 +96,7 @@
                         <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="7" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/-->
 
 
-                        <ContentView Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="{Binding RowSpan}" Padding="4" IsVisible="{Binding ShowJobInformation}"  IsEnabled="{Binding ShowJobInformation}">
+                        <ContentView BackgroundColor="Transparent" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="{Binding RowSpan}" Padding="4" IsVisible="{Binding ShowJobInformation}"  IsEnabled="{Binding ShowJobInformation}">
                             <Label Text="{Binding Title}"  FontAttributes="{Binding FontAttri}"></Label>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
@@ -105,20 +105,20 @@
 
                        
 
-                        <ContentView Grid.Column="1" Grid.Row="0">
+                        <ContentView BackgroundColor="Transparent" Grid.Column="1" Grid.Row="0">
                             <Label Text="{Binding Price}"  IsVisible="{Binding ShowJobInformation}"  IsEnabled="{Binding ShowJobInformation}" Padding="2" VerticalOptions="Center"></Label>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
                             </ContentView.GestureRecognizers>
                         </ContentView>
-                        <ContentView Grid.Column="2" Grid.Row="0">
+                        <ContentView BackgroundColor="Transparent" Grid.Column="2" Grid.Row="0">
                             <Label Text="{Binding Notes}"  IsVisible="{Binding ShowJobInformation}"  IsEnabled="{Binding ShowJobInformation}" Padding="2"  FontSize="12" VerticalOptions="Center"></Label>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
                             </ContentView.GestureRecognizers>
                         </ContentView>
 
-                        <ContentView Grid.Column="3" Grid.Row="0">
+                        <ContentView BackgroundColor="Transparent" Grid.Column="3" Grid.Row="0">
                             <Label Text="{Binding Owing}" TextColor="{Binding OwingColour}" IsVisible="{Binding ShowJobInformation}"  IsEnabled="{Binding ShowJobInformation}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12"></Label>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_Ballence_Tapped" CommandParameter="{Binding JobI3}"></TapGestureRecognizer>
@@ -129,14 +129,14 @@
                             <Label Text="{Binding I3}" IsVisible="{Binding ShowJobInformation}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center" ></Label>
                         </ContentView>
 
-                        <ContentView Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Padding="4" IsVisible="{Binding NotShowJobInformation}" IsEnabled="{Binding NotShowJobInformation}">
+                        <ContentView BackgroundColor="Transparent" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="3" Padding="4" IsVisible="{Binding NotShowJobInformation}" IsEnabled="{Binding NotShowJobInformation}">
                             <Label Text="{Binding Title}"  FontAttributes="{Binding FontAttri}"></Label>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_street_Tapped" CommandParameter="{Binding .}"></TapGestureRecognizer>
                             </ContentView.GestureRecognizers>
                         </ContentView>
 
-                        <ContentView Grid.Column="4" Grid.Row="0"  Grid.ColumnSpan="{Binding I3RowSpan}">
+                        <ContentView BackgroundColor="Transparent" Grid.Column="4" Grid.Row="0"  Grid.ColumnSpan="{Binding I3RowSpan}">
                             <Label Text="{Binding I3}" IsVisible="{Binding NotShowJobInformation}" HorizontalOptions="Center" VerticalOptions="Center" FontSize="Micro" TranslationX="10"></Label>
                             
                             <ContentView.GestureRecognizers>
