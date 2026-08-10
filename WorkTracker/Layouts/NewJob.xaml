@@ -27,21 +27,21 @@
             <VerticalStackLayout Padding="16">
 
                 <Label Text="Job Type" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4" >
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4" >
                     <Picker x:Name="p_JobType"></Picker>
                 </Border>
 
                 <Label Text="Description Of Job" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" IsVisible="false"></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" IsVisible="false" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" IsVisible="false" Padding="4">
                     <Entry x:Name="t_description" ></Entry>
                 </Border>
 
                 <Label Text="Notes" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4">
                     <Entry x:Name="t_notes" BackgroundColor="Transparent" Placeholder="Enter job notes here (optional)"></Entry>
                 </Border>
                 <Label Text="Price" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4">
                     <Entry x:Name="t_price" Keyboard="Numeric" BackgroundColor="Transparent"></Entry>
                 </Border>
 
@@ -72,7 +72,7 @@
                 </Grid>
 
                 <Label x:Name="l_ballence" Text="Starting Balance" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4">
                     <HorizontalStackLayout>
                         <Entry x:Name="e_startingBallence" Keyboard="Numeric" WidthRequest="100"></Entry>
                         <Picker x:Name="p_ballenceType" SelectedIndex="0">
@@ -85,7 +85,7 @@
                 </Border>
 
                 <Label Text="Frequence" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4">
                     <HorizontalStackLayout>
 
                         <Entry x:Name="e_frequence" Keyboard="Numeric" MinimumWidthRequest="100" BackgroundColor="Transparent"></Entry>
@@ -105,7 +105,7 @@
                 </Border>
 
                 <Label Text="Estimated duration" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4">
                     <HorizontalStackLayout>
 
                         <Entry x:Name="e_estimatedDruation" MinimumWidthRequest="100" BackgroundColor="Transparent"></Entry>
@@ -116,12 +116,12 @@
 
                 
                 <Label Text="Start Date" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4">
                     <DatePicker x:Name="dp_startDate" HorizontalOptions="Start"></DatePicker>
                 </Border>
 
                 <Label Text="Job Address" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4">
                     <VerticalStackLayout>
                         <Label Text="House Name / Number (Required)" VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" />
                         <Entry x:Name="t_houseNumberName"></Entry>
@@ -149,7 +149,7 @@
                     <Button Grid.Row="0" Grid.Column="1" Text="Help?" VerticalOptions="Center" TranslationY="4" Padding="4" BackgroundColor="{AppThemeBinding Light=white, Dark=#121212}" TranslationX="-4" HorizontalOptions="End"  
                             Clicked="bnt_existingCustomerHelp_Clicked"></Button>
                 </Grid>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4">
                     <HorizontalStackLayout>
                         <Picker x:Name="p_customer" SelectedIndexChanged="p_customerSelected" VerticalOptions="Center" MinimumWidthRequest="200"></Picker>
                         <Label TranslationX="8" Text="(Optional)" TextColor="LightGray" VerticalOptions="Center"></Label>
@@ -157,7 +157,7 @@
                 </Border>
 
                 <Label Text="Customer Details"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="4">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" TranslationX="0" Padding="4">
                     <VerticalStackLayout Padding="4">
                       
                         <Label x:Name="l_hide1" Text="House Name / Number" IsVisible="true"/>
@@ -191,7 +191,7 @@
                     </VerticalStackLayout>
                 </Border>
                 <Label Text="Messaging"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
-                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" TranslationX="0" Padding="8">
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" TranslationX="0" Padding="8">
                     <VerticalStackLayout>
                         <HorizontalStackLayout>
                             <Label Text="Text Customer Night Before " VerticalOptions="Center"></Label>

@@ -14,7 +14,7 @@
         <Label></Label>
 
         <VerticalStackLayout Padding="8">
-            <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="rectangle" Padding="4" >
+            <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4" >
                 <VerticalStackLayout>
 
                     <VerticalStackLayout Padding="8" HorizontalOptions="Center">
