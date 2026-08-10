@@ -1,0 +1,64 @@
+name: Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 6 SDK
+        id: setup-dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 6.0.x
+
+      # Pin the build to the .NET 6 SDK so the runner's newer preinstalled
+      # SDKs are not used (net6.0-android cannot be built by newer workloads)
+      - name: Pin .NET SDK version
+        shell: pwsh
+        run: |
+          $version = "${{ steps.setup-dotnet.outputs.dotnet-version }}"
+          @{ sdk = @{ version = $version } } | ConvertTo-Json | Out-File -Encoding utf8 global.json
+          Get-Content global.json
+
+      - name: Setup Java 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '11'
+
+      - name: Install Android SDK components
+        shell: pwsh
+        run: |
+          $sdkManager = Join-Path $env:ANDROID_HOME "cmdline-tools\latest\bin\sdkmanager.bat"
+          & $sdkManager "platforms;android-31" "platforms;android-32" "platforms;android-33" "build-tools;33.0.2" "platform-tools"
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      - name: Publish Android APK
+        shell: pwsh
+        run: >
+          dotnet publish WorkTracker/WorkTracker.csproj
+          -f net6.0-android
+          -c Release
+          -p:TargetFrameworks=net6.0-android
+          -p:AndroidPackageFormat=apk
+          -p:AndroidSdkDirectory=$env:ANDROID_HOME
+          -p:JavaSdkDirectory=$env:JAVA_HOME
+          -o artifacts
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorkTracker-android-apk
+          path: artifacts/*.apk
+          if-no-files-found: error
