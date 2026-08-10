@@ -4,6 +4,8 @@
     {
         public static MauiApp CreateMauiApp()
         {
+            CrashLogger.Init();
+
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()

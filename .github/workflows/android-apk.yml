@@ -7,6 +7,9 @@ on:
       - "claude/**"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -59,3 +62,22 @@ jobs:
           name: WorkTracker-android-apk
           path: artifacts/*.apk
           if-no-files-found: error
+
+      # Releases serve assets as direct file downloads (artifacts are
+      # always zipped), so main builds also publish the APK as a release
+      - name: Prepare release APK
+        if: github.ref == 'refs/heads/main'
+        run: |
+          apk=$(ls artifacts/*-Signed.apk 2>/dev/null | head -1)
+          if [ -z "$apk" ]; then apk=$(ls artifacts/*.apk | head -1); fi
+          cp "$apk" WorkTracker.apk
+          ls -la WorkTracker.apk
+
+      - name: Publish APK as GitHub release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: WorkTracker build ${{ github.run_number }}
+          make_latest: true
+          files: WorkTracker.apk
