@@ -700,7 +700,8 @@ public partial class PaperView : ContentPage
 
 			
         }
-		PaperItems[PaperItems.Count - 1].GroupId = groupId;
+		if (PaperItems.Count > 0)
+			PaperItems[PaperItems.Count - 1].GroupId = groupId;
 	/*	foreach (PaperItem p in PaperItems)
 		{
 			p.Title = $":: {p.GroupId}";
