@@ -54,7 +54,7 @@ namespace UiInterface.ImportExport
 
             if (customer == null)
             {
-                var address = new Location
+                var address = new Kernel.Location
                 {
                     PropertyNameNumber = row.HouseNumber,
                     Street = row.Street,
