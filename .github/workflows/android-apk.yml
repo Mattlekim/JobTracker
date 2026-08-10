@@ -1,0 +1,61 @@
+name: Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - "claude/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        id: setup-dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # Pin the build to the .NET 8 SDK so the runner's newer preinstalled
+      # SDKs (and their workload versions) are not picked up instead
+      - name: Pin .NET SDK version
+        run: |
+          echo "{ \"sdk\": { \"version\": \"${{ steps.setup-dotnet.outputs.dotnet-version }}\" } }" > global.json
+          cat global.json
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '17'
+
+      - name: Install Android SDK components
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+
+      # TargetFrameworks is overridden to android-only because the iOS and
+      # MacCatalyst workloads cannot be installed on a Linux runner
+      - name: Publish Android APK
+        run: >
+          dotnet publish WorkTracker/WorkTracker.csproj
+          -f net8.0-android
+          -c Release
+          -p:TargetFrameworks=net8.0-android
+          -p:AndroidPackageFormat=apk
+          -p:AndroidSdkDirectory=$ANDROID_HOME
+          -p:JavaSdkDirectory=$JAVA_HOME
+          -o artifacts
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorkTracker-android-apk
+          path: artifacts/*.apk
+          if-no-files-found: error
