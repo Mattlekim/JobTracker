@@ -14,14 +14,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 6 SDK
+      - name: Setup .NET 8 SDK
         id: setup-dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 8.0.x
 
-      # Pin the build to the .NET 6 SDK so the runner's newer preinstalled
-      # SDKs are not used (net6.0-android cannot be built by newer workloads)
+      # Pin the build to the .NET 8 SDK so the runner's newer preinstalled
+      # SDKs (and their workload versions) are not picked up instead
       - name: Pin .NET SDK version
         shell: pwsh
         run: |
@@ -29,17 +29,18 @@ jobs:
           @{ sdk = @{ version = $version } } | ConvertTo-Json | Out-File -Encoding utf8 global.json
           Get-Content global.json
 
-      - name: Setup Java 11
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: microsoft
-          java-version: '11'
+          java-version: '17'
 
       - name: Install Android SDK components
         shell: pwsh
         run: |
           $sdkManager = Join-Path $env:ANDROID_HOME "cmdline-tools\latest\bin\sdkmanager.bat"
-          & $sdkManager "platforms;android-31" "platforms;android-32" "platforms;android-33" "build-tools;33.0.2" "platform-tools"
+          & $sdkManager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          if ($LASTEXITCODE -ne 0) { throw "sdkmanager failed with exit code $LASTEXITCODE" }
 
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android
@@ -48,9 +49,9 @@ jobs:
         shell: pwsh
         run: >
           dotnet publish WorkTracker/WorkTracker.csproj
-          -f net6.0-android
+          -f net8.0-android
           -c Release
-          -p:TargetFrameworks=net6.0-android
+          -p:TargetFrameworks=net8.0-android
           -p:AndroidPackageFormat=apk
           -p:AndroidSdkDirectory=$env:ANDROID_HOME
           -p:JavaSdkDirectory=$env:JAVA_HOME
