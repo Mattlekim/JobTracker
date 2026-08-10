@@ -61,6 +61,11 @@
                     <Label Text="(Click on job tag to set)" VerticalOptions="Center" TextColor="DarkGrey"></Label>
                 </HorizontalStackLayout>
 
+                <HorizontalStackLayout Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
+                    <CheckBox x:Name="cb_showCancelled" IsChecked="false" CheckedChanged="cb_showCancelled_Changed"></CheckBox>
+                    <Label Text="Show cancelled jobs" VerticalOptions="Center"></Label>
+                </HorizontalStackLayout>
+
                 <HorizontalStackLayout Grid.Row="4" Grid.Column="2" HorizontalOptions="End">
                     <Button Text="Reset" TranslationX="-4" Clicked="bnt_Clear_Filter_Clicked"></Button>
                     <Button Text="Hide" Clicked="bnt_hideFilter"></Button>

@@ -666,10 +666,18 @@ public partial class WorkPlanner : ContentPage
 
 
 
+    private void cb_showCancelled_Changed(object sender, CheckedChangedEventArgs e)
+    {
+        RefreshPage();
+    }
+
     private static List<Job> tmpJobList;
     private List<Job> MasterFilter()
     {
         tmpJobList = Job.Query();
+
+        if (!cb_showCancelled.IsChecked)
+            tmpJobList.RemoveAll(x => x.HaveCanceled);
         if (FilterDate)
         {
 
