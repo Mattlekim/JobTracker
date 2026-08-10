@@ -513,6 +513,7 @@ public partial class PaperView : ContentPage
 		InitializeComponent();
 		//return;
 		NavigatedTo += PaperView_NavigatedTo;
+		DataRefreshNotifier.DataChanged += () => _fullRefresh = true;
 
         Filter_City = new CityFilter(Job.Query());
 
@@ -730,6 +731,7 @@ public partial class PaperView : ContentPage
 
 		if (_fullRefresh)
 		{
+			_fullRefresh = false;
 			FullPageLoad();
 			return;
 

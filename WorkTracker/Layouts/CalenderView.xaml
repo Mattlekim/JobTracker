@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.CalenderView"
@@ -52,19 +52,19 @@
                                 <SwipeItem Text="Done" 
                                     IconImageSource="tick.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="LightGreen"
+                                    BackgroundColor="#4CAF50"
                                     Invoked="On_Job_Compleated"
                                            />
                                 <SwipeItem Text="Done &amp; Paid"
                                     CommandParameter="{Binding Id}"
                                     IconImageSource="donepaid.png"
-                                    BackgroundColor="Green"
+                                    BackgroundColor="#2E7D32"
                                     Invoked="On_Job_Paid" 
                                                />
                                 <SwipeItem Text="More"
                                     IconImageSource="more.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="DarkGreen"
+                                    BackgroundColor="#546E7A"
                                     Invoked="On_Job_More" 
                                                    
                                                />
@@ -75,19 +75,19 @@
                                 <SwipeItem Text="Skip" 
                                     IconImageSource="skip.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="Orange"
+                                    BackgroundColor="#FB8C00"
                                     Invoked="On_Job_Skipped"
                                            />
                                 <SwipeItem Text="Cancel"
                                     IconImageSource="cancel.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="Red"
+                                    BackgroundColor="#E53935"
                                     Invoked="On_Job_Canceled" 
                                                />
                                 <SwipeItem Text="Edit Details"
-                                    IconImageSource="options.png"
+                                    IconImageSource="edit.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="LightBlue"
+                                    BackgroundColor="#1E88E5"
                                     Invoked="On_Job_Detials" 
                                                />
                             </SwipeItems>

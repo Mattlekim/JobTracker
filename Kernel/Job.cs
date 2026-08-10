@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Xml.Serialization;
+using Microsoft.Maui;
 using Microsoft.Maui.Graphics;
 
 using System.Collections.ObjectModel;

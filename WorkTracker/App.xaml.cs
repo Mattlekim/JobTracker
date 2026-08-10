@@ -26,5 +26,28 @@ namespace WorkTracker
             }
 
         }
+
+#if WINDOWS
+        protected override Window CreateWindow(IActivationState activationState)
+        {
+            Window window = base.CreateWindow(activationState);
+
+            double w = Preferences.Get("WindowWidth", 0d);
+            double h = Preferences.Get("WindowHeight", 0d);
+            if (w > 200 && h > 200)
+            {
+                window.Width = w;
+                window.Height = h;
+            }
+
+            window.Destroying += (s, e) =>
+            {
+                Preferences.Set("WindowWidth", window.Width);
+                Preferences.Set("WindowHeight", window.Height);
+            };
+
+            return window;
+        }
+#endif
     }
 }

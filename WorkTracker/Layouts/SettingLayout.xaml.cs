@@ -412,6 +412,7 @@ public partial class SettingLayout : ContentPage
                     Job.Reset();
                     Job.Load();
                     Payment.Load();
+                    DataRefreshNotifier.NotifyDataChanged();
                     await DisplayAlert("Success", "Backup has be restored sucsessfuly. Application will now restart", "ok");
                     
                     
@@ -458,6 +459,8 @@ public partial class SettingLayout : ContentPage
             using (Stream stream = await fr.OpenReadAsync())
                 result = ImportExport.CustomerImporter.Import(stream, city.Trim(), area.Trim());
 
+            DataRefreshNotifier.NotifyDataChanged();
+
             string summary = $"Customers created: {result.Created}\nCustomers updated: {result.Updated}";
             if (result.MissingPrice > 0)
                 summary += $"\n\n{result.MissingPrice} customer(s) had no readable price - they were imported with price 0 and a note, please set their price manually.";
@@ -490,6 +493,7 @@ public partial class SettingLayout : ContentPage
                 Job.Save();
                 Customer.Save();
                 Payment.Save();
+                DataRefreshNotifier.NotifyDataChanged();
                 await DisplayAlert("Complete", "All data erased", "Ok");
             }
     }

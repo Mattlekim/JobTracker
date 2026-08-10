@@ -279,14 +279,16 @@ public partial class WorkPlanner : ContentPage
         //  List<Job> j = Job.Query(QueryType.JobId, Convert.ToInt32(((MenuItem)sender).CommandParameter?.ToString()));
         if (_sourceJobs == null)
             return null;
-        Job j = _sourceJobs.First(x => x.Id == Convert.ToInt32(((MenuItem)sender).CommandParameter?.ToString()));
-        if (j != null)
-            return j;
-        return null;
+        Job j = _sourceJobs.FirstOrDefault(x => x.Id == Convert.ToInt32(((MenuItem)sender).CommandParameter?.ToString()));
+        if (j != null && j.CustomerId == -1) //booking summary rows are not real jobs
+            return null;
+        return j;
     }
     private void On_Job_Compleated(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
+        if (j == null)
+            return;
         MarkJobDone(j,this);
 
        // RefreshPage();
@@ -450,6 +452,8 @@ public partial class WorkPlanner : ContentPage
     private void On_Job_Paid(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
+        if (j == null)
+            return;
         MarkJobPaid(j);
        // RefreshPage();
     }
@@ -492,11 +496,14 @@ public partial class WorkPlanner : ContentPage
     private void On_Job_Skipped(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
+        if (j == null)
+            return;
         MarkJobSkipped(j);
      
     }
 
-    public static async void MarkJobCancled(Job j,Page page)
+    /// <returns>true when the job was cancelled (not un-cancelled or aborted)</returns>
+    public static async Task<bool> MarkJobCancled(Job j,Page page)
     {
 
         if (j.HaveCanceled)
@@ -511,14 +518,57 @@ public partial class WorkPlanner : ContentPage
             j.CancelJob();
             j.Refresh();
             j.RefreshColors();
+            return true;
         }
+        return false;
     }
     private async void On_Job_Canceled(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
-        MarkJobCancled(j, this);
+        if (j == null)
+            return;
+        bool canceled = await MarkJobCancled(j, this);
+        RefreshPage();
+        if (canceled)
+            ShowUndoCancelBanner(j);
+    }
 
-       //RefreshPage();
+    private Job _lastCanceledJob;
+    private CancellationTokenSource _undoCancelCts;
+
+    private async void ShowUndoCancelBanner(Job j)
+    {
+        _lastCanceledJob = j;
+        _undoCancelCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _undoCancelCts = cts;
+        g_undoCancel.IsVisible = true;
+        try
+        {
+            await Task.Delay(10000, cts.Token);
+            g_undoCancel.IsVisible = false;
+            _lastCanceledJob = null;
+        }
+        catch (TaskCanceledException)
+        {
+            //a newer banner replaced this one, or undo was clicked
+        }
+    }
+
+    private void bnt_undoCancel_Clicked(object sender, EventArgs e)
+    {
+        _undoCancelCts?.Cancel();
+        g_undoCancel.IsVisible = false;
+
+        Job j = _lastCanceledJob;
+        _lastCanceledJob = null;
+        if (j == null)
+            return;
+
+        j.UnCancelJob();
+        j.Refresh();
+        j.RefreshColors();
+        RefreshPage();
     }
 
     public static void EditJobDetails(Job j, Page page)
@@ -532,6 +582,8 @@ public partial class WorkPlanner : ContentPage
     private void On_Job_Detials(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
+        if (j == null)
+            return;
         EditJobDetails(j, this);
     }
 
@@ -841,8 +893,10 @@ public partial class WorkPlanner : ContentPage
 
     private void On_Job_More(object sender, EventArgs e)
     {
-        g_more.IsVisible = true;
         _currentJob = GetJobForSwipe(sender);
+        if (_currentJob == null)
+            return;
+        g_more.IsVisible = true;
         l_customerDescription.Text = $"{_currentJob.JobFormattedStreet} {_currentJob.JobFormattedCity}";
         p_paymentType.Items.Clear();
         foreach (string s in Enum.GetNames(typeof(PaymentMethod)))

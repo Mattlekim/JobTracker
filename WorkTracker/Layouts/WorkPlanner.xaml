@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:UiInterface.Controles"
@@ -191,6 +191,17 @@
                 <Button Text="Confirm" Grid.Row="5" Grid.Column="2" Clicked="bnt_confirm_clicked" BorderWidth="2" BorderColor="White" TextColor="White" BackgroundColor="Transparent" FontAttributes="Bold"></Button>
             </Grid>
         </VerticalStackLayout>
+
+        <!-- shown for 10 seconds after cancelling a job from the list -->
+        <Grid x:Name="g_undoCancel" IsVisible="false" BackgroundColor="#333333" Padding="8,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Label Text="Job cancelled" TextColor="White" FontAttributes="Bold" VerticalOptions="Center"></Label>
+            <Button Grid.Column="1" Text="Undo" Clicked="bnt_undoCancel_Clicked" BackgroundColor="Transparent" TextColor="Orange" BorderColor="Orange" BorderWidth="2" Padding="8,2"></Button>
+        </Grid>
+
         <CollectionView
                     x:Name="lv_Jobs" SelectionMode="Single" SelectionChanged="lv_Jobs_SelectionChanged" VerticalOptions="FillAndExpand" RemainingItemsThreshold="0">
             <CollectionView.ItemTemplate>
@@ -203,19 +214,19 @@
                                 <SwipeItem Text="Done" 
                                     IconImageSource="tick.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="LightGreen"
+                                    BackgroundColor="#4CAF50"
                                     Invoked="On_Job_Compleated"
                                            />
                                 <SwipeItem Text="Done &amp; Paid"
                                     CommandParameter="{Binding Id}"
                                     IconImageSource="donepaid.png"
-                                    BackgroundColor="Green"
+                                    BackgroundColor="#2E7D32"
                                     Invoked="On_Job_Paid" 
                                                />
                                 <SwipeItem Text="More"
                                     IconImageSource="more.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="DarkGreen"
+                                    BackgroundColor="#546E7A"
                                     Invoked="On_Job_More" 
                                                    
                                                />
@@ -226,19 +237,19 @@
                                 <SwipeItem Text="Skip" 
                                     IconImageSource="skip.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="Orange"
+                                    BackgroundColor="#FB8C00"
                                     Invoked="On_Job_Skipped"
                                            />
                                 <SwipeItem Text="Cancel"
                                     IconImageSource="cancel.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="Red"
+                                    BackgroundColor="#E53935"
                                     Invoked="On_Job_Canceled" 
                                                />
                                 <SwipeItem Text="Edit Details"
-                                    IconImageSource="options.png"
+                                    IconImageSource="edit.png"
                                     CommandParameter="{Binding Id}"
-                                    BackgroundColor="LightBlue"
+                                    BackgroundColor="#1E88E5"
                                     Invoked="On_Job_Detials" 
                                                />
                             </SwipeItems>
@@ -247,6 +258,19 @@
                         <!--            job list for jobs                              -->
                         
                         <VerticalStackLayout Padding="2" BackgroundColor="{Binding AltColour}" x:Name="test">
+                            <!-- swipe gestures only work with touch, so desktop
+                                 (right click) gets the same actions as a menu -->
+                            <FlyoutBase.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Done" CommandParameter="{Binding Id}" Clicked="On_Job_Compleated" />
+                                    <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding Id}" Clicked="On_Job_Paid" />
+                                    <MenuFlyoutItem Text="More" CommandParameter="{Binding Id}" Clicked="On_Job_More" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
+                                    <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding Id}" Clicked="On_Job_Canceled" />
+                                    <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding Id}" Clicked="On_Job_Detials" />
+                                </MenuFlyout>
+                            </FlyoutBase.ContextFlyout>
                             <Grid TranslationX="-32" x:Name="g_workList" ChildAdded="g_childAdded">
                                 <Grid.RowDefinitions>
                                     <RowDefinition></RowDefinition>

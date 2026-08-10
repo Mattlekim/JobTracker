@@ -985,10 +985,10 @@ public partial class CalenderView : ContentPage
         RefreshPageDate();
     }
 
-    private void On_Job_Canceled(object sender, EventArgs e)
+    private async void On_Job_Canceled(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
-        WorkPlanner.MarkJobCancled(j, this);
+        await WorkPlanner.MarkJobCancled(j, this);
         RefreshPageDate();
     }
 
