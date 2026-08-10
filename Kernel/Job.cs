@@ -1101,7 +1101,19 @@ namespace Kernel
         /// <summary>
         /// if the job has been canceld or not
         /// </summary>
-        public bool HaveCanceled { get; set; } = false;
+        private bool _haveCanceled = false;
+        public bool HaveCanceled
+        {
+            get { return _haveCanceled; }
+            set
+            {
+                _haveCanceled = value;
+                RaisePropertyChanged("HaveCanceled");
+                RaisePropertyChanged("NotCanceled");
+            }
+        }
+        [XmlIgnore]
+        public bool NotCanceled { get { return !_haveCanceled; } }
 
         public bool HaveSkipped { get; set; } = false;
 

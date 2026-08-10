@@ -327,7 +327,6 @@ public partial class CalenderView : ContentPage
 
         int x = 0, y = 1;
 
-        VerticalStackLayout vsl = null;
         Border border = null;
         _calenderDays.Clear();
         for (int i = 0; i < 7 * 6; i++)
@@ -394,46 +393,45 @@ public partial class CalenderView : ContentPage
         Label l = null;
         for (int i = 0; i < _calenderDays.Count; i++)
         {
-            vsl = new VerticalStackLayout();
-            
-            vsl.HorizontalOptions = LayoutOptions.StartAndExpand;
-            vsl.VerticalOptions = LayoutOptions.StartAndExpand;
+            //day number on top, then the figures separated into aligned columns:
+            //jobs total | job count | payments total
+            Grid cell = new Grid();
+            cell.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            cell.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            cell.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            cell.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            cell.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            cell.VerticalOptions = LayoutOptions.Start;
 
             l = new Label() { FontSize = 10 };
             l.BindingContext = _calenderDays[i];
             l.SetBinding(Label.TextProperty, "Day");
             l.SetBinding(Label.TextColorProperty, "TextColor");
-
-
-            vsl.Add(l);
-
+            cell.Add(l, 0, 0);
+            Grid.SetColumnSpan(l, 3);
 
             l = new Label() { FontSize = 12 };
             l.BindingContext = _calenderDays[i];
             l.SetBinding(Label.TextProperty, "FormatAmount");
             l.SetBinding(Label.TextColorProperty, "TextColor");
             l.SetBinding(Label.IsVisibleProperty, "ShowAmount");
-            vsl.Add(l);
+            cell.Add(l, 0, 1);
 
-            
             l = new Label() { FontSize = 12 };
             l.BindingContext = _calenderDays[i];
             l.SetBinding(Label.TextProperty, "FormatJobCount");
             l.SetBinding(Label.TextColorProperty, "TextColor");
             l.SetBinding(Label.IsVisibleProperty, "ShowJobCount");
-
-            vsl.Add(l);
+            l.HorizontalOptions = LayoutOptions.Center;
+            cell.Add(l, 1, 1);
 
             l = new Label() { FontSize = 12 };
             l.BindingContext = _calenderDays[i];
             l.SetBinding(Label.TextProperty, "FormatPayments");
             l.SetBinding(Label.TextColorProperty, "TextColor");
             l.SetBinding(Label.IsVisibleProperty, "ShowPayments");
-
-            vsl.Add(l);
-            // vsl.Add(new Label() { Text = $"{_calenderDays[i].EstimatedDuration}" });
-
-
+            l.HorizontalOptions = LayoutOptions.End;
+            cell.Add(l, 2, 1);
 
             border = new Border();
             border.ClassId = i.ToString();
@@ -442,7 +440,7 @@ public partial class CalenderView : ContentPage
             border.StrokeShape = new Rectangle();
             border.Padding = 1;
             border.MinimumHeightRequest = 42; //keep empty days tappable and the grid legible
-            border.Content = vsl;
+            border.Content = cell;
             //border.BackgroundColor = _calenderDays[i].BgColour;
             border.BindingContext = _calenderDays[i];
             border.SetBinding(Border.BackgroundColorProperty, "BgColour");

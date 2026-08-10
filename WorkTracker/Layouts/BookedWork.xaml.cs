@@ -84,6 +84,14 @@ public partial class BookedWork : ContentPage
         Reload();
     }
 
+    private void On_Job_More(object sender, EventArgs e)
+    {
+        Job j = JobFrom(sender);
+        if (j == null)
+            return;
+        WorkPlanner.ShowJobInfo(j, this);
+    }
+
     private void On_Job_Details(object sender, EventArgs e)
     {
         Job j = JobFrom(sender);

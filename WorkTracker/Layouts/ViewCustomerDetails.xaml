@@ -13,10 +13,8 @@
 
         <Label></Label>
 
-        <!-- grid overlay so the "Customer" caption always sits on the box's top
-             border no matter how tall the box is -->
         <Grid Padding="8">
-            <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4" Margin="0,14,0,0" >
+            <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4" >
                 <VerticalStackLayout>
 
                     <VerticalStackLayout Padding="8" HorizontalOptions="Center">
@@ -47,7 +45,6 @@
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Border>
-            <Label Text="Customer" FontAttributes="Bold" FontSize="Large" HorizontalOptions="Center" VerticalOptions="Start" Padding="8,0" BackgroundColor="{AppThemeBinding Light=white, Dark=black}"></Label>
         </Grid>
 
 

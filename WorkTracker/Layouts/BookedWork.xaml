@@ -24,6 +24,7 @@
                         <SwipeItems>
                             <SwipeItem Text="Done" IconImageSource="tick.png" CommandParameter="{Binding .}" BackgroundColor="#4CAF50" Invoked="On_Job_Compleated"/>
                             <SwipeItem Text="Done &amp; Paid" IconImageSource="donepaid.png" CommandParameter="{Binding .}" BackgroundColor="#2E7D32" Invoked="On_Job_Paid"/>
+                            <SwipeItem Text="More" IconImageSource="more.png" CommandParameter="{Binding .}" BackgroundColor="#546E7A" Invoked="On_Job_More"/>
                         </SwipeItems>
                     </SwipeView.LeftItems>
                     <SwipeView.RightItems>
@@ -45,6 +46,7 @@
                             <MenuFlyout>
                                 <MenuFlyoutItem Text="Done" CommandParameter="{Binding .}" Clicked="On_Job_Compleated"/>
                                 <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding .}" Clicked="On_Job_Paid"/>
+                                <MenuFlyoutItem Text="More" CommandParameter="{Binding .}" Clicked="On_Job_More"/>
                                 <MenuFlyoutSeparator/>
                                 <MenuFlyoutItem Text="Skip" CommandParameter="{Binding .}" Clicked="On_Job_Skipped"/>
                                 <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding .}" Clicked="On_Job_Canceled"/>

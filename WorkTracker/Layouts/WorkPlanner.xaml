@@ -287,7 +287,14 @@
                                     <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding Id}" Clicked="On_Job_Detials" />
                                 </MenuFlyout>
                             </FlyoutBase.ContextFlyout>
-                            <Grid TranslationX="-32" x:Name="g_workList" ChildAdded="g_childAdded">
+                            <!-- cancelled jobs collapse to this greyed single line -->
+                            <HorizontalStackLayout IsVisible="{Binding HaveCanceled}" Opacity="0.4" Padding="2">
+                                <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" TextDecorations="Strikethrough" Padding="4,2" />
+                                <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" TextDecorations="Strikethrough" Padding="4,2" />
+                                <Label Text="{Binding JobFormattedCity}" TextDecorations="Strikethrough" Padding="4,2" />
+                                <Label Text="Cancelled" TextColor="Red" FontAttributes="Bold" Padding="4,2" />
+                            </HorizontalStackLayout>
+                            <Grid TranslationX="-32" x:Name="g_workList" ChildAdded="g_childAdded" IsVisible="{Binding NotCanceled}">
                                 <Grid.RowDefinitions>
                                     <RowDefinition></RowDefinition>
                                     <RowDefinition></RowDefinition>
@@ -310,7 +317,7 @@
                                     IsChecked="{Binding IsSelected}"
                                     CheckedChanged="cb_streetSelected"  ClassId="{Binding Id}" PropertyChanged="test"></CheckBox>
 
-                                <ImageButton Grid.Column="3" Grid.Row="0" Grid.RowSpan="2" Source="info.png" Scale="1"  HeightRequest="30" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"></ImageButton>
+                                <ImageButton Grid.Column="3" Grid.Row="0" Grid.RowSpan="2" Source="info.png" HeightRequest="34" WidthRequest="34" Padding="5" CornerRadius="17" BackgroundColor="#1E88E5" HorizontalOptions="Center" VerticalOptions="Center" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"></ImageButton>
                                 <HorizontalStackLayout  Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="2">
                                     <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" Padding="6" />
                                     <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" Padding="6" >

@@ -141,7 +141,7 @@
 
                                 
 
-                                <ImageButton Grid.Column="3" Grid.Row="0" Grid.RowSpan="2" Source="info.png" Scale="1"  HeightRequest="30" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"></ImageButton>
+                                <ImageButton Grid.Column="3" Grid.Row="0" Grid.RowSpan="2" Source="info.png" HeightRequest="34" WidthRequest="34" Padding="5" CornerRadius="17" BackgroundColor="#1E88E5" HorizontalOptions="Center" VerticalOptions="Center" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"></ImageButton>
                                 <HorizontalStackLayout  Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="2">
                                  
                                     <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" Padding="6" />
