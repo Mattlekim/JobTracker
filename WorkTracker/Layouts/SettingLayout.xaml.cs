@@ -261,6 +261,22 @@ public partial class SettingLayout : ContentPage
         sw_gcSandbox.IsToggled = GoCardless.UseSandbox;
         if (GoCardless.IsConnected)
             l_gcStatus.Text = GoCardless.UseSandbox ? "Connected (sandbox)" : "Connected";
+
+        int pending = GoCardlessRequest.QueryPending().Count;
+        float total = 0;
+        foreach (GoCardlessRequest r in GoCardlessRequest.QueryPending())
+            total += r.Amount;
+        l_gcPending.Text = pending == 0
+            ? "No direct debits waiting"
+            : $"{pending} direct debit(s) waiting, {Gloable.CurrenceSymbol}{total:0.00} in total";
+    }
+
+    private async void bnt_gcCheck_Clicked(object sender, EventArgs e)
+    {
+        l_gcPending.Text = "Checking...";
+        string result = await GoCardless.RefreshPendingAsync();
+        RefreshGoCardlessSection();
+        await DisplayAlert("GoCardless", result, "Ok");
     }
 
     private async void bnt_gcConnect_Clicked(object sender, EventArgs e)
@@ -486,6 +502,7 @@ public partial class SettingLayout : ContentPage
         Job.Save(Settings.SaveDataFolder);
         Payment.Save(Settings.SaveDataFolder);
         Expense.Save(Settings.SaveDataFolder);
+        GoCardlessRequest.Save(Settings.SaveDataFolder);
         Settings.Save(Settings.SaveDataFolder);
 
         string backupfile = $"Backup{DateTime.Now}.rbf";
@@ -546,6 +563,7 @@ public partial class SettingLayout : ContentPage
                     Job.Load();
                     Payment.Load();
                     Expense.Load();
+                    GoCardlessRequest.Load();
                     DataRefreshNotifier.NotifyDataChanged();
                     await DisplayAlert("Success", "Backup has be restored sucsessfuly. Application will now restart", "ok");
                     
@@ -644,11 +662,13 @@ public partial class SettingLayout : ContentPage
                 Customer.DeleteData();
                 Payment.DeleteData();
                 Expense.DeleteData();
+                GoCardlessRequest.DeleteData();
 
                 Job.Save();
                 Customer.Save();
                 Payment.Save();
                 Expense.Save();
+                GoCardlessRequest.Save();
                 DataRefreshNotifier.NotifyDataChanged();
                 await DisplayAlert("Complete", "All data erased", "Ok");
             }

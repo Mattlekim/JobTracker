@@ -57,12 +57,12 @@ public partial class BookedWork : ContentPage
         Reload();
     }
 
-    private void On_Job_Paid(object sender, EventArgs e)
+    private async void On_Job_Paid(object sender, EventArgs e)
     {
         Job j = JobFrom(sender);
         if (j == null)
             return;
-        WorkPlanner.MarkJobPaid(j);
+        await WorkPlanner.MarkJobPaid(j, this);
         Reload();
     }
 

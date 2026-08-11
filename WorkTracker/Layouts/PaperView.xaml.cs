@@ -903,6 +903,20 @@ public partial class PaperView : ContentPage
 			return;
 		}
 
+		//a direct debit already on its way marks the job paid itself when
+		//the money arrives, so it must not be marked paid here as well
+		if (result.Contains("Paid") && !j.IsPaidFor)
+		{
+			GoCardlessRequest pendingDD = GoCardlessRequest.PendingForJob(j.Id);
+			if (pendingDD != null)
+			{
+				await DisplayAlert("Payment Pending",
+					$"A direct debit is already on its way for this job ({pendingDD.FormattedSummary}). " +
+					"It will be marked paid automatically once the money comes through.", "Ok");
+				return;
+			}
+		}
+
 		if (result.Contains("Done"))
 		{
 			if (result.Contains("-"))//marker for alternative price

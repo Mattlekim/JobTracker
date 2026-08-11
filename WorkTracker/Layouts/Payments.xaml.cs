@@ -10,10 +10,18 @@ public partial class Payments : ContentPage
         NavigatedTo += RefreshPage;
 	}
 
-    private void RefreshPage(object sender, NavigatedToEventArgs e)
+    private async void RefreshPage(object sender, NavigatedToEventArgs e)
     {
         lv_Payments.ItemsSource = null;
         lv_Payments.ItemsSource = Payment.Query();
+
+        //direct debits that cleared since last time show up as payments
+        if (GoCardless.IsConnected && GoCardlessRequest.QueryPending().Count > 0)
+        {
+            await GoCardless.RefreshPendingAsync();
+            lv_Payments.ItemsSource = null;
+            lv_Payments.ItemsSource = Payment.Query();
+        }
     }
 
     private void list_child_added(object sender, ElementEventArgs e)

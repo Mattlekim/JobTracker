@@ -943,10 +943,12 @@ public partial class CalenderView : ContentPage
             return j;
         return null;
     }
-    private void On_Job_Paid(object sender, EventArgs e)
+    private async void On_Job_Paid(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
-        WorkPlanner.MarkJobPaid(j);
+        if (j == null)
+            return;
+        await WorkPlanner.MarkJobPaid(j, this);
         RefreshPageDate();
     }
 

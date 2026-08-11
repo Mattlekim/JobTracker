@@ -11,10 +11,15 @@ namespace WorkTracker
             Job.Load();
             Payment.Load();
             Expense.Load();
+            GoCardlessRequest.Load();
             Settings.Load();
 
             //pulls newer cloud data in the background and pushes future saves
             UiInterface.CloudSync.Start();
+
+            //catch up on any direct debits that have cleared since last time
+            if (UiInterface.GoCardless.IsConnected)
+                _ = UiInterface.GoCardless.RefreshPendingAsync();
 
             InitializeComponent();
 

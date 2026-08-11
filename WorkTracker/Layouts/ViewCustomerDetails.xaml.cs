@@ -149,17 +149,32 @@ public partial class ViewCustomerDetails : ContentPage
             return;
         }
 
+        //a job with a request already on its way must never be charged again
+        GoCardlessRequest outstanding = GoCardlessRequest.PendingForJob(CurrentJob.Id);
+        if (outstanding != null)
+        {
+            string check = await DisplayActionSheet(
+                $"Waiting on {outstanding.FormattedSummary}", "Close", null, "Check If It Has Been Paid");
+            if (check == "Check If It Has Been Paid")
+            {
+                string result = await GoCardless.RefreshPendingAsync();
+                await DisplayAlert("GoCardless", result, "Ok");
+            }
+            return;
+        }
+
         float suggested = c.Balance > 0 ? c.Balance : CurrentJob.Price;
         string action = await DisplayActionSheet($"GoCardless - {c.FName} {c.SName}", "Cancel", null,
-            $"Take Payment ({Gloable.CurrenceSymbol}{suggested:0.00})",
+            $"Request Payment ({Gloable.CurrenceSymbol}{suggested:0.00})",
+            "Check Pending Payments",
             "Unlink Direct Debit");
         if (action == null)
             return;
 
-        if (action.StartsWith("Take Payment"))
+        if (action.StartsWith("Request Payment"))
         {
-            string amountText = await DisplayPromptAsync("Take Payment",
-                $"Amount to collect ({Gloable.CurrenceSymbol})", "Collect", "Cancel",
+            string amountText = await DisplayPromptAsync("Request Payment",
+                $"Amount to collect ({Gloable.CurrenceSymbol})", "Request", "Cancel",
                 initialValue: suggested.ToString("0.00"), keyboard: Keyboard.Numeric);
             if (amountText == null)
                 return;
@@ -175,27 +190,30 @@ public partial class ViewCustomerDetails : ContentPage
                 return;
             }
 
-            if (!await DisplayAlert("Take Payment",
-                $"Collect {Gloable.CurrenceSymbol}{amount:0.00} from {c.FName} {c.SName} by direct debit?", "Yes", "No"))
+            if (!await DisplayAlert("Request Payment",
+                $"Collect {Gloable.CurrenceSymbol}{amount:0.00} from {c.FName} {c.SName} by direct debit?\n\nThe job stays unpaid until the money actually comes through.", "Yes", "No"))
                 return;
 
             try
             {
-                GoCardless.GcPayment p = await GoCardless.CreatePaymentAsync(
-                    c.GoCardlessMandateId, amount, $"Window cleaning {CurrentJob.JobFormattedStreet}".Trim());
+                GoCardlessRequest request = await GoCardless.RequestJobPaymentAsync(CurrentJob, amount);
 
-                //record it like any other payment so the balance updates
-                Payment.Add(c.Id, amount, PaymentMethod.GoCardless, p.Id);
-                Payment.Save();
-
-                string when = p.ChargeDate != default ? $" It will leave their bank on {p.ChargeDate.ToShortDateString()}." : string.Empty;
-                await DisplayAlert("Payment Created",
-                    $"{Gloable.CurrenceSymbol}{amount:0.00} will be collected from {c.FName} {c.SName} by direct debit.{when}", "Ok");
+                string when = request.ChargeDate > UsfulFuctions.DateBase
+                    ? $" It should leave their bank on {request.ChargeDate.ToShortDateString()}."
+                    : string.Empty;
+                await DisplayAlert("Payment Requested",
+                    $"{request.FormattedAmount} has been requested from {c.FName} {c.SName} by direct debit.{when}\n\n" +
+                    "The job will be marked paid automatically once the money comes through.", "Ok");
             }
             catch (Exception ex)
             {
                 await DisplayAlert("GoCardless", ex.Message, "Ok");
             }
+        }
+        else if (action == "Check Pending Payments")
+        {
+            string result = await GoCardless.RefreshPendingAsync();
+            await DisplayAlert("GoCardless", result, "Ok");
         }
         else if (action == "Unlink Direct Debit")
         {

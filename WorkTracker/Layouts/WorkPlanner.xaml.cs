@@ -449,8 +449,19 @@ public partial class WorkPlanner : ContentPage
         j.RefreshColors();
     }
 
-    public static void MarkJobPaid(Job j)
+    public static async Task MarkJobPaid(Job j, Page page)
     {
+        //a direct debit is already on its way for this job, so taking the
+        //money again here would charge the customer twice
+        GoCardlessRequest pending = GoCardlessRequest.PendingForJob(j.Id);
+        if (!j.IsPaidFor && pending != null)
+        {
+            await page.DisplayAlert("Payment Pending",
+                $"A direct debit is already on its way for this job ({pending.FormattedSummary}). " +
+                "It will be marked paid automatically once the money comes through.", "Ok");
+            return;
+        }
+
         if (j.IsPaidFor)
         {
             j.UnMarkJobPaid();
@@ -471,12 +482,12 @@ public partial class WorkPlanner : ContentPage
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private void On_Job_Paid(object sender, EventArgs e)
+    private async void On_Job_Paid(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
         if (j == null)
             return;
-        MarkJobPaid(j);
+        await MarkJobPaid(j, this);
        // RefreshPage();
     }
 
@@ -1101,32 +1112,22 @@ public partial class WorkPlanner : ContentPage
     }
 
     /// <summary>
-    /// collect a job payment by direct debit. shows an alert and returns
-    /// false when the charge cannot be made (not connected, customer not
-    /// linked, or GoCardless refused it)
+    /// send a direct debit payment request for a job and log it. the job is
+    /// left unpaid: it only becomes paid once GoCardless confirms the money
+    /// has been collected. Returns false when nothing was requested
     /// </summary>
-    public static async Task<bool> ChargeGoCardless(Job j, float amount, Page page)
+    public static async Task<bool> RequestGoCardlessPayment(Job j, float amount, Page page)
     {
-        if (!GoCardless.IsConnected)
-        {
-            await page.DisplayAlert("GoCardless", "GoCardless is not connected. Connect it in Settings first.", "Ok");
-            return false;
-        }
-
-        Customer c = j.GetCustomer();
-        if (c == null || !c.HasGoCardless())
-        {
-            await page.DisplayAlert("GoCardless", "This customer is not linked to a GoCardless direct debit yet. Open the job's info page and use the GoCardless option to link them.", "Ok");
-            return false;
-        }
-
         try
         {
-            GoCardless.GcPayment p = await GoCardless.CreatePaymentAsync(
-                c.GoCardlessMandateId, amount, $"Window cleaning {j.JobFormattedStreet}".Trim());
+            GoCardlessRequest request = await GoCardless.RequestJobPaymentAsync(j, amount);
 
-            string when = p.ChargeDate != default ? $" It will leave their bank on {p.ChargeDate.ToShortDateString()}." : string.Empty;
-            await page.DisplayAlert("Payment Created", $"{Gloable.CurrenceSymbol}{amount:0.00} will be collected by direct debit.{when}", "Ok");
+            string when = request.ChargeDate > UsfulFuctions.DateBase
+                ? $" It should leave their bank on {request.ChargeDate.ToShortDateString()}."
+                : string.Empty;
+            await page.DisplayAlert("Payment Requested",
+                $"{request.FormattedAmount} has been requested by direct debit.{when}\n\n" +
+                "The job stays unpaid and will be marked paid automatically once the money comes through.", "Ok");
             return true;
         }
         catch (Exception ex)
@@ -1141,8 +1142,8 @@ public partial class WorkPlanner : ContentPage
         if (_currentJob == null)
             return;
 
-        //taking the money by direct debit happens first - if it fails
-        //nothing is marked as paid
+        //direct debits are requested, not paid on the spot: the tick box is
+        //left off and the job is marked paid later when the money arrives
         if (!_currentJob.IsPaidFor && cb_isPaid.IsChecked &&
             (string)p_paymentType.SelectedItem == PaymentMethod.GoCardless.ToString())
         {
@@ -1157,8 +1158,10 @@ public partial class WorkPlanner : ContentPage
                 return;
             }
 
-            if (!await ChargeGoCardless(_currentJob, gcAmount, this))
-                return;
+            await RequestGoCardlessPayment(_currentJob, gcAmount, this);
+
+            //whatever happened, the job is not paid yet
+            cb_isPaid.IsChecked = false;
         }
 
         
@@ -1217,7 +1220,17 @@ public partial class WorkPlanner : ContentPage
             _currentJob.UnMarkJobPaid();
 
         if (!_currentJob.IsPaidFor && cb_isPaid.IsChecked)
-            _currentJob.MarkJobPaid((float)Convert.ToDouble(l_amoutToPay.Text), (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)p_paymentType.SelectedItem));
+        {
+            //a direct debit already on its way marks the job paid itself
+            //when the money arrives
+            GoCardlessRequest pendingDD = GoCardlessRequest.PendingForJob(_currentJob.Id);
+            if (pendingDD != null)
+                await DisplayAlert("Payment Pending",
+                    $"A direct debit is already on its way for this job ({pendingDD.FormattedSummary}). " +
+                    "It will be marked paid automatically once the money comes through.", "Ok");
+            else
+                _currentJob.MarkJobPaid((float)Convert.ToDouble(l_amoutToPay.Text), (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)p_paymentType.SelectedItem));
+        }
 
         if (_currentJob.IsCompleted && cb_isCompleated.IsChecked)
             _currentJob.DateCompleated = p_dateCompleated.Date;

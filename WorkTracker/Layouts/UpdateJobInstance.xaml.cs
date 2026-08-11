@@ -261,7 +261,7 @@ public partial class UpdateJobInstance : ContentPage
         Navigation.PopAsync();
     }
 
-	private void bnt_confirm_clicked(object sender, EventArgs e)
+	private async void bnt_confirm_clicked(object sender, EventArgs e)
 	{
         if (CurrentJob == null)
             return;
@@ -314,7 +314,17 @@ public partial class UpdateJobInstance : ContentPage
             CurrentJob.UnMarkJobPaid();
 
         if (!CurrentJob.IsPaidFor && cb_isPaid.IsChecked)
-            CurrentJob.MarkJobPaid((float)Convert.ToDouble(l_amoutToPay.Text), (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)p_paymentType.SelectedItem));
+        {
+            //a direct debit already on its way marks the job paid itself
+            //when the money arrives
+            GoCardlessRequest pending = GoCardlessRequest.PendingForJob(CurrentJob.Id);
+            if (pending != null)
+                await DisplayAlert("Payment Pending",
+                    $"A direct debit is already on its way for this job ({pending.FormattedSummary}). " +
+                    "It will be marked paid automatically once the money comes through.", "Ok");
+            else
+                CurrentJob.MarkJobPaid((float)Convert.ToDouble(l_amoutToPay.Text), (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)p_paymentType.SelectedItem));
+        }
 
         if (CurrentJob.IsCompleted && cb_isCompleated.IsChecked)
             CurrentJob.DateCompleated = p_dateCompleated.Date;

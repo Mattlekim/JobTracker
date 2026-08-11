@@ -100,6 +100,7 @@
 	  <Compile Include="..\Kernel\Expense.cs" Link="Kernal\Expense.cs" />
 	  <Compile Include="..\Kernel\Filter.cs" Link="Kernal\Filter.cs" />
 	  <Compile Include="..\Kernel\Gloable.cs" Link="Kernal\Gloable.cs" />
+	  <Compile Include="..\Kernel\GoCardlessRequest.cs" Link="Kernal\GoCardlessRequest.cs" />
 	  <Compile Include="..\Kernel\Job.cs" Link="Kernal\Job.cs" />
 	  <Compile Include="..\Kernel\Location.cs" Link="Kernal\Location.cs" />
 	  <Compile Include="..\Kernel\Payment.cs" Link="Kernal\Payment.cs" />

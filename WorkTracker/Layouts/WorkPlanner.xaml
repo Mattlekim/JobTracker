@@ -348,6 +348,8 @@
                                     </Label>
                                     <Label Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="4,2" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" Margin="4,0,0,0"></Label>
                                     <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="4,2" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" Margin="4,0,0,0"></Label>
+                                    <!-- direct debit requested, waiting for the money to come through -->
+                                    <Label Text="{Binding PaymentPendingText}" TextColor="White" BackgroundColor="#6A1B9A" IsVisible="{Binding PaymentPending}" Padding="4,2" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" Margin="4,0,0,0"></Label>
                                 </HorizontalStackLayout>
 
                                 <Label Grid.Column="3" Text="{Binding Name}" IsVisible="{Binding HaveJobName}" FontAttributes="Bold" Padding="4,2" BackgroundColor="#EF6C00" TextColor="White" VerticalOptions="Center" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation">

@@ -504,10 +504,17 @@ namespace Kernel
             RaisePropertyChanged("JobFormattedOwed");
             RaisePropertyChanged("JobFormattedDueTime");
             RaisePropertyChanged("ShowOwed");
+            RaisePropertyChanged("PaymentPending");
+            RaisePropertyChanged("PaymentPendingText");
         }
         public void MarkJobPaid()
         {
             if (IsPaidFor)
+                return;
+
+            //a direct debit is already on its way, marking it paid here as
+            //well would take the money twice
+            if (PaymentPending)
                 return;
 
             IsPaidFor = true;
@@ -531,16 +538,62 @@ namespace Kernel
             if (IsPaidFor)
                 return;
 
+            //see MarkJobPaid() above - never pay a job twice
+            if (PaymentPending)
+                return;
+
             IsPaidFor = true;
 
             MatchCustomer();
             if (_customer != null)
             {
-              
+
                 PaymentId = Payment.Add(_customer.Id, amount, paymentMethod, string.Empty).Id;
                 Payment.Save();
             }
             Job.Save();
+        }
+
+        /// <summary>
+        /// mark paid against a payment that has already been recorded (and
+        /// has therefore already come off the customer's balance). used when
+        /// a direct debit finally clears
+        /// </summary>
+        public void MarkJobPaidByRecordedPayment(int paymentId)
+        {
+            if (IsPaidFor)
+                return;
+
+            IsPaidFor = true;
+            PaymentId = paymentId;
+            Job.Save();
+        }
+
+        /// <summary>
+        /// true while a direct debit payment request for this job is waiting
+        /// to clear. the job is not paid yet and cannot be charged again
+        /// </summary>
+        [XmlIgnore]
+        public bool PaymentPending
+        {
+            get { return GoCardlessRequest.HasPendingForJob(Id); }
+        }
+
+        /// <summary>
+        /// the pending direct debit as a short line for the job lists
+        /// </summary>
+        [XmlIgnore]
+        public string PaymentPendingText
+        {
+            get
+            {
+                GoCardlessRequest r = GoCardlessRequest.PendingForJob(Id);
+                if (r == null)
+                    return string.Empty;
+                if (r.ChargeDate > UsfulFuctions.DateBase)
+                    return $"DD {r.FormattedAmount} due {r.ChargeDate.ToShortDateString()}";
+                return $"DD {r.FormattedAmount} pending";
+            }
         }
 
 

@@ -375,6 +375,72 @@ namespace Kernel
         }
     }
 
+    public struct GoCardlessRequestSaveData
+    {
+        public List<GoCardlessRequest> Requests;
+        public int NextRequestId;
+    }
+
+    public partial class GoCardlessRequest
+    {
+        private static string _FilePath = "directdebits.rjt";
+
+        public static void Save(string dir = null)
+        {
+            string fileLocation = string.Empty;
+            if (dir != null && dir != string.Empty)
+            {
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                fileLocation = Path.Combine(fileLocation, _FilePath);
+            }
+            else
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+
+            GoCardlessRequestSaveData gsd = new GoCardlessRequestSaveData();
+            gsd.Requests = new List<GoCardlessRequest>();
+            gsd.Requests.AddRange(_Requests);
+            gsd.NextRequestId = _IdGenerator;
+
+            using (FileStream fs = File.Create(fileLocation))
+            {
+                XmlSerializer xs = new XmlSerializer(typeof(GoCardlessRequestSaveData));
+                xs.Serialize(fs, gsd);
+            }
+            SyncNotifier.NotifySaved();
+        }
+
+        public static void Load(string dir = null)
+        {
+            string fileLocation = string.Empty;
+            if (dir != null && dir != string.Empty)
+            {
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                fileLocation = Path.Combine(fileLocation, _FilePath);
+            }
+            else
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+
+            GoCardlessRequestSaveData gsd = new GoCardlessRequestSaveData();
+            try
+            {
+                using (FileStream fs = File.OpenRead(fileLocation))
+                {
+                    XmlSerializer xs = new XmlSerializer(typeof(GoCardlessRequestSaveData));
+#pragma warning disable CS8605 // Unboxing a possibly null value.
+                    gsd = (GoCardlessRequestSaveData)xs.Deserialize(fs);
+#pragma warning restore CS8605 // Unboxing a possibly null value.
+
+                    _Requests.Clear();
+                    _Requests.AddRange(gsd.Requests);
+                    _IdGenerator = gsd.NextRequestId;
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
+
     public struct PaymentSaveData
     {
         public List<Payment> Payments;

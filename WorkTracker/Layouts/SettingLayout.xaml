@@ -163,6 +163,9 @@
                 <!-- shown when connected -->
                 <VerticalStackLayout x:Name="vsl_gcConnected" IsVisible="false">
                     <Label x:Name="l_gcStatus" Text="Connected" TextColor="Grey"></Label>
+                    <Label x:Name="l_gcPending" Text="" TextColor="Grey"></Label>
+                    <Label></Label>
+                    <Button Text="Check Pending Payments" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_gcCheck_Clicked"></Button>
                     <Label></Label>
                     <Button Text="Disconnect" BackgroundColor="Transparent" TextColor="Red" BorderColor="Red" BorderWidth="2" Clicked="bnt_gcDisconnect_Clicked"></Button>
                 </VerticalStackLayout>

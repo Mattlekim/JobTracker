@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Kernel;
 
 namespace UiInterface
 {
@@ -217,7 +218,19 @@ namespace UiInterface
             req.Content = new StringContent(body, Encoding.UTF8, "application/json");
 
             using JsonDocument doc = await SendAsync(req);
-            JsonElement p = doc.RootElement.GetProperty("payments");
+            return ReadPayment(doc.RootElement.GetProperty("payments"));
+        }
+
+        /// <summary>look up one payment to see where it has got to</summary>
+        public static async Task<GcPayment> GetPaymentAsync(string paymentId)
+        {
+            using JsonDocument doc = await SendAsync(NewRequest(HttpMethod.Get,
+                $"/payments/{Uri.EscapeDataString(paymentId)}"));
+            return ReadPayment(doc.RootElement.GetProperty("payments"));
+        }
+
+        static GcPayment ReadPayment(JsonElement p)
+        {
             GcPayment result = new GcPayment
             {
                 Id = p.GetProperty("id").GetString(),
@@ -226,6 +239,158 @@ namespace UiInterface
             if (p.TryGetProperty("charge_date", out JsonElement cd) && cd.ValueKind == JsonValueKind.String)
                 DateTime.TryParse(cd.GetString(), out result.ChargeDate);
             return result;
+        }
+
+        // ---------------- keeping track of what has been requested ----------------
+
+        /// <summary>
+        /// statuses that mean the money has actually been collected
+        /// </summary>
+        static readonly string[] PaidStatuses = { "confirmed", "paid_out" };
+
+        /// <summary>
+        /// statuses that mean the money will never arrive, so the job can be
+        /// charged again
+        /// </summary>
+        static readonly string[] DeadStatuses = { "cancelled", "customer_approval_denied", "failed", "charged_back" };
+
+        static bool _refreshing;
+
+        /// <summary>
+        /// asks GoCardless where every outstanding payment request has got
+        /// to. Requests that have been collected mark their job as paid and
+        /// record the payment on the day the money was taken; requests that
+        /// died free the job up to be charged again. Returns a short summary.
+        /// </summary>
+        public static async Task<string> RefreshPendingAsync()
+        {
+            if (!IsConnected)
+                return "GoCardless not connected";
+            if (_refreshing)
+                return "Already checking";
+
+            _refreshing = true;
+            try
+            {
+                List<GoCardlessRequest> pending = GoCardlessRequest.QueryPending();
+                if (pending.Count == 0)
+                    return "No direct debits waiting";
+
+                int paid = 0, failed = 0, stillPending = 0;
+                bool changed = false;
+
+                foreach (GoCardlessRequest r in pending)
+                {
+                    if (string.IsNullOrWhiteSpace(r.GoCardlessPaymentId))
+                        continue;
+
+                    GcPayment p;
+                    try
+                    {
+                        p = await GetPaymentAsync(r.GoCardlessPaymentId);
+                    }
+                    catch
+                    {
+                        //leave it pending and try again next time rather than
+                        //losing track of a payment because the network blipped
+                        stillPending++;
+                        continue;
+                    }
+
+                    r.GoCardlessStatus = p.Status;
+
+                    if (PaidStatuses.Contains(p.Status))
+                    {
+                        //record it on the day the money actually left their bank
+                        DateTime taken = p.ChargeDate != default ? p.ChargeDate : UsfulFuctions.DateNow;
+                        r.SettleAsPaid(new DateTime(taken.Year, taken.Month, taken.Day));
+                        paid++;
+                        changed = true;
+                    }
+                    else if (DeadStatuses.Contains(p.Status))
+                    {
+                        r.SettleAsFailed(p.Status.Replace('_', ' '));
+                        failed++;
+                        changed = true;
+                    }
+                    else
+                    {
+                        //still on its way - keep the charge date up to date
+                        if (p.ChargeDate != default)
+                            r.ChargeDate = new DateTime(p.ChargeDate.Year, p.ChargeDate.Month, p.ChargeDate.Day);
+                        stillPending++;
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    GoCardlessRequest.Save();
+                    if (paid > 0)
+                    {
+                        Payment.Save();
+                        Customer.Save();
+                        Job.Save();
+                    }
+                }
+
+                if (paid == 0 && failed == 0)
+                    return $"{stillPending} direct debit(s) still on the way";
+
+                string summary = string.Empty;
+                if (paid > 0)
+                    summary = $"{paid} payment(s) received";
+                if (failed > 0)
+                    summary += (summary == string.Empty ? string.Empty : ", ") + $"{failed} failed";
+                if (stillPending > 0)
+                    summary += $", {stillPending} still on the way";
+                return summary;
+            }
+            finally
+            {
+                _refreshing = false;
+            }
+        }
+
+        /// <summary>
+        /// send a payment request for a job and log it. refuses when a
+        /// request for that job is already waiting, so the same job can never
+        /// be charged twice. Returns the logged request.
+        /// </summary>
+        public static async Task<GoCardlessRequest> RequestJobPaymentAsync(Job job, float amount)
+        {
+            if (!IsConnected)
+                throw new Exception("GoCardless is not connected. Connect it in Settings first.");
+
+            GoCardlessRequest existing = GoCardlessRequest.PendingForJob(job.Id);
+            if (existing != null)
+                throw new Exception($"A payment request has already been sent for this job ({existing.FormattedSummary}). Wait for it to clear before sending another.");
+
+            if (job.IsPaidFor)
+                throw new Exception("This job has already been paid for.");
+
+            Customer c = job.GetCustomer();
+            if (c == null || !c.HasGoCardless())
+                throw new Exception("This customer is not linked to a GoCardless direct debit yet. Open the job's info page and use the GoCardless option to link them.");
+
+            GcPayment p = await CreatePaymentAsync(c.GoCardlessMandateId, amount,
+                $"Window cleaning {job.JobFormattedStreet}".Trim());
+
+            GoCardlessRequest request = GoCardlessRequest.Add(new GoCardlessRequest
+            {
+                JobId = job.Id,
+                CustomerId = c.Id,
+                GoCardlessPaymentId = p.Id,
+                Amount = amount,
+                DateRequested = UsfulFuctions.DateNow,
+                ChargeDate = p.ChargeDate != default ? new DateTime(p.ChargeDate.Year, p.ChargeDate.Month, p.ChargeDate.Day) : UsfulFuctions.DateBase,
+                Status = DirectDebitStatus.Pending,
+                GoCardlessStatus = p.Status,
+            });
+
+            GoCardlessRequest.Save();
+            job.Refresh();
+            return request;
         }
     }
 }

@@ -177,10 +177,13 @@
                                     <Label 
                                         Text="Canceled" FontAttributes="Bold" Padding="6" BackgroundColor="Red" TextColor="White" TranslationX="12" IsVisible="{Binding HaveCanceled}">
                                     </Label>
-                                    <Label 
+                                    <Label
                                     Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="6" FontAttributes="Bold" TranslationX="16"></Label>
-                                    <Label 
+                                    <Label
                                     Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="6" FontAttributes="Bold" TranslationX="20"></Label>
+                                    <!-- direct debit requested, waiting for the money to come through -->
+                                    <Label
+                                    Text="{Binding PaymentPendingText}" TextColor="White" BackgroundColor="#6A1B9A" IsVisible="{Binding PaymentPending}" Padding="6" FontAttributes="Bold" TranslationX="24"></Label>
                                 </HorizontalStackLayout>
 
                                 <!-- grid (not stack) so the notes label is width-bounded and
