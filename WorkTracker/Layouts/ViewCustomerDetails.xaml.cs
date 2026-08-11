@@ -103,14 +103,16 @@ public partial class ViewCustomerDetails : ContentPage
     {
         List<Job> jobs = new List<Job>();
         jobs.Add(CurrentJob);
-        await WorkPlanner.EmailCustomers(jobs, DateTime.Now, string.Empty, this);
+        //this customer was picked on purpose, so their night before setting
+        //should not decide whether the email goes
+        await WorkPlanner.EmailCustomers(jobs, DateTime.Now, string.Empty, this, false);
     }
 
     private async void l_phoneClicked(object sender, EventArgs e)
     {
         List<Job> jobs = new List<Job>();
         jobs.Add(CurrentJob);
-        await WorkPlanner.TextCustomers(jobs, DateTime.Now, string.Empty, this);
+        await WorkPlanner.TextCustomers(jobs, DateTime.Now, string.Empty, this, false);
     }
 
     private void tbi_EditDetails_Clicked(object sender, EventArgs e)

@@ -772,7 +772,7 @@ public partial class CalenderView : ContentPage
                         if (jobsText.Count > 0)
                             await WorkPlanner.TextCustomers(jobsText, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
                         if (jobsEmail.Count > 0)
-                            await WorkPlanner.EmailCustomers(jobsText, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
+                            await WorkPlanner.EmailCustomers(jobsEmail, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
                         return;
                     }
 
@@ -794,7 +794,7 @@ public partial class CalenderView : ContentPage
                 if (jobsText.Count > 0)
                     await WorkPlanner.TextCustomers(jobsText, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
                 if (jobsEmail.Count > 0)
-                    await WorkPlanner.EmailCustomers(jobsText, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
+                    await WorkPlanner.EmailCustomers(jobsEmail, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
                 return;
             }
         _calenderDays[startday].MoveDay(_calenderDays[endDay]);

@@ -1616,25 +1616,60 @@ public partial class WorkPlanner : ContentPage
 #endif
     }
 
-    public async static Task EmailCustomers(List<Job> jobs, DateTime dt, string msg, Page page)
+    /// <summary>
+    /// emails the customers on this list. addresses go in the blind copy
+    /// field so one customer cannot see another's email address
+    /// </summary>
+    /// <param name="onlyFlagged">
+    /// true to email only the jobs set to email the night before; false when
+    /// the customer was picked deliberately
+    /// </param>
+    public async static Task EmailCustomers(List<Job> jobs, DateTime dt, string msg, Page page, bool onlyFlagged = true)
     {
+        if (string.IsNullOrWhiteSpace(msg))
+            msg = DefaultTNBMessage;
+
+        List<Job> toEmail = new List<Job>();
+        int noAddress = 0;
+        foreach (Job j in jobs)
+        {
+            if (onlyFlagged && !j.ENB)
+                continue;
+            Customer c = j.GetCustomer();
+            if (c == null || string.IsNullOrWhiteSpace(c.Email))
+            {
+                noAddress++;
+                continue;
+            }
+            toEmail.Add(j);
+        }
+
+        if (toEmail.Count == 0)
+        {
+            await page.DisplayAlert("No Emails",
+                noAddress > 0
+                    ? $"None of these customers have an email address ({noAddress} skipped)."
+                    : "There is nobody to email.", "OK");
+            return;
+        }
+
         try
         {
-            List<string> emails = new List<string>();
-            foreach (Job j in jobs)
+            EmailMessage message = new EmailMessage
             {
-                if (j.ENB)
-                {
-                    emails.Add(j.GetCustomer().Email);
-                    j.HaveBeenEmailed = true;
-                }
-            }
-            EmailMessage message = new EmailMessage("Windows Cleaning", ReplaceTags(msg, dt), emails.ToArray());
-          
+                Subject = "Window Cleaning",
+                Body = ReplaceTags(msg, dt),
+                //blind copy keeps every customer's address to themselves
+                Bcc = toEmail.Select(x => x.GetCustomer().Email).ToList(),
+            };
+
             await Email.ComposeAsync(message);
 
+            foreach (Job j in toEmail)
+                j.HaveBeenEmailed = true;
+            Job.Save();
         }
-        catch (FeatureNotSupportedException ex)
+        catch (FeatureNotSupportedException)
         {
             await page.DisplayAlert("Failed", "Email is not supported on this device.", "OK");
         }
@@ -1644,34 +1679,86 @@ public partial class WorkPlanner : ContentPage
         }
     }
 
-  
-    public async static Task TextCustomers(List<Job> jobs, DateTime dt, string msg, Page page)
+    /// <summary>
+    /// texts each customer separately rather than as one group message.
+    /// a group message would show every customer each other's phone number
+    /// and could not carry anything personal like what they owe
+    /// </summary>
+    /// <param name="onlyFlagged">
+    /// true to text only the jobs set to text the night before; false when
+    /// the customer was picked deliberately
+    /// </param>
+    public async static Task TextCustomers(List<Job> jobs, DateTime dt, string msg, Page page, bool onlyFlagged = true)
     {
+        if (string.IsNullOrWhiteSpace(msg))
+            msg = DefaultTNBMessage;
 
-        try
+        List<Job> toText = new List<Job>();
+        int noNumber = 0;
+        foreach (Job j in jobs)
         {
-            List<string> numbers = new List<string>();
-            foreach (Job j in jobs)
+            if (onlyFlagged && !j.TNB)
+                continue;
+            Customer c = j.GetCustomer();
+            if (c == null || string.IsNullOrWhiteSpace(c.Phone))
             {
-                if (j.TNB)
-                {
-                    numbers.Add(j.GetCustomer().Phone);
-                    j.HaveBeenText = true;
-                }
+                noNumber++;
+                continue;
             }
-            SmsMessage message = new SmsMessage(ReplaceTags(msg, dt), numbers);
-            await Sms.ComposeAsync(message);
-            
-        }
-        catch (FeatureNotSupportedException ex)
-        {
-            await page.DisplayAlert("Failed", "Sms is not supported on this device.", "OK");
-        }
-        catch (Exception ex)
-        {
-            await page.DisplayAlert("Failed", ex.Message, "OK");
+            toText.Add(j);
         }
 
+        if (toText.Count == 0)
+        {
+            await page.DisplayAlert("No Texts",
+                noNumber > 0
+                    ? $"None of these customers have a phone number ({noNumber} skipped)."
+                    : "There is nobody to text.", "OK");
+            return;
+        }
+
+        //each text opens the messaging app in turn, so say how many that is
+        //before starting rather than surprising them with a queue of them
+        if (toText.Count > 1)
+        {
+            string skipped = noNumber > 0 ? $"\n\n{noNumber} skipped with no phone number." : string.Empty;
+            if (!await page.DisplayAlert("Send Texts",
+                $"{toText.Count} customers will be texted, one at a time so each gets their own message. " +
+                $"Your messaging app opens for each one so you can check it before sending.{skipped}",
+                "Start", "Cancel"))
+                return;
+        }
+
+        int sent = 0;
+        foreach (Job j in toText)
+        {
+            try
+            {
+                SmsMessage message = new SmsMessage(
+                    ReplaceTags(msg, dt, j),
+                    new List<string> { j.GetCustomer().Phone });
+                await Sms.ComposeAsync(message);
+
+                //the messaging app does not tell us whether it was actually
+                //sent, so this records that it was put in front of them
+                j.HaveBeenText = true;
+                sent++;
+            }
+            catch (FeatureNotSupportedException)
+            {
+                await page.DisplayAlert("Failed", "Sms is not supported on this device.", "OK");
+                break;
+            }
+            catch (Exception ex)
+            {
+                if (!await page.DisplayAlert("Failed",
+                    $"Could not text {j.JobFormattedStreet}: {ex.Message}", "Carry On", "Stop"))
+                    break;
+            }
+        }
+
+        if (sent > 0)
+            Job.Save();
     }
 
     private DateTime ViewBookingAtDate;
@@ -1945,8 +2032,9 @@ public partial class WorkPlanner : ContentPage
             return;
         }
 
-        if (await DisplayAlert("Send Text", msgBody, "Yes", "No"))
-            TextCustomers(jobsToText, DateTime.Now, "", this);
+        //these jobs were selected by hand, so text them whether or not they
+        //are set to text the night before
+        await TextCustomers(jobsToText, DateTime.Now, DefaultTNBMessage, this, false);
     }
 
 
