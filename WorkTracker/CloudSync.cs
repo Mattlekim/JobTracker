@@ -1,4 +1,7 @@
+using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Kernel;
@@ -7,8 +10,10 @@ namespace UiInterface
 {
     /// <summary>
     /// Two-way sync of the app's data files with the user's Google Drive
-    /// (hidden appDataFolder), using the OAuth device flow so the same code
-    /// works on Windows and Android with no redirect URLs.
+    /// (hidden appDataFolder). Signing in opens the normal Google login
+    /// page in the browser and the app catches the redirect on a local
+    /// port (OAuth authorization code flow with PKCE), so it is just
+    /// click - log in - approve, no codes to type.
     ///
     /// Sign in once per device from Settings. After that:
     ///  - saves are pushed automatically a few seconds after data changes
@@ -20,7 +25,7 @@ namespace UiInterface
         static readonly string[] SyncFiles = { "customers.rjt", "jobs.rjt", "quotes.rjt", "payment.rjt", "expenses.rjt" };
 
         const string Scope = "https://www.googleapis.com/auth/drive.appdata";
-        const string DeviceCodeUrl = "https://oauth2.googleapis.com/device/code";
+        const string AuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
         const string TokenUrl = "https://oauth2.googleapis.com/token";
         const string FilesUrl = "https://www.googleapis.com/drive/v3/files";
         const string UploadUrl = "https://www.googleapis.com/upload/drive/v3/files";
@@ -116,85 +121,164 @@ namespace UiInterface
             });
         }
 
-        // ---------------- sign in (device flow) ----------------
+        // ---------------- sign in (browser + loopback redirect) ----------------
 
-        public class DeviceCodeInfo
+        /// <summary>
+        /// one-click sign in: opens the Google login page in the browser and
+        /// waits for Google to redirect back to a little listener on
+        /// 127.0.0.1. Returns true when signed in, false when the user gave
+        /// up (cancelled / timed out). Throws when Google reports an error.
+        /// </summary>
+        public static async Task<bool> SignInWithBrowserAsync(CancellationToken cancel)
         {
-            public string UserCode;
-            public string VerificationUrl;
-            public string DeviceCode;
-            public int Interval;
-            public int ExpiresIn;
-        }
+            //PKCE keeps the exchange safe even though the redirect is plain http
+            string verifier = Base64Url(RandomNumberGenerator.GetBytes(64));
+            string challenge;
+            using (SHA256 sha = SHA256.Create())
+                challenge = Base64Url(sha.ComputeHash(Encoding.ASCII.GetBytes(verifier)));
 
-        /// <summary>step 1: get the code the user has to type in at google.com/device</summary>
-        public static async Task<DeviceCodeInfo> BeginSignInAsync()
-        {
-            FormUrlEncodedContent form = new FormUrlEncodedContent(new Dictionary<string, string>
+            //listen on a random free port on loopback for the redirect
+            TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            string redirect = $"http://127.0.0.1:{port}/";
+
+            string url = $"{AuthUrl}?client_id={Uri.EscapeDataString(ClientId)}" +
+                $"&redirect_uri={Uri.EscapeDataString(redirect)}" +
+                "&response_type=code" +
+                $"&scope={Uri.EscapeDataString(Scope)}" +
+                "&access_type=offline&prompt=consent" +
+                $"&code_challenge={challenge}&code_challenge_method=S256";
+
+            string code = null;
+            try
+            {
+                await Browser.OpenAsync(url, BrowserLaunchMode.SystemPreferred);
+
+                while (code == null)
+                {
+                    TcpClient client;
+                    try
+                    {
+                        client = await listener.AcceptTcpClientAsync(cancel);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return false;
+                    }
+
+                    using (client)
+                    {
+                        NetworkStream stream = client.GetStream();
+                        string requestLine = await ReadRequestLineAsync(stream);
+
+                        string error = GetQueryParam(requestLine, "error");
+                        if (error != null)
+                        {
+                            await WriteBrowserPageAsync(stream, "Sign in failed",
+                                $"Google said: {error}. You can close this window and try again in Work Tracker.");
+                            throw new Exception($"Sign in failed: {error}");
+                        }
+
+                        string c = GetQueryParam(requestLine, "code");
+                        if (c != null)
+                        {
+                            await WriteBrowserPageAsync(stream, "Connected!",
+                                "Work Tracker is now connected to Google Drive. You can close this window and return to the app.");
+                            code = c;
+                        }
+                        else
+                        {
+                            //favicon requests and the like
+                            await WriteBrowserPageAsync(stream, "Work Tracker", "Waiting for Google sign in...");
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                listener.Stop();
+            }
+
+            //swap the one-time code for the tokens
+            Dictionary<string, string> fields = new Dictionary<string, string>
             {
                 ["client_id"] = ClientId,
-                ["scope"] = Scope,
-            });
-            HttpResponseMessage resp = await Http.PostAsync(DeviceCodeUrl, form);
-            string body = await resp.Content.ReadAsStringAsync();
+                ["code"] = code,
+                ["code_verifier"] = verifier,
+                ["redirect_uri"] = redirect,
+                ["grant_type"] = "authorization_code",
+            };
+            if (!string.IsNullOrWhiteSpace(ClientSecret))
+                fields["client_secret"] = ClientSecret;
+
+            HttpResponseMessage resp = await Http.PostAsync(TokenUrl, new FormUrlEncodedContent(fields), cancel);
+            string body = await resp.Content.ReadAsStringAsync(cancel);
             if (!resp.IsSuccessStatusCode)
-                throw new Exception($"Google rejected the request: {body}");
+                throw new Exception($"Google rejected the sign in: {body}");
 
             using JsonDocument doc = JsonDocument.Parse(body);
             JsonElement root = doc.RootElement;
-            return new DeviceCodeInfo
-            {
-                UserCode = root.GetProperty("user_code").GetString(),
-                VerificationUrl = root.TryGetProperty("verification_url", out JsonElement v) ? v.GetString() : "https://www.google.com/device",
-                DeviceCode = root.GetProperty("device_code").GetString(),
-                Interval = root.TryGetProperty("interval", out JsonElement i) ? i.GetInt32() : 5,
-                ExpiresIn = root.TryGetProperty("expires_in", out JsonElement ex) ? ex.GetInt32() : 1800,
-            };
+            _accessToken = root.GetProperty("access_token").GetString();
+            _accessTokenExpires = DateTime.UtcNow.AddSeconds(root.GetProperty("expires_in").GetInt32() - 60);
+            if (root.TryGetProperty("refresh_token", out JsonElement rt))
+                RefreshToken = rt.GetString();
+            return true;
         }
 
-        /// <summary>step 2: poll until the user has approved (or gives up)</summary>
-        public static async Task<bool> WaitForSignInAsync(DeviceCodeInfo info, CancellationToken cancel)
+        /// <summary>first line of the http request the browser redirect makes, e.g. "GET /?code=... HTTP/1.1"</summary>
+        static async Task<string> ReadRequestLineAsync(NetworkStream stream)
         {
-            int interval = Math.Max(info.Interval, 5);
-            DateTime deadline = DateTime.UtcNow.AddSeconds(info.ExpiresIn);
-
-            while (DateTime.UtcNow < deadline && !cancel.IsCancellationRequested)
+            byte[] buffer = new byte[8192];
+            StringBuilder sb = new StringBuilder();
+            while (!sb.ToString().Contains("\r\n") && sb.Length < 16384)
             {
-                await Task.Delay(TimeSpan.FromSeconds(interval), cancel);
-
-                FormUrlEncodedContent form = new FormUrlEncodedContent(new Dictionary<string, string>
-                {
-                    ["client_id"] = ClientId,
-                    ["client_secret"] = ClientSecret,
-                    ["device_code"] = info.DeviceCode,
-                    ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code",
-                });
-                HttpResponseMessage resp = await Http.PostAsync(TokenUrl, form, cancel);
-                string body = await resp.Content.ReadAsStringAsync(cancel);
-                using JsonDocument doc = JsonDocument.Parse(body);
-                JsonElement root = doc.RootElement;
-
-                if (resp.IsSuccessStatusCode)
-                {
-                    _accessToken = root.GetProperty("access_token").GetString();
-                    _accessTokenExpires = DateTime.UtcNow.AddSeconds(root.GetProperty("expires_in").GetInt32() - 60);
-                    if (root.TryGetProperty("refresh_token", out JsonElement rt))
-                        RefreshToken = rt.GetString();
-                    return true;
-                }
-
-                string error = root.TryGetProperty("error", out JsonElement err) ? err.GetString() : "unknown";
-                if (error == "authorization_pending")
-                    continue;
-                if (error == "slow_down")
-                {
-                    interval += 5;
-                    continue;
-                }
-                throw new Exception($"Sign in failed: {error}");
+                int n = await stream.ReadAsync(buffer, 0, buffer.Length);
+                if (n <= 0)
+                    break;
+                sb.Append(Encoding.ASCII.GetString(buffer, 0, n));
             }
-            return false;
+            string s = sb.ToString();
+            int end = s.IndexOf("\r\n");
+            return end == -1 ? s : s.Substring(0, end);
         }
+
+        static string GetQueryParam(string requestLine, string name)
+        {
+            int qs = requestLine.IndexOf('?');
+            if (qs == -1)
+                return null;
+            int end = requestLine.LastIndexOf(" HTTP");
+            string query = end > qs ? requestLine.Substring(qs + 1, end - qs - 1) : requestLine.Substring(qs + 1);
+
+            foreach (string pair in query.Split('&'))
+            {
+                int eq = pair.IndexOf('=');
+                if (eq == -1)
+                    continue;
+                if (pair.Substring(0, eq) == name)
+                    return Uri.UnescapeDataString(pair.Substring(eq + 1));
+            }
+            return null;
+        }
+
+        static async Task WriteBrowserPageAsync(NetworkStream stream, string title, string message)
+        {
+            string html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+                $"<title>{title}</title></head>" +
+                "<body style=\"font-family:sans-serif;background:#1E1E1E;color:#EEE;display:flex;align-items:center;justify-content:center;height:100vh;margin:0\">" +
+                $"<div style=\"text-align:center;padding:24px\"><h1 style=\"color:#4CAF50\">{title}</h1><p>{message}</p></div></body></html>";
+            byte[] content = Encoding.UTF8.GetBytes(html);
+            string header = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n" +
+                $"Content-Length: {content.Length}\r\nConnection: close\r\n\r\n";
+            byte[] head = Encoding.ASCII.GetBytes(header);
+            await stream.WriteAsync(head, 0, head.Length);
+            await stream.WriteAsync(content, 0, content.Length);
+            await stream.FlushAsync();
+        }
+
+        static string Base64Url(byte[] bytes)
+            => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
         static async Task<string> GetAccessTokenAsync()
         {

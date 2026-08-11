@@ -189,34 +189,23 @@ public partial class SettingLayout : ContentPage
         CloudSync.ClientId = e_cloudClientId.Text?.Trim();
         CloudSync.ClientSecret = e_cloudClientSecret.Text?.Trim();
 
-        if (string.IsNullOrWhiteSpace(CloudSync.ClientId) || string.IsNullOrWhiteSpace(CloudSync.ClientSecret))
+        if (string.IsNullOrWhiteSpace(CloudSync.ClientId))
         {
             await DisplayAlert("Cloud Sync",
-                "You need a Client ID and Client Secret first.\n\n" +
+                "You need a Client ID first.\n\n" +
                 "1. Go to console.cloud.google.com and create a project\n" +
                 "2. Enable the 'Google Drive API'\n" +
-                "3. Create OAuth credentials of type 'TVs and Limited Input devices'\n" +
-                "4. Paste the Client ID and Client Secret here", "Ok");
+                "3. Create OAuth credentials of type 'Desktop app'\n" +
+                "4. Paste the Client ID (and Client Secret) here", "Ok");
             return;
         }
 
         try
         {
-            CloudSync.DeviceCodeInfo info = await CloudSync.BeginSignInAsync();
-
-            await Clipboard.SetTextAsync(info.UserCode);
-            bool open = await DisplayAlert("Connect Google Drive",
-                $"Your code is:\n\n{info.UserCode}\n\n(it has been copied to the clipboard)\n\n" +
-                $"Press Open to go to {info.VerificationUrl}, sign in with your Google account and enter the code. " +
-                "Then come back here and wait a moment.",
-                "Open", "Cancel");
-            if (!open)
-                return;
-
-            await Browser.OpenAsync(info.VerificationUrl, BrowserLaunchMode.SystemPreferred);
-
-            using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
-            bool ok = await CloudSync.WaitForSignInAsync(info, cts.Token);
+            //opens the google login page in the browser; the app catches
+            //the redirect itself so there is nothing to type or copy
+            using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            bool ok = await CloudSync.SignInWithBrowserAsync(cts.Token);
             if (ok)
             {
                 RefreshCloudSection();

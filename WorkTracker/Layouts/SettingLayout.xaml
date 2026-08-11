@@ -115,7 +115,7 @@
 
                 <!-- shown until signed in -->
                 <VerticalStackLayout x:Name="vsl_cloudSetup">
-                    <Label Text="Paste the Client ID and Client Secret from your Google Cloud project (OAuth client type: 'TVs and Limited Input devices')."></Label>
+                    <Label Text="Paste the Client ID and Client Secret from your Google Cloud project (OAuth client type: 'Desktop app'), then press Connect. A browser window will open for you to log in to Google and authorise the app."></Label>
                     <Entry x:Name="e_cloudClientId" Placeholder="Client ID"></Entry>
                     <Entry x:Name="e_cloudClientSecret" Placeholder="Client Secret" IsPassword="True"></Entry>
                     <Label></Label>
