@@ -170,6 +170,7 @@ public partial class SettingLayout : ContentPage
         NavigatingFrom += SettingLayout_NavigatingFrom;
 
         RefreshCloudSection();
+        RefreshGoCardlessSection();
         CloudSync.StatusChanged += (status) =>
             MainThread.BeginInvokeOnMainThread(() => l_cloudStatus.Text = status);
     }
@@ -251,6 +252,54 @@ public partial class SettingLayout : ContentPage
     private void sw_cloudAuto_Toggled(object sender, ToggledEventArgs e)
     {
         CloudSync.AutoSync = e.Value;
+    }
+
+    private void RefreshGoCardlessSection()
+    {
+        vsl_gcSetup.IsVisible = !GoCardless.IsConnected;
+        vsl_gcConnected.IsVisible = GoCardless.IsConnected;
+        sw_gcSandbox.IsToggled = GoCardless.UseSandbox;
+        if (GoCardless.IsConnected)
+            l_gcStatus.Text = GoCardless.UseSandbox ? "Connected (sandbox)" : "Connected";
+    }
+
+    private async void bnt_gcConnect_Clicked(object sender, EventArgs e)
+    {
+        string token = e_gcToken.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            await DisplayAlert("GoCardless",
+                "You need an access token first.\n\n" +
+                "1. Log in to your GoCardless dashboard\n" +
+                "2. Go to Developers -> Create -> Access token\n" +
+                "3. Give it read-write access and paste it here", "Ok");
+            return;
+        }
+
+        GoCardless.AccessToken = token;
+        GoCardless.UseSandbox = sw_gcSandbox.IsToggled;
+
+        try
+        {
+            string name = await GoCardless.VerifyAsync();
+            RefreshGoCardlessSection();
+            l_gcStatus.Text = GoCardless.UseSandbox ? $"Connected to {name} (sandbox)" : $"Connected to {name}";
+            await DisplayAlert("GoCardless", $"Connected to {name}. Now link customers to their direct debits from the customer details page.", "Ok");
+        }
+        catch (Exception ex)
+        {
+            GoCardless.Disconnect();
+            await DisplayAlert("GoCardless", $"Could not connect: {ex.Message}", "Ok");
+        }
+    }
+
+    private async void bnt_gcDisconnect_Clicked(object sender, EventArgs e)
+    {
+        if (!await DisplayAlert("GoCardless", "Disconnect GoCardless? Customers stay linked and no direct debits are cancelled - you just cannot take payments from this app until you connect again.", "Disconnect", "Cancel"))
+            return;
+        GoCardless.Disconnect();
+        e_gcToken.Text = string.Empty;
+        RefreshGoCardlessSection();
     }
 
     private void SettingLayout_NavigatedTo(object sender, NavigatedToEventArgs e)

@@ -6,6 +6,7 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Edit Details" Priority="1" Clicked="tbi_EditDetails_Clicked"></ToolbarItem>
+        <ToolbarItem x:Name="tbi_goCardless" Text="GoCardless" Order="Secondary" Clicked="tbi_GoCardless_Clicked"></ToolbarItem>
         <ToolbarItem x:Name="tbi_cancelJob" Text="Cancel Job" Order="Secondary" Clicked="tbi_Cancel_Job_Clicked"></ToolbarItem>
     </ContentPage.ToolbarItems>
     <StackLayout Padding="8">

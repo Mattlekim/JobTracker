@@ -205,6 +205,24 @@ namespace Kernel
         /// a list of references to link payments to this customer.
         /// </summary>
         public List<string> PaymentRefrences = new List<string>();
+
+        /// <summary>
+        /// the customer id (CUxxxx) in GoCardless once linked
+        /// </summary>
+        public string GoCardlessCustomerId = string.Empty;
+
+        /// <summary>
+        /// the direct debit mandate id (MDxxxx) used to collect payments
+        /// </summary>
+        public string GoCardlessMandateId = string.Empty;
+
+        /// <summary>
+        /// true when this customer is linked to a GoCardless direct debit
+        /// </summary>
+        public bool HasGoCardless()
+        {
+            return !string.IsNullOrWhiteSpace(GoCardlessMandateId);
+        }
         public Customer() {
             Address = Location.None;
         }

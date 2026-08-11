@@ -141,6 +141,33 @@
                 </VerticalStackLayout>
             </VerticalStackLayout>
 
+            <!-- gocardless -->
+            <Label Text="____________________________" HorizontalOptions="Center"></Label>
+            <Label Text="GoCardless" HorizontalOptions="Center" FontSize="Title"></Label>
+            <VerticalStackLayout Padding="16">
+                <Label Text="Collect payments by direct debit with GoCardless. Link each customer to their direct debit from the customer details page, then take payments with one tap." TextColor="Grey"></Label>
+                <Label></Label>
+
+                <!-- shown until connected -->
+                <VerticalStackLayout x:Name="vsl_gcSetup">
+                    <Label Text="Paste an access token from your GoCardless dashboard (Developers -> Create -> Access token, with read-write access)."></Label>
+                    <Entry x:Name="e_gcToken" Placeholder="Access token" IsPassword="True"></Entry>
+                    <HorizontalStackLayout>
+                        <Label Text="Use sandbox (testing)" VerticalOptions="Center"></Label>
+                        <Switch x:Name="sw_gcSandbox"></Switch>
+                    </HorizontalStackLayout>
+                    <Label></Label>
+                    <Button Text="Connect GoCardless" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_gcConnect_Clicked"></Button>
+                </VerticalStackLayout>
+
+                <!-- shown when connected -->
+                <VerticalStackLayout x:Name="vsl_gcConnected" IsVisible="false">
+                    <Label x:Name="l_gcStatus" Text="Connected" TextColor="Grey"></Label>
+                    <Label></Label>
+                    <Button Text="Disconnect" BackgroundColor="Transparent" TextColor="Red" BorderColor="Red" BorderWidth="2" Clicked="bnt_gcDisconnect_Clicked"></Button>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+
             <Label Text="____________________________" HorizontalOptions="Center"></Label>
             <Label Text="Default Messages" HorizontalOptions="Center" FontSize="Title"></Label>
             

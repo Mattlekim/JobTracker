@@ -128,6 +128,166 @@ public partial class ViewCustomerDetails : ContentPage
         Navigation.PushAsync(nj);
     }
 
+    private async void tbi_GoCardless_Clicked(object sender, EventArgs e)
+    {
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null)
+        {
+            await DisplayAlert("GoCardless", "This job has no customer linked to it.", "Ok");
+            return;
+        }
+
+        if (!GoCardless.IsConnected)
+        {
+            await DisplayAlert("GoCardless", "GoCardless is not connected yet. Go to Settings and connect it with your access token first.", "Ok");
+            return;
+        }
+
+        if (!c.HasGoCardless())
+        {
+            await LinkToGoCardless(c);
+            return;
+        }
+
+        float suggested = c.Balance > 0 ? c.Balance : CurrentJob.Price;
+        string action = await DisplayActionSheet($"GoCardless - {c.FName} {c.SName}", "Cancel", null,
+            $"Take Payment ({Gloable.CurrenceSymbol}{suggested:0.00})",
+            "Unlink Direct Debit");
+        if (action == null)
+            return;
+
+        if (action.StartsWith("Take Payment"))
+        {
+            string amountText = await DisplayPromptAsync("Take Payment",
+                $"Amount to collect ({Gloable.CurrenceSymbol})", "Collect", "Cancel",
+                initialValue: suggested.ToString("0.00"), keyboard: Keyboard.Numeric);
+            if (amountText == null)
+                return;
+
+            float amount;
+            try
+            {
+                amount = (float)Convert.ToDouble(amountText);
+            }
+            catch
+            {
+                await DisplayAlert("GoCardless", "That is not a valid amount.", "Ok");
+                return;
+            }
+
+            if (!await DisplayAlert("Take Payment",
+                $"Collect {Gloable.CurrenceSymbol}{amount:0.00} from {c.FName} {c.SName} by direct debit?", "Yes", "No"))
+                return;
+
+            try
+            {
+                GoCardless.GcPayment p = await GoCardless.CreatePaymentAsync(
+                    c.GoCardlessMandateId, amount, $"Window cleaning {CurrentJob.JobFormattedStreet}".Trim());
+
+                //record it like any other payment so the balance updates
+                Payment.Add(c.Id, amount, PaymentMethod.GoCardless, p.Id);
+                Payment.Save();
+
+                string when = p.ChargeDate != default ? $" It will leave their bank on {p.ChargeDate.ToShortDateString()}." : string.Empty;
+                await DisplayAlert("Payment Created",
+                    $"{Gloable.CurrenceSymbol}{amount:0.00} will be collected from {c.FName} {c.SName} by direct debit.{when}", "Ok");
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("GoCardless", ex.Message, "Ok");
+            }
+        }
+        else if (action == "Unlink Direct Debit")
+        {
+            if (!await DisplayAlert("GoCardless", "Unlink this customer from their GoCardless direct debit? The direct debit itself is not cancelled.", "Unlink", "Cancel"))
+                return;
+            c.GoCardlessCustomerId = string.Empty;
+            c.GoCardlessMandateId = string.Empty;
+            Customer.Save();
+        }
+    }
+
+    /// <summary>
+    /// match this customer up with a customer in the GoCardless account and
+    /// remember their direct debit mandate
+    /// </summary>
+    private async Task LinkToGoCardless(Customer c)
+    {
+        List<GoCardless.GcCustomer> gcCustomers;
+        try
+        {
+            gcCustomers = await GoCardless.ListCustomersAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("GoCardless", ex.Message, "Ok");
+            return;
+        }
+
+        if (gcCustomers.Count == 0)
+        {
+            await DisplayAlert("GoCardless", "There are no customers in your GoCardless account yet. The customer needs to sign up to a direct debit first - send them your GoCardless payment request link.", "Ok");
+            return;
+        }
+
+        //best guess first: same email address
+        List<GoCardless.GcCustomer> candidates = new List<GoCardless.GcCustomer>();
+        if (!string.IsNullOrWhiteSpace(c.Email))
+            candidates = gcCustomers.FindAll(x => string.Equals(x.Email, c.Email.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        //then by surname
+        if (candidates.Count == 0 && !string.IsNullOrWhiteSpace(c.SName))
+            candidates = gcCustomers.FindAll(x => x.FamilyName.ToLower().Contains(c.SName.Trim().ToLower()));
+
+        if (candidates.Count == 0)
+            candidates = gcCustomers;
+
+        //an action sheet cannot hold hundreds of entries - narrow down first
+        if (candidates.Count > 25)
+        {
+            string search = await DisplayPromptAsync("Find Customer",
+                $"There are {candidates.Count} customers in GoCardless. Type part of their name or email to search:", "Search", "Cancel");
+            if (search == null)
+                return;
+            candidates = candidates.FindAll(x => x.Display.ToLower().Contains(search.Trim().ToLower()));
+            if (candidates.Count == 0)
+            {
+                await DisplayAlert("GoCardless", "No customers matched that search.", "Ok");
+                return;
+            }
+            if (candidates.Count > 25)
+                candidates = candidates.GetRange(0, 25);
+        }
+
+        string picked = await DisplayActionSheet("Which GoCardless customer is this?", "Cancel", null,
+            candidates.Select(x => x.Display).ToArray());
+        if (picked == null)
+            return;
+
+        GoCardless.GcCustomer gc = candidates.FirstOrDefault(x => x.Display == picked);
+        if (gc == null)
+            return;
+
+        try
+        {
+            string mandate = await GoCardless.FindUsableMandateAsync(gc.Id);
+            if (mandate == null)
+            {
+                await DisplayAlert("GoCardless", $"{gc.Display} has no usable direct debit mandate. They need to complete the direct debit sign up first.", "Ok");
+                return;
+            }
+
+            c.GoCardlessCustomerId = gc.Id;
+            c.GoCardlessMandateId = mandate;
+            Customer.Save();
+            await DisplayAlert("GoCardless", $"Linked to {gc.Display}. You can now take payments from this customer by direct debit.", "Ok");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("GoCardless", ex.Message, "Ok");
+        }
+    }
+
     private void tbi_Cancel_Job_Clicked(object sender, EventArgs e)
     {
         if (!CurrentJob.HaveCanceled)

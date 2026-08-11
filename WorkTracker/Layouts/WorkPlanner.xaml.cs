@@ -1100,10 +1100,66 @@ public partial class WorkPlanner : ContentPage
         _currentJob = null;
     }
 
-    private void bnt_confirm_clicked(object sender, EventArgs e)
+    /// <summary>
+    /// collect a job payment by direct debit. shows an alert and returns
+    /// false when the charge cannot be made (not connected, customer not
+    /// linked, or GoCardless refused it)
+    /// </summary>
+    public static async Task<bool> ChargeGoCardless(Job j, float amount, Page page)
+    {
+        if (!GoCardless.IsConnected)
+        {
+            await page.DisplayAlert("GoCardless", "GoCardless is not connected. Connect it in Settings first.", "Ok");
+            return false;
+        }
+
+        Customer c = j.GetCustomer();
+        if (c == null || !c.HasGoCardless())
+        {
+            await page.DisplayAlert("GoCardless", "This customer is not linked to a GoCardless direct debit yet. Open the job's info page and use the GoCardless option to link them.", "Ok");
+            return false;
+        }
+
+        try
+        {
+            GoCardless.GcPayment p = await GoCardless.CreatePaymentAsync(
+                c.GoCardlessMandateId, amount, $"Window cleaning {j.JobFormattedStreet}".Trim());
+
+            string when = p.ChargeDate != default ? $" It will leave their bank on {p.ChargeDate.ToShortDateString()}." : string.Empty;
+            await page.DisplayAlert("Payment Created", $"{Gloable.CurrenceSymbol}{amount:0.00} will be collected by direct debit.{when}", "Ok");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await page.DisplayAlert("GoCardless", ex.Message, "Ok");
+            return false;
+        }
+    }
+
+    private async void bnt_confirm_clicked(object sender, EventArgs e)
     {
         if (_currentJob == null)
             return;
+
+        //taking the money by direct debit happens first - if it fails
+        //nothing is marked as paid
+        if (!_currentJob.IsPaidFor && cb_isPaid.IsChecked &&
+            (string)p_paymentType.SelectedItem == PaymentMethod.GoCardless.ToString())
+        {
+            float gcAmount;
+            try
+            {
+                gcAmount = (float)Convert.ToDouble(l_amoutToPay.Text);
+            }
+            catch
+            {
+                await DisplayAlert("Error", "Invalid price entered", "Ok");
+                return;
+            }
+
+            if (!await ChargeGoCardless(_currentJob, gcAmount, this))
+                return;
+        }
 
         
 
