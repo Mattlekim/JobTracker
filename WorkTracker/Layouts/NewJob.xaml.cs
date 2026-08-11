@@ -418,7 +418,12 @@ public partial class NewJob : ContentPage
             }
         }
         else
+        {
+            //the choice of price has to go with the prices, or the job is
+            //left pointing at one that is no longer there
             JobToAdd.AlternativePrices = null;
+            JobToAdd.UseAlterativePrice = -1;
+        }
 
 
         JobToAdd.Name = p_JobType.SelectedItem as string;

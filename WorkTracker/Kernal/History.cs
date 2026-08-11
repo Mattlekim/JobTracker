@@ -158,14 +158,11 @@ namespace Kernel
                 {
                     if (TheJob.IsCompleted)
                     {
-                        if (TheJob.UseAlterativePrice < 0)
-                        {
+                        AlternativePrice chosen = TheJob.ChosenAlternativePrice;
+                        if (chosen == null)
                             return $"Normal Job. Price {Gloable.CurrenceSymbol}{TheJob.Price}";
-                        }
-                        else
-                        {
-                            return $"{TheJob.AlternativePrices[TheJob.UseAlterativePrice].Description}. Price {Gloable.CurrenceSymbol}{TheJob.AlternativePrices[TheJob.UseAlterativePrice].Price}";
-                        }
+
+                        return $"{chosen.Description}. Price {Gloable.CurrenceSymbol}{chosen.Price}";
                     }
                     else
                         return "NA";

@@ -221,12 +221,7 @@ public partial class UpdateJobInstance : ContentPage
                 ballence = CurrentJob.GetCustomer().Balance;
 
             if (CurrentJob.IsCompleted)
-            {
-                if (CurrentJob.UseAlterativePrice == -1)
-                    ballence -= CurrentJob.Price;
-                else
-                    ballence -= CurrentJob.AlternativePrices[CurrentJob.UseAlterativePrice].Price;
-            }
+                ballence -= CurrentJob.EffectivePrice;
             if (p_priceToUse.SelectedIndex - 1 < 0)
                 ballence += CurrentJob.Price;
             else

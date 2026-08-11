@@ -511,12 +511,11 @@ public partial class PaperView : ContentPage
 			}
 
 			InstanceIndex++;
-			if (j.UseAlterativePrice >= 0)
-				if (j.AlternativePrices.Count > 0)
-				{
-					ji.Price = j.AlternativePrices[j.UseAlterativePrice].Price;
-					ji.Label = j.AlternativePrices[j.UseAlterativePrice].Description;
-				}
+			if (j.HasAlternativePrice)
+			{
+				ji.Price = j.ChosenAlternativePrice.Price;
+				ji.Label = j.ChosenAlternativePrice.Description;
+			}
 
 			if (j.IsCompleted)
 				ji.JobDate = j.DateCompleated;
@@ -919,7 +918,7 @@ public partial class PaperView : ContentPage
 		{
 			options.Add($"Done {PaperItem.StringDone}");
 
-			foreach (AlternativePrice ap in j.AlternativePrices)
+			foreach (AlternativePrice ap in j.AlternativePrices ?? new List<AlternativePrice>())
 				options.Add($"Done - {ap.Description} {Gloable.CurrenceSymbol}{ap.Price}");
 		}
 
@@ -996,7 +995,7 @@ public partial class PaperView : ContentPage
 			if (result.Contains("-"))//marker for alternative price
 			{
 				int i = 0;
-				foreach (AlternativePrice ap in j.AlternativePrices)
+				foreach (AlternativePrice ap in j.AlternativePrices ?? new List<AlternativePrice>())
 				{
 					if (result.Contains(ap.Description) && result.Contains($"{ap.Price}"))
 					{

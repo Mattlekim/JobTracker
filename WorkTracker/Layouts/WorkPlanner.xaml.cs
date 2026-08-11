@@ -351,10 +351,7 @@ public partial class WorkPlanner : ContentPage
             if (j.IsCompleted)
             {
                 if (j.DateCompleated.Year == today.Year && j.DateCompleated.Month == today.Month && j.DateCompleated.Day == today.Day)
-                    if (j.UseAlterativePrice < 0)
-                        amountCleaned += j.Price;
-                    else
-                        amountCleaned += j.AlternativePrices[j.UseAlterativePrice].Price;
+                    amountCleaned += j.EffectivePrice;
             }
             else
             if (!j.HaveCanceled)
@@ -1057,12 +1054,7 @@ public partial class WorkPlanner : ContentPage
                 ballence = _currentJob.GetCustomer().Balance;
 
             if (_currentJob.IsCompleted)
-            {
-                if (_currentJob.UseAlterativePrice == -1)
-                    ballence -= _currentJob.Price;
-                else
-                    ballence -= _currentJob.AlternativePrices[_currentJob.UseAlterativePrice].Price;
-            }
+                ballence -= _currentJob.EffectivePrice;
             if (p_priceToUse.SelectedIndex - 1 < 0)
                 ballence += _currentJob.Price;
             else

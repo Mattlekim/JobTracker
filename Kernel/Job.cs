@@ -530,10 +530,7 @@ namespace Kernel
             if (_customer!= null)
             {
                //c[0].Balance -= Price;
-               if (UseAlterativePrice < 0)
-                    PaymentId = Payment.Add(_customer.Id, Price, PaymentMethod.Cash, string.Empty).Id;
-               else
-                    PaymentId = Payment.Add(_customer.Id, AlternativePrices[UseAlterativePrice].Price, PaymentMethod.Cash, string.Empty).Id;
+               PaymentId = Payment.Add(_customer.Id, EffectivePrice, PaymentMethod.Cash, string.Empty).Id;
                 Payment.Save();
                 
             }
@@ -676,11 +673,7 @@ namespace Kernel
             MatchCustomer();
             if (_customer != null)
             {
-                if (UseAlterativePrice < 0)
-                    _customer.Balance += Price;
-                else
-                    if (UseAlterativePrice > -1)
-                    _customer.Balance += AlternativePrices[UseAlterativePrice].Price;
+                _customer.Balance += EffectivePrice;
                 if (!forceNotSave)
                 {
                     Payment.Save();
@@ -712,11 +705,9 @@ namespace Kernel
             MatchCustomer();
             if (_customer != null)
             {
-                if (UseAlterativePrice <= -1)
-                    _customer.Balance -= Price;
-                else
-                    if (AlternativePrices.Count > 0)
-                        _customer.Balance -= AlternativePrices[UseAlterativePrice].Price;
+                //has to be the same figure MarkJobDone added, or the balance
+                //is left out by the difference
+                _customer.Balance -= EffectivePrice;
                 if (!forceNotSave)
                 {
                     Payment.Save();
@@ -798,12 +789,34 @@ namespace Kernel
         /// what the job is actually worth: the alternative price when one
         /// was used (front only and so on), otherwise the normal price
         /// </summary>
+        /// <summary>
+        /// true when an alternative price is in use and really is there. the
+        /// list is empty until a price is added to it, and can be cleared
+        /// again while the choice of price is left behind
+        /// </summary>
+        [XmlIgnore]
+        public bool HasAlternativePrice
+        {
+            get
+            {
+                return UseAlterativePrice >= 0
+                    && AlternativePrices != null
+                    && UseAlterativePrice < AlternativePrices.Count;
+            }
+        }
+
+        [XmlIgnore]
+        public AlternativePrice ChosenAlternativePrice
+        {
+            get { return HasAlternativePrice ? AlternativePrices[UseAlterativePrice] : null; }
+        }
+
         [XmlIgnore]
         public float EffectivePrice
         {
             get
             {
-                if (UseAlterativePrice >= 0 && AlternativePrices != null && UseAlterativePrice < AlternativePrices.Count)
+                if (HasAlternativePrice)
                     return AlternativePrices[UseAlterativePrice].Price;
                 return Price;
             }
@@ -931,10 +944,11 @@ namespace Kernel
                 if (IsCompleted)
                 {
                     tmp = $"Completed on {DateCompleated.ToShortDateString()}.";
-                    if (UseAlterativePrice < 0)
+                    AlternativePrice chosen = ChosenAlternativePrice;
+                    if (chosen == null)
                         tmp += $"Price {Gloable.CurrenceSymbol}{Price}";
                     else
-                        tmp += $"Price {Gloable.CurrenceSymbol}{AlternativePrices[UseAlterativePrice].Price} for {AlternativePrices[UseAlterativePrice].Description}";
+                        tmp += $"Price {Gloable.CurrenceSymbol}{chosen.Price} for {chosen.Description}";
                 }
                 else
                     tmp = $"Job next due on {DueDate.ToShortDateString()}";
