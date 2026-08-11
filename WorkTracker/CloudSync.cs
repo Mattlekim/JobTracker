@@ -40,15 +40,35 @@ namespace UiInterface
         /// <summary>status text for the settings page ("Synced 12:03" etc)</summary>
         public static event Action<string> StatusChanged;
 
+        //the app's own google credentials. fill these in once (Google Cloud
+        //Console -> APIs & Services -> Credentials -> Create OAuth client ID,
+        //type 'Desktop app') and signing in becomes just the Connect button -
+        //nobody has to paste anything. a desktop-app client secret is not
+        //actually secret, google expects it to ship inside installed apps.
+        const string BuiltInClientId = "";
+        const string BuiltInClientSecret = "";
+
+        /// <summary>true when credentials are compiled into the app, so the
+        /// settings page can hide the paste-a-key fields</summary>
+        public static bool HasBuiltInClient => BuiltInClientId != string.Empty;
+
         public static string ClientId
         {
-            get => Preferences.Get("CloudSync_ClientId", string.Empty);
+            get
+            {
+                string v = Preferences.Get("CloudSync_ClientId", string.Empty);
+                return string.IsNullOrWhiteSpace(v) ? BuiltInClientId : v;
+            }
             set => Preferences.Set("CloudSync_ClientId", value ?? string.Empty);
         }
 
         public static string ClientSecret
         {
-            get => Preferences.Get("CloudSync_ClientSecret", string.Empty);
+            get
+            {
+                string v = Preferences.Get("CloudSync_ClientSecret", string.Empty);
+                return string.IsNullOrWhiteSpace(v) ? BuiltInClientSecret : v;
+            }
             set => Preferences.Set("CloudSync_ClientSecret", value ?? string.Empty);
         }
 

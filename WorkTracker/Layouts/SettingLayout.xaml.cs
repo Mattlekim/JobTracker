@@ -178,16 +178,27 @@ public partial class SettingLayout : ContentPage
     {
         vsl_cloudSetup.IsVisible = !CloudSync.IsSignedIn;
         vsl_cloudConnected.IsVisible = CloudSync.IsSignedIn;
-        e_cloudClientId.Text = CloudSync.ClientId;
-        e_cloudClientSecret.Text = CloudSync.ClientSecret;
+
+        //when the app ships with its own google credentials all that is
+        //left for the user is the connect button
+        vsl_cloudClientFields.IsVisible = !CloudSync.HasBuiltInClient;
+        if (!CloudSync.HasBuiltInClient)
+        {
+            e_cloudClientId.Text = Preferences.Get("CloudSync_ClientId", string.Empty);
+            e_cloudClientSecret.Text = Preferences.Get("CloudSync_ClientSecret", string.Empty);
+        }
+
         sw_cloudAuto.IsToggled = CloudSync.AutoSync;
         l_cloudStatus.Text = $"Last sync: {CloudSync.LastSyncText}";
     }
 
     private async void bnt_cloudConnect_Clicked(object sender, EventArgs e)
     {
-        CloudSync.ClientId = e_cloudClientId.Text?.Trim();
-        CloudSync.ClientSecret = e_cloudClientSecret.Text?.Trim();
+        if (vsl_cloudClientFields.IsVisible)
+        {
+            CloudSync.ClientId = e_cloudClientId.Text?.Trim();
+            CloudSync.ClientSecret = e_cloudClientSecret.Text?.Trim();
+        }
 
         if (string.IsNullOrWhiteSpace(CloudSync.ClientId))
         {
