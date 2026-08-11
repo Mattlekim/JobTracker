@@ -7,6 +7,12 @@ namespace UiInterface.ImportExport
         public int Created;
         public int Updated;
         public int MissingPrice;
+        /// <summary>notes that said to text the customer the night before</summary>
+        public int TnbFromNotes;
+        /// <summary>phone numbers moved out of notes into the phone field</summary>
+        public int PhonesFound;
+        /// <summary>front only prices stored as an alternative price</summary>
+        public int FrontPrices;
         public List<string> Problems = new List<string>();
     }
 
@@ -45,8 +51,25 @@ namespace UiInterface.ImportExport
                 && string.Equals(c.Address.PropertyNameNumber?.Trim(), row.HouseNumber, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(c.Address.Street?.Trim(), row.Street, StringComparison.OrdinalIgnoreCase));
 
-            string notes = BuildNotes(row, result);
-            string phone = RoundSheetParser.ExtractPhone(row.Notes);
+            //anything the notes cell was really holding (text night before,
+            //a phone number, a front only price) is stored properly and
+            //taken back out of the notes
+            RoundSheetParser.ParsedNotes parsed = RoundSheetParser.ParseNotes(row.Notes);
+
+            bool tnb = row.Tnb || parsed.Tnb;
+            if (parsed.Tnb)
+                result.TnbFromNotes++;
+
+            string phone = parsed.Phone;
+            if (phone.Length > 0)
+                result.PhonesFound++;
+
+            //the sheet's own Front column wins over one written in a note
+            float? frontPrice = RoundSheetParser.ParsePrice(row.FrontPriceText) ?? parsed.FrontPrice;
+            if (frontPrice.HasValue)
+                result.FrontPrices++;
+
+            string notes = BuildNotes(row, parsed.Remaining, result);
             (int freqAmount, string freqUnit) = RoundSheetParser.ParseFrequency(row.FrequencyText);
             FrequenceType freqType = freqUnit == "month" ? FrequenceType.Month
                 : freqUnit == "day" ? FrequenceType.Day
@@ -77,10 +100,11 @@ namespace UiInterface.ImportExport
                     Address = address,
                     Price = row.Price ?? 0,
                     Notes = notes,
-                    TNB = row.Tnb,
+                    TNB = tnb,
                 };
                 job.SetFrequence(freqAmount, freqType);
                 job.DueDate = NextDueDate(row.LastCleaned, freqAmount, freqType);
+                ApplyFrontPrice(job, frontPrice);
                 Job.Add(job);
                 result.Created++;
             }
@@ -101,26 +125,89 @@ namespace UiInterface.ImportExport
                         Address = customer.Address,
                         Price = row.Price ?? 0,
                         Notes = notes,
-                        TNB = row.Tnb,
+                        TNB = tnb,
                     };
                     job.SetFrequence(freqAmount, freqType);
                     job.DueDate = NextDueDate(row.LastCleaned, freqAmount, freqType);
+                    ApplyFrontPrice(job, frontPrice);
                     Job.Add(job);
                 }
                 else
                 {
                     if (row.Price.HasValue)
                         job.Price = row.Price.Value;
-                    job.TNB = row.Tnb;
+                    job.TNB = tnb;
                     job.SetFrequence(freqAmount, freqType);
+                    ApplyFrontPrice(job, frontPrice);
+                    CleanExistingNotes(job, customer, result);
                 }
                 result.Updated++;
             }
         }
 
-        static string BuildNotes(ImportedCustomerRow row, ImportResult result)
+        /// <summary>
+        /// a job imported before these details were understood can still be
+        /// holding them as note text, so the same tidy up is applied to what
+        /// is already there
+        /// </summary>
+        static void CleanExistingNotes(Job job, Customer customer, ImportResult result)
         {
-            string notes = row.Notes ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(job.Notes))
+                return;
+
+            RoundSheetParser.ParsedNotes parsed = RoundSheetParser.ParseNotes(job.Notes);
+            if (!parsed.Tnb && parsed.Phone.Length == 0 && !parsed.FrontPrice.HasValue)
+                return;
+
+            if (parsed.Tnb)
+            {
+                job.TNB = true;
+                result.TnbFromNotes++;
+            }
+            if (parsed.Phone.Length > 0)
+            {
+                if (customer.Phone.Length == 0)
+                    customer.Phone = parsed.Phone;
+                result.PhonesFound++;
+            }
+            if (parsed.FrontPrice.HasValue)
+            {
+                ApplyFrontPrice(job, parsed.FrontPrice);
+                result.FrontPrices++;
+            }
+
+            job.Notes = parsed.Remaining;
+        }
+
+        /// <summary>the name a front only price is stored under</summary>
+        public const string FrontOnlyDescription = "Front Only";
+
+        static void ApplyFrontPrice(Job job, float? frontPrice)
+        {
+            if (!frontPrice.HasValue || frontPrice.Value <= 0)
+                return;
+
+            if (job.AlternativePrices == null)
+                job.AlternativePrices = new List<AlternativePrice>();
+
+            AlternativePrice existing = job.AlternativePrices.FirstOrDefault(x =>
+                string.Equals(x.Description, FrontOnlyDescription, StringComparison.OrdinalIgnoreCase));
+
+            if (existing != null)
+                existing.Price = frontPrice.Value;
+            else
+                job.AlternativePrices.Add(new AlternativePrice
+                {
+                    Description = FrontOnlyDescription,
+                    Price = frontPrice.Value,
+                });
+        }
+
+        static string BuildNotes(ImportedCustomerRow row, string remainingNotes, ImportResult result)
+        {
+            //the front price and anything else understood has already been
+            //taken out; only a price that could not be read is worth saying
+            string notes = remainingNotes ?? string.Empty;
             if (!row.Price.HasValue && row.PriceText.Length > 0)
             {
                 notes = Append(notes, $"[Import] Price on sheet: '{row.PriceText}' - set price manually");
@@ -130,8 +217,6 @@ namespace UiInterface.ImportExport
             {
                 result.MissingPrice++;
             }
-            if (row.FrontPriceText.Length > 0)
-                notes = Append(notes, $"[Import] Front price: {row.FrontPriceText}");
             return notes;
         }
 

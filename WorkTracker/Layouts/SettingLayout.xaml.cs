@@ -614,6 +614,12 @@ public partial class SettingLayout : ContentPage
             DataRefreshNotifier.NotifyDataChanged();
 
             string summary = $"Customers created: {result.Created}\nCustomers updated: {result.Updated}";
+            if (result.TnbFromNotes > 0)
+                summary += $"\n{result.TnbFromNotes} set to text the night before (from notes)";
+            if (result.PhonesFound > 0)
+                summary += $"\n{result.PhonesFound} phone number(s) taken out of notes";
+            if (result.FrontPrices > 0)
+                summary += $"\n{result.FrontPrices} front only price(s) added as an alternative price";
             if (result.MissingPrice > 0)
                 summary += $"\n\n{result.MissingPrice} customer(s) had no readable price - they were imported with price 0 and a note, please set their price manually.";
             if (result.Problems.Count > 0)

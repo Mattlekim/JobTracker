@@ -173,12 +173,138 @@ namespace UiInterface.ImportExport
             return t.Contains('f') && !t.Contains('£');
         }
 
+        /// <summary>
+        /// the details picked out of a customer's notes cell, and whatever
+        /// note text is left once they have been taken out
+        /// </summary>
+        public class ParsedNotes
+        {
+            /// <summary>the note said to text the customer the night before</summary>
+            public bool Tnb;
+            public string Phone = string.Empty;
+            /// <summary>a "front only" price found in the note</summary>
+            public float? FrontPrice;
+            /// <summary>the note text with the above removed</summary>
+            public string Remaining = string.Empty;
+        }
+
+        //"tnb", "t.n.b", "text night before", "text the night before"
+        static readonly Regex TnbRegex = new Regex(
+            @"\b(?:t\.?\s?n\.?\s?b\.?|text(?:\s+the)?\s+night\s+before)(?![a-z])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        //a label is only taken out when it sits directly in front of the
+        //number it introduced, so wording like "no key needed" is left alone
+        const string PhoneLabel =
+            @"(?:\b(?:tel(?:ephone)?|mob(?:ile)?|phone|contact(?:\s+number)?|number|no)\b\.?\s*[:\-=]?\s*)?";
+
+        //uk mobile: 07xxx xxx xxx, optionally +44
+        static readonly Regex MobileRegex = new Regex(
+            PhoneLabel + @"(?<number>(?:\+\s?44\s?\(?0?\)?\s?7|\b07)\d{3}[\s\-.]?\d{3}[\s\-.]?\d{3})\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        //uk landline: 01xxx xxxxxx / 020 xxxx xxxx
+        static readonly Regex LandlineRegex = new Regex(
+            PhoneLabel + @"(?<number>(?:\+\s?44\s?\(?0?\)?\s?|\b0)(?:1\d{3}|2\d)[\s\-.]?\d{3,4}[\s\-.]?\d{3,4})\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        //"front only £8", "front £8", "fronts 8", "£8 front only", "£8 fronts"
+        static readonly Regex FrontPriceRegex = new Regex(
+            @"(?:£\s*(?<a>\d+(?:\.\d{1,2})?)\s*(?:for\s+)?fronts?\b(?:\s*only)?" +
+            @"|\bfronts?\b(?:\s*only)?\s*(?:for\s+)?[:\-=]?\s*£?\s*(?<b>\d+(?:\.\d{1,2})?))",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        /// <summary>
+        /// pulls the TNB flag, phone number and front only price out of a
+        /// notes cell so they can be stored properly instead of being left
+        /// as free text
+        /// </summary>
+        public static ParsedNotes ParseNotes(string notes)
+        {
+            ParsedNotes parsed = new ParsedNotes();
+            string text = notes ?? string.Empty;
+            if (text.Trim().Length == 0)
+                return parsed;
+
+            //front price first: it contains a number, so taking it out
+            //stops the phone matcher tripping over the digits
+            Match front = FrontPriceRegex.Match(text);
+            if (front.Success)
+            {
+                string value = front.Groups["a"].Success ? front.Groups["a"].Value : front.Groups["b"].Value;
+                if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out float price) && price > 0)
+                {
+                    parsed.FrontPrice = price;
+                    text = text.Remove(front.Index, front.Length);
+                }
+            }
+
+            Match phone = MobileRegex.Match(text);
+            if (!phone.Success)
+                phone = LandlineRegex.Match(text);
+            if (phone.Success)
+            {
+                //the label is part of the match so it goes with the number
+                parsed.Phone = TidyPhone(phone.Groups["number"].Value);
+                text = text.Remove(phone.Index, phone.Length);
+            }
+
+            if (TnbRegex.IsMatch(text))
+            {
+                parsed.Tnb = true;
+                text = TnbRegex.Replace(text, " ");
+            }
+
+            parsed.Remaining = TidyNotes(text);
+            return parsed;
+        }
+
+        static string TidyPhone(string raw)
+        {
+            string s = (raw ?? string.Empty).Trim();
+            s = Regex.Replace(s, @"[\s\-.()]+", " ").Trim();
+            //+44 7... is the same number as 07...
+            s = Regex.Replace(s, @"^\+\s?44\s?0?\s?", "0");
+            return s;
+        }
+
+        /// <summary>
+        /// tidies what is left of a note after details have been taken out
+        /// of it, so a note that held nothing else ends up blank
+        /// </summary>
+        static string TidyNotes(string text)
+        {
+            if (text == null)
+                return string.Empty;
+
+            List<string> lines = new List<string>();
+            foreach (string rawLine in text.Split('\n'))
+            {
+                string line = Regex.Replace(rawLine, @"[ \t]+", " ");
+                //collapse separators left behind by whatever was removed
+                line = Regex.Replace(line, @"\s*[,;/&|]\s*(?=[,;/&|])", " ");
+                line = line.Trim(' ', '\t', '\r', ',', ';', '/', '&', '|', '-', ':', '.', '=');
+                //a line with no letters or digits held nothing but punctuation
+                if (line.Length > 0 && line.Any(char.IsLetterOrDigit))
+                    lines.Add(line.Trim());
+            }
+            return string.Join("\n", lines).Trim();
+        }
+
         public static string ExtractPhone(string notes)
         {
-            if (string.IsNullOrEmpty(notes))
-                return string.Empty;
-            Match m = Regex.Match(notes, @"\b07\d{3}\s?\d{3}\s?\d{3}\b|\b07\d{3}\s?\d{6}\b");
-            return m.Success ? m.Value : string.Empty;
+            return ParseNotes(notes).Phone;
+        }
+
+        /// <summary>reads a price out of the sheet's Front column</summary>
+        public static float? ParsePrice(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+            Match m = Regex.Match(text, @"\d+(?:\.\d{1,2})?");
+            if (m.Success && float.TryParse(m.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out float price) && price > 0)
+                return price;
+            return null;
         }
 
         public static (int amount, string unit) ParseFrequency(string text)
