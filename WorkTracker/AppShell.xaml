@@ -31,14 +31,14 @@
              >
             <ShellContent ContentTemplate="{DataTemplate local:CalenderView}" />
         </Tab>
-        <Tab Title="Payments"
+        <!-- money in, money out and the tax figures share one tab: android's
+             bottom bar only shows five, and anything past that disappears
+             behind a More tab -->
+        <Tab Title="Money"
             Icon="payments.png">
-            <ShellContent ContentTemplate="{DataTemplate local:Payments}" />
-        </Tab>
-        <Tab Title="Expenses"
-            Icon="payments.png">
-            <ShellContent Title="Expenses" Route="expense_list" ContentTemplate="{DataTemplate local:Expenses}" />
-            <ShellContent Title="Tax" Route="expense_tax" ContentTemplate="{DataTemplate local:TaxView}" />
+            <ShellContent Title="Payments" Route="money_payments" ContentTemplate="{DataTemplate local:Payments}" />
+            <ShellContent Title="Expenses" Route="money_expenses" ContentTemplate="{DataTemplate local:Expenses}" />
+            <ShellContent Title="Tax" Route="money_tax" ContentTemplate="{DataTemplate local:TaxView}" />
         </Tab>
         <Tab Title="Settings"
             Icon="options.png"
