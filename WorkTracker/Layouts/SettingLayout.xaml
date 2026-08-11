@@ -165,6 +165,16 @@
                     <Label x:Name="l_gcStatus" Text="Connected" TextColor="Grey"></Label>
                     <Label x:Name="l_gcPending" Text="" TextColor="Grey"></Label>
                     <Label></Label>
+
+                    <!-- how GoCardless charges for its fees, which decides
+                         whether they can be picked up automatically -->
+                    <Label Text="Fees" FontAttributes="Bold"></Label>
+                    <HorizontalStackLayout>
+                        <Label Text="Custom pricing (fees invoiced)" VerticalOptions="Center"></Label>
+                        <Switch x:Name="sw_gcCustomPricing" Toggled="sw_gcCustomPricing_Toggled"></Switch>
+                    </HorizontalStackLayout>
+                    <Label x:Name="l_gcPricingHint" Text="" TextColor="Grey"></Label>
+                    <Label></Label>
                     <Button Text="Check Pending Payments" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_gcCheck_Clicked"></Button>
                     <Label></Label>
                     <Button Text="Disconnect" BackgroundColor="Transparent" TextColor="Red" BorderColor="Red" BorderWidth="2" Clicked="bnt_gcDisconnect_Clicked"></Button>

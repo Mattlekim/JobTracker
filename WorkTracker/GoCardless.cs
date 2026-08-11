@@ -35,6 +35,17 @@ namespace UiInterface
             set => Preferences.Set("GoCardless_Sandbox", value);
         }
 
+        /// <summary>
+        /// on a custom pricing plan GoCardless invoices for its fees instead
+        /// of taking them out of each payout, so there is nothing deducted
+        /// to record and the invoices are entered as expenses by hand
+        /// </summary>
+        public static bool CustomPricing
+        {
+            get => Preferences.Get("GoCardless_CustomPricing", false);
+            set => Preferences.Set("GoCardless_CustomPricing", value);
+        }
+
         public static bool IsConnected => !string.IsNullOrWhiteSpace(AccessToken);
 
         public static void Disconnect()
@@ -416,6 +427,11 @@ namespace UiInterface
         public static async Task<int> RecordPayoutFeesAsync()
         {
             if (!IsConnected)
+                return 0;
+
+            //nothing is deducted from payouts on custom pricing - the fees
+            //arrive as an invoice and are entered by hand
+            if (CustomPricing)
                 return 0;
 
             List<GcPayout> payouts;

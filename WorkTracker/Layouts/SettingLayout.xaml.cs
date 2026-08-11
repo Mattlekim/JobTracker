@@ -269,6 +269,31 @@ public partial class SettingLayout : ContentPage
         l_gcPending.Text = pending == 0
             ? "No direct debits waiting"
             : $"{pending} direct debit(s) waiting, {Gloable.CurrenceSymbol}{total:0.00} in total";
+
+        sw_gcCustomPricing.IsToggled = GoCardless.CustomPricing;
+        l_gcPricingHint.Text = GoCardless.CustomPricing
+            ? "GoCardless invoices you for its fees separately, so they cannot be read off your payouts. Add each fee invoice as an expense under Bank charges so it is claimed against tax."
+            : "GoCardless takes its fee out of each payout, so the fees are recorded as expenses for you automatically under Bank charges. Turn this on if you are on a custom pricing plan and are invoiced for fees instead.";
+    }
+
+    private async void sw_gcCustomPricing_Toggled(object sender, ToggledEventArgs e)
+    {
+        if (GoCardless.CustomPricing == e.Value)
+            return;
+
+        GoCardless.CustomPricing = e.Value;
+        RefreshGoCardlessSection();
+
+        if (e.Value)
+            return;
+
+        //back on deducted fees, so anything missed can be picked up now
+        int added = await GoCardless.RecordPayoutFeesAsync();
+        if (added > 0)
+        {
+            RefreshGoCardlessSection();
+            await DisplayAlert("GoCardless", $"{added} payout fee(s) recorded as expenses.", "Ok");
+        }
     }
 
     private async void bnt_gcCheck_Clicked(object sender, EventArgs e)
