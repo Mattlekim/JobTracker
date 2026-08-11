@@ -171,7 +171,14 @@ public class CalenderDay: INotifyPropertyChanged
         }
     }
 
+    /// <summary>today's date, so only the real today is marked as today</summary>
     public static DateTime DateNow;
+
+    /// <summary>
+    /// the month being looked at. days spilling in from the months either
+    /// side of it are greyed out
+    /// </summary>
+    public static DateTime ViewedMonth;
 
 	private static Color NeedBookingColor = Color.FromArgb("601515"), BookinColor = Color.FromArgb("313A70");
 	private static Color ColourCurrentDay = Color.FromArgb("00477A");
@@ -217,13 +224,25 @@ public class CalenderDay: INotifyPropertyChanged
         foreach (Job j in Jobs)
             if (j.IsBookedIn)
                 hasBookedinJobs = true;
+        //only the actual today is marked as today. this used to compare
+        //against whichever month was on screen, so paging forward lit up the
+        //same day number in that month as though it were today
         if (UsfulFuctions.Difference(Date, DateNow) == 0)
         {
             BgColour = ColourCurrentDay;
             return;
         }
 
-        if (Date.Month != DateNow.Month || Date.Day < DateNow.Day)
+        //days belonging to the months either side of the one being viewed
+        if (Date.Month != ViewedMonth.Month || Date.Year != ViewedMonth.Year)
+        {
+            TextColor = Colors.Grey;
+            BgColour = MyGray;
+            return;
+        }
+
+        //days already gone
+        if (UsfulFuctions.DifferenceSigned(Date, DateNow) < 0)
         {
             TextColor = Colors.Grey;
             BgColour = MyGray;
@@ -345,7 +364,8 @@ public partial class CalenderView : ContentPage
 
         l_date.Text = $"{_months[_date.Month - 1]} {_date.Year}";
 
-        CalenderDay.DateNow = _date;
+        CalenderDay.DateNow = UsfulFuctions.DateNow;
+        CalenderDay.ViewedMonth = _date;
 
         //calender always starts on the monday on or before the 1st of the month
         //and shows 6 full weeks so every month fits
@@ -707,7 +727,9 @@ public partial class CalenderView : ContentPage
         Border b = sender as Border;
         CalenderDay dayTapped = _calenderDays[Convert.ToInt32(b.ClassId)];
 
-        _selectedDay.ResetColor();
+        //nothing may be picked yet after moving month
+        if (_selectedDay != null)
+            _selectedDay.ResetColor();
         _selectedDay = dayTapped;
         dayTapped.SelectedDayColor = Colors.Orange;
         dayTapped.SelectedDayBorderSize = 2;
@@ -844,7 +866,9 @@ public partial class CalenderView : ContentPage
         Border b = sender as Border;
         CalenderDay dayTapped = _calenderDays[Convert.ToInt32(b.ClassId)];
 
-        _selectedDay.ResetColor();
+        //nothing may be picked yet after moving month
+        if (_selectedDay != null)
+            _selectedDay.ResetColor();
         _selectedDay = dayTapped;
         dayTapped.SelectedDayColor = Colors.Orange;
         dayTapped.SelectedDayBorderSize = 2;
@@ -869,15 +893,32 @@ public partial class CalenderView : ContentPage
     private void bnt_nextMonthClicked(object sender, EventArgs e)
     {
 		_date = _date.AddMonths(1);
-        RefreshPageDate();
+        ClearDaySelection();
         RefreshCalenderData();
+        RefreshPageDate();
     }
 
     private void bnt_previousMonthClicked(object sender, EventArgs e)
     {
         _date = _date.AddMonths(-1);
-        RefreshPageDate();
+        ClearDaySelection();
         RefreshCalenderData();
+        RefreshPageDate();
+    }
+
+    /// <summary>
+    /// drops the picked day when moving to another month. the day that was
+    /// picked is not in this month, so nothing should be marked as picked
+    /// until one here is tapped
+    /// </summary>
+    private void ClearDaySelection()
+    {
+        if (_selectedDay != null)
+        {
+            _selectedDay.SelectedDayColor = Colors.White;
+            _selectedDay.SelectedDayBorderSize = 1;
+        }
+        _selectedDay = null;
     }
     private SwipeView oldSwipeView;
     private void swip_started(object sender, SwipeStartedEventArgs e)
@@ -960,7 +1001,8 @@ public partial class CalenderView : ContentPage
     {
         l_date.Text = $"{_months[_date.Month - 1]} {_date.Year}";
 
-        CalenderDay.DateNow = _date;
+        CalenderDay.DateNow = UsfulFuctions.DateNow;
+        CalenderDay.ViewedMonth = _date;
 
         //same layout rule as BuildPage: 6 full weeks starting on the monday
         //on or before the 1st of the month
@@ -1013,6 +1055,20 @@ public partial class CalenderView : ContentPage
     }
     public void RefreshPageDate()
     {
+        //no day picked - looking at a month that is not the one today is in
+        if (_selectedDay == null)
+        {
+            l_currentDayName.Text = _date.ToString("MMMM yyyy");
+            _jobsToDisplay.Clear();
+            l_noJobs.Text = "Tap a day to see its work";
+            l_noJobs.IsVisible = true;
+            l_dayJobTotal.Text = $"Jobs {Gloable.CurrenceSymbol}0";
+            l_dayPaymentTotal.Text = $"Paid {Gloable.CurrenceSymbol}0";
+            l_dayExpenseTotal.IsVisible = false;
+            return;
+        }
+
+        l_noJobs.Text = "No Jobs To Do";
         l_currentDayName.Text = $"{_selectedDay.Date.DayOfWeek} {_selectedDay.Day}/{_selectedDay.Date.Month}/{_selectedDay.Date.Year}";
 
         _jobsToDisplay.Clear();
@@ -1021,6 +1077,7 @@ public partial class CalenderView : ContentPage
             j.CollapsedInList = j.IsCompleted;
             _jobsToDisplay.Add(j);
         }
+        l_noJobs.IsVisible = _selectedDay.Jobs.Count == 0;
 
         float jobTotal = 0;
         foreach (Job j in _selectedDay.Jobs)
@@ -1095,4 +1152,4 @@ public partial class CalenderView : ContentPage
 
     }
 
-}
+}

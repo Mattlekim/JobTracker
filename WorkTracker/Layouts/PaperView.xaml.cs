@@ -1210,11 +1210,17 @@ public partial class PaperView : ContentPage
 						count++;
 			}
 
-		if (count > 1)
-		{
+		//everything on this street that could be booked in for a day
+		List<Job> streetJobs = JobsOnStreet(pi);
+
+		if (streetJobs.Count > 0 || count > 1)
 			options.Add("-----------");
+
+		if (streetJobs.Count > 0)
+			options.Add($"Book In {streetJobs.Count} On This Street");
+
+		if (count > 1)
 			options.Add($"Mark {count} below as compleated");
-		}
         string result = await DisplayActionSheet($"{pi.Title}", "Cancel", null, options.ToArray());
         if (result == null)
             return;
@@ -1280,6 +1286,14 @@ public partial class PaperView : ContentPage
             return;
 		}
 
+		if (result.StartsWith("Book In"))
+		{
+			BookJobFormcs.jobs = streetJobs;
+			await Navigation.PushAsync(new BookJobFormcs());
+			_fullRefresh = true;
+			return;
+		}
+
 		if (result.Contains("Mark"))
 		{
             foreach (PaperItem paperi in PaperItems)
@@ -1294,6 +1308,25 @@ public partial class PaperView : ContentPage
                 }
         }
     }
+
+	/// <summary>
+	/// the jobs on a street that are worth booking in: still to be done, not
+	/// cancelled, and not already booked for a day
+	/// </summary>
+	private List<Job> JobsOnStreet(PaperItem street)
+	{
+		List<Job> jobs = new List<Job>();
+		foreach (PaperItem p in PaperItems)
+		{
+			if (p.GroupId != street.GroupId || p.JobI3 == null)
+				continue;
+			if (p.JobI3.IsCompleted || p.JobI3.HaveCanceled || p.JobI3.IsBookedIn)
+				continue;
+			if (!jobs.Contains(p.JobI3))
+				jobs.Add(p.JobI3);
+		}
+		return jobs;
+	}
 
 	
 	private async Task AddAllHouses(PaperItem pi)
