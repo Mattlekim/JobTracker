@@ -19,8 +19,12 @@
 		<ApplicationIdGuid>20D09131-3A8A-4699-A635-26E57F2BB6C5</ApplicationIdGuid>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>1.84</ApplicationDisplayVersion>
-		<ApplicationVersion>17</ApplicationVersion>
+		<ApplicationDisplayVersion>1.85</ApplicationDisplayVersion>
+		<ApplicationVersion>18</ApplicationVersion>
+
+		<!-- stamped into the assembly so the settings page can show when
+		     this build was made, without anyone having to remember -->
+		<BuildDate>$([System.DateTime]::UtcNow.ToString('yyyy-MM-dd'))</BuildDate>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
@@ -68,6 +72,10 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.111" />
 		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AssemblyMetadata Include="BuildDate" Value="$(BuildDate)" />
 	</ItemGroup>
 
 	<ItemGroup>

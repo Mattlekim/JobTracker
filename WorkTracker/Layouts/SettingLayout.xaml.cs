@@ -1,6 +1,8 @@
 namespace UiInterface.Layouts;
 
 using Kernel;
+using System.Globalization;
+using System.Reflection;
 using System.Xml.Serialization;
 using System.IO;
 
@@ -169,10 +171,72 @@ public partial class SettingLayout : ContentPage
         NavigatedTo += SettingLayout_NavigatedTo;
         NavigatingFrom += SettingLayout_NavigatingFrom;
 
+        ShowAppVersion();
         RefreshCloudSection();
         RefreshGoCardlessSection();
         CloudSync.StatusChanged += (status) =>
             MainThread.BeginInvokeOnMainThread(() => l_cloudStatus.Text = status);
+    }
+
+    /// <summary>
+    /// opens or closes a settings section. the section to work on is named
+    /// in the header button's ClassId
+    /// </summary>
+    private void Section_Clicked(object sender, EventArgs e)
+    {
+        Button header = sender as Button;
+        if (header == null || string.IsNullOrEmpty(header.ClassId))
+            return;
+
+        View section = this.FindByName<View>(header.ClassId);
+        if (section == null)
+            return;
+
+        section.IsVisible = !section.IsVisible;
+
+        //swap the arrow on the front of the heading for the other one
+        string title = header.Text.Length > 2 ? header.Text.Substring(2) : header.Text;
+        header.Text = (section.IsVisible ? "▾ " : "▸ ") + title;
+    }
+
+    /// <summary>
+    /// reads the version straight out of the built app, and the build date
+    /// out of the assembly, so what is shown here is always what is
+    /// installed rather than a number somebody forgot to change
+    /// </summary>
+    private void ShowAppVersion()
+    {
+        string version = AppInfo.Current.VersionString;
+        string build = AppInfo.Current.BuildString;
+
+        l_appVersion.Text = string.IsNullOrWhiteSpace(build) || build == version
+            ? $"Version {version}"
+            : $"Version {version} (build {build})";
+
+        string released = BuildDate();
+        l_appReleased.Text = string.IsNullOrWhiteSpace(released)
+            ? string.Empty
+            : $"Released {released}";
+        l_appReleased.IsVisible = !string.IsNullOrWhiteSpace(released);
+    }
+
+    /// <summary>the date this build was compiled, stamped in by the build</summary>
+    private static string BuildDate()
+    {
+        try
+        {
+            foreach (AssemblyMetadataAttribute a in typeof(SettingLayout).Assembly
+                .GetCustomAttributes<AssemblyMetadataAttribute>())
+                if (a.Key == "BuildDate" && !string.IsNullOrWhiteSpace(a.Value))
+                    if (DateTime.TryParse(a.Value, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime d))
+                        return d.ToShortDateString();
+                    else
+                        return a.Value;
+        }
+        catch
+        {
+        }
+        return string.Empty;
     }
 
     private void RefreshCloudSection()
