@@ -16,6 +16,10 @@ public struct SettingsData
     public int Date, Ref, Amount;
     public bool DebitAndCreditTogether;
 
+    /// <summary>the same three columns again, for pdf statements - they rarely match the bank's csv</summary>
+    public int PdfDate, PdfRef, PdfAmount;
+    public bool PdfDebitAndCreditTogether;
+
     public List<string> JobNames;
 
     public int DefaultFrequence;
@@ -73,6 +77,11 @@ public class Settings
         sd.Amount = StatmentViewer.Amount;
         sd.DebitAndCreditTogether = StatmentViewer.DebitAndCreditTogether;
 
+        sd.PdfDate = StatmentViewer.PdfDate;
+        sd.PdfRef = StatmentViewer.PdfRef;
+        sd.PdfAmount = StatmentViewer.PdfAmount;
+        sd.PdfDebitAndCreditTogether = StatmentViewer.PdfDebitAndCreditTogether;
+
         sd.DefaultFrequence = DefaultFrequence;
         sd.DefalutFrequenceType = DefaultFrequenceType;
 
@@ -129,6 +138,13 @@ public class Settings
                 StatmentViewer.Ref = sd.Ref;
                 StatmentViewer.Amount = sd.Amount;
                 StatmentViewer.DebitAndCreditTogether = sd.DebitAndCreditTogether;
+
+                //settings saved before pdf import existed have no pdf columns, which reads back as
+                //0,0,0 - the viewer treats that as not chosen yet and asks for them
+                StatmentViewer.PdfDate = sd.PdfDate;
+                StatmentViewer.PdfRef = sd.PdfRef;
+                StatmentViewer.PdfAmount = sd.PdfAmount;
+                StatmentViewer.PdfDebitAndCreditTogether = sd.PdfDebitAndCreditTogether;
 
                 DefaultFrequence = sd.DefaultFrequence;
                 DefaultFrequenceType = sd.DefalutFrequenceType;

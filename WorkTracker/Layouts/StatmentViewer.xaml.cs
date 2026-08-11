@@ -1,11 +1,45 @@
 namespace UiInterface.Layouts;
 using Kernel;
+using System.Globalization;
 public partial class StatmentViewer : ContentPage
 {
 	public static CSVFile CsvFile;
 
 	public static int Date = -1, Ref = -1, Amount = -1;
     public static bool DebitAndCreditTogether = false;
+
+    /// <summary>a pdf statement has different columns to the same bank's csv, so the two are remembered apart</summary>
+    public static int PdfDate = -1, PdfRef = -1, PdfAmount = -1;
+    public static bool PdfDebitAndCreditTogether = false;
+
+    /// <summary>set by whoever loaded the file, before this page is pushed</summary>
+    public static bool SourceIsPdf = false;
+
+    private readonly bool _isPdf = SourceIsPdf;
+
+    private int DateColumn
+    {
+        get => _isPdf ? PdfDate : Date;
+        set { if (_isPdf) PdfDate = value; else Date = value; }
+    }
+
+    private int RefColumn
+    {
+        get => _isPdf ? PdfRef : Ref;
+        set { if (_isPdf) PdfRef = value; else Ref = value; }
+    }
+
+    private int AmountColumn
+    {
+        get => _isPdf ? PdfAmount : Amount;
+        set { if (_isPdf) PdfAmount = value; else Amount = value; }
+    }
+
+    private bool AmountIncludesDebits
+    {
+        get => _isPdf ? PdfDebitAndCreditTogether : DebitAndCreditTogether;
+        set { if (_isPdf) PdfDebitAndCreditTogether = value; else DebitAndCreditTogether = value; }
+    }
 
     private bool _selectingCollums = false;
     private int _currentThingToSelect = 0;
@@ -16,9 +50,57 @@ public partial class StatmentViewer : ContentPage
         Date = -1;
         Ref = -1;
         Amount = -1;
-      
+
+        PdfDate = -1;
+        PdfRef = -1;
+        PdfAmount = -1;
     }
-  
+
+    /// <summary>
+    /// Statement amounts turn up as "1,234.56", "£12.00" or "12.00 CR" - none of which Convert reads,
+    /// and a csv exported on a machine with another culture will not match this one either.
+    /// </summary>
+    public static bool TryParseAmount(string text, out decimal amount)
+    {
+        amount = 0;
+
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        text = text.Trim();
+
+        bool negative = text.StartsWith("-") || text.StartsWith("(")
+            || text.EndsWith("DR", StringComparison.OrdinalIgnoreCase);
+
+        //drop the currency symbol, any CR / DR marker and anything else that is not part of the number
+        string number = string.Empty;
+        foreach (char c in text)
+            if (char.IsDigit(c) || c == '.' || c == ',')
+                number += c;
+
+        //whichever separator comes last is the decimal point - the rest group the thousands, and
+        //which character does which depends on the country the statement came from
+        int separator = Math.Max(number.LastIndexOf('.'), number.LastIndexOf(','));
+        int decimals = separator == -1 ? 0 : number.Length - separator - 1;
+
+        if (separator != -1 && decimals >= 1 && decimals <= 2)
+            number = number.Substring(0, separator).Replace(".", "").Replace(",", "")
+                + "." + number.Substring(separator + 1);
+        else
+            number = number.Replace(".", "").Replace(",", "");
+
+        if (number.Length == 0)
+            return false;
+
+        if (!decimal.TryParse(number, NumberStyles.Number, CultureInfo.InvariantCulture, out amount))
+            return false;
+
+        if (negative)
+            amount = -amount;
+
+        return true;
+    }
+
 
     private Grid _grid;
 
@@ -80,9 +162,9 @@ public partial class StatmentViewer : ContentPage
 
 
         int[] translator = new int[3];
-        translator[0] = Date;
-        translator[1] = Ref;
-        translator[2] = Amount;
+        translator[0] = DateColumn;
+        translator[1] = RefColumn;
+        translator[2] = AmountColumn;
 
         int c = 0;
         if (_selectingCollums)
@@ -96,13 +178,13 @@ public partial class StatmentViewer : ContentPage
         {
             for (int i = 0; i <3; i++)
             {
-                if (Date == translator[i])
+                if (DateColumn == translator[i])
                     _grid.Add(new Label() { Text = "Date" }, i, 1);
 
-                if (Ref == translator[i])
+                if (RefColumn == translator[i])
                     _grid.Add(new Label() { Text = "Reference" }, i, 1);
 
-                if (Amount == translator[i])
+                if (AmountColumn == translator[i])
                     _grid.Add(new Label() { Text = "Amount" }, i, 1);
             }
         }
@@ -121,18 +203,23 @@ public partial class StatmentViewer : ContentPage
                 linked = false;
                 ingnore = false;
 
-                if (CsvFile.data[y][Amount] == null || CsvFile.data[y][Amount] == String.Empty)
+                //a short row is a blank line or a page footer, not a payment
+                if (CsvFile.data[y].Length <= Math.Max(DateColumn, Math.Max(RefColumn, AmountColumn)))
                     continue;
 
-                if (DebitAndCreditTogether)
-                    if (Convert.ToDecimal(CsvFile.data[y][Amount]) <= 0)
+                decimal paid;
+                if (!TryParseAmount(CsvFile.data[y][AmountColumn], out paid))
+                    continue;
+
+                if (AmountIncludesDebits)
+                    if (paid <= 0)
                         continue;
 
 
                 if (Payment.IgnorePaymentList != null)
                     foreach (string s in Payment.IgnorePaymentList)
                     {
-                        if (s == CsvFile.data[y][Ref])
+                        if (s == CsvFile.data[y][RefColumn])
                         {
                             ingnore = true;
                             break;
@@ -143,7 +230,7 @@ public partial class StatmentViewer : ContentPage
                     foreach (Customer cust in Customer.Query())
                     {
                         foreach (string s in cust.PaymentRefrences)
-                            if (s == CsvFile.data[y][Ref])
+                            if (s == CsvFile.data[y][RefColumn])
                             {
                                 linked = true;
                                 break;
@@ -186,7 +273,7 @@ public partial class StatmentViewer : ContentPage
                         HorizontalOptions = LayoutOptions.Start,
                         VerticalOptions = LayoutOptions.Center,
                         Padding = 4,
-                        ClassId = CsvFile.data[y][Ref],
+                        ClassId = CsvFile.data[y][RefColumn],
 
                     };
                     b.Clicked += B_Clicked;
@@ -199,7 +286,7 @@ public partial class StatmentViewer : ContentPage
                         HorizontalOptions = LayoutOptions.Center,
                         VerticalOptions = LayoutOptions.Center,
                         Padding = 4,
-                        ClassId = CsvFile.data[y][Ref],
+                        ClassId = CsvFile.data[y][RefColumn],
 
                     };
                     b.Clicked += bnt_ignore;
@@ -211,7 +298,7 @@ public partial class StatmentViewer : ContentPage
             for (int y = 0; y < CsvFile.data.Length; y++)
             {
                 _grid.RowDefinitions.Add(new RowDefinition());
-                for (int x = 0; x < CsvFile.data[x].Length; x++)
+                for (int x = 0; x < CsvFile.data[y].Length && x < CsvFile.Header.Length; x++)
                 {
                     _grid.Add(new Label() { Text = CsvFile.data[y][x] }, x, y + 2);
                 }
@@ -241,11 +328,11 @@ public partial class StatmentViewer : ContentPage
     {
         if (await DisplayAlert("Debits / Credits same field", "Are the credits and debits of this statment part of the same field?", "Yes", "No"))
         {
-            DebitAndCreditTogether = true;
+            AmountIncludesDebits = true;
             l_nextField.IsVisible = false;
         }
         else
-            DebitAndCreditTogether = false;
+            AmountIncludesDebits = false;
 
         _selectingCollums = false;
         Settings.Save();
@@ -262,19 +349,19 @@ public partial class StatmentViewer : ContentPage
         switch(_currentThingToSelect)
         {
             case 0: //date
-                Date = i;
+                DateColumn = i;
                 DisplayAlert("Select Reference", "Select the reference field", "Ok");
                 l_nextField.Text = "Select the reference field";
                 s = "Date";
                 break;
             case 1: //ref
-                Ref = i;
+                RefColumn = i;
                 DisplayAlert("Select Amount", "Select the amount paid / credit", "Ok");
                 l_nextField.Text = "Select the amount paid / credit";
                 s = "Reference";
                 break;
             case 2: //amount
-                Amount = i;
+                AmountColumn = i;
                 s = "Amount";
                 UpdateFields();
                 break;
@@ -293,50 +380,89 @@ public partial class StatmentViewer : ContentPage
 
         NavigatedTo += StatmentViewer_NavigatedTo;
 
+        //a pdf rebuilds its own headings, so the columns can usually be picked out without asking
+        if (_isPdf && !ColumnsAreValid())
+            GuessColumnsFromHeader();
 
-        //now lets detect whats what
-
-        /*	for (int i = 0; i < CsvFile.Header.Length; i++)
-            {
-                if (CsvFile.Header[i].ToLower().Contains("date"))
-                    Date = i;
-
-                if (CsvFile.Header[i].ToLower().Contains("desc") || CsvFile.Header[i].ToLower().Contains("ref"))
-                    Ref = i;
-
-                if (CsvFile.Header[i].ToLower().Contains("credit"))
-                    Amount = i;
-
-                if (CsvFile.Header[i].ToLower().Contains("debit"))
-                    Debit = i;
-            }
-        */
-        //		cv_items.ItemsLayout	
-
-
-        bool invalidData = false;
-        if (Date == -1 || Ref == -1 || Amount == -1)
-            invalidData = true;
-
-        if (Date == Ref || Date == Amount)
-            invalidData = true;
-
-        if (Ref == Amount || Date == Amount)
-            invalidData = true;
-
-        if (invalidData)
-        {
-            _selectingCollums = true;
-            _currentThingToSelect = 0;
-            DisplayAlert("Select Date", "Select the date field", "Ok");
-            l_nextField.IsVisible = true;
-            l_nextField.Text = "Select the date field";
-        }
-        else
-            _selectingCollums = false;
+        AskForColumnsIfNeeded();
 
         BuildGrid();
         Skip = true;
+    }
+
+    private bool ColumnsAreValid()
+    {
+        if (DateColumn == -1 || RefColumn == -1 || AmountColumn == -1)
+            return false;
+
+        if (CsvFile != null && CsvFile.Header != null)
+            if (DateColumn >= CsvFile.Header.Length || RefColumn >= CsvFile.Header.Length
+                || AmountColumn >= CsvFile.Header.Length)
+                return false;
+
+        if (DateColumn == RefColumn || DateColumn == AmountColumn || RefColumn == AmountColumn)
+            return false;
+
+        return true;
+    }
+
+    /// <summary>the headings a pdf statement prints are plain english, so read them rather than ask</summary>
+    private void GuessColumnsFromHeader()
+    {
+        if (CsvFile == null || CsvFile.Header == null)
+            return;
+
+        for (int i = 0; i < CsvFile.Header.Length; i++)
+        {
+            string h = CsvFile.Header[i].ToLowerInvariant();
+
+            if (DateColumn == -1 && h.Contains("date"))
+                DateColumn = i;
+
+            if (RefColumn == -1 && (h.Contains("desc") || h.Contains("ref") || h.Contains("detail")
+                || h.Contains("narrative") || h.Contains("payee") || h.Contains("particulars")))
+                RefColumn = i;
+
+            //what money coming in is called varies - paid in, credit, receipts, money in
+            if (AmountColumn == -1 && (h.Contains("paid in") || h.Contains("credit") || h.Contains("receipt")
+                || h.Contains("money in") || h.Trim() == "in"))
+            {
+                AmountColumn = i;
+                AmountIncludesDebits = false; //a money in column only ever holds money coming in
+            }
+        }
+
+        //a single signed amount column, which the viewer then has to filter the debits out of
+        if (AmountColumn == -1)
+            for (int i = 0; i < CsvFile.Header.Length; i++)
+                if (CsvFile.Header[i].ToLowerInvariant().Contains("amount") && i != DateColumn && i != RefColumn)
+                {
+                    AmountColumn = i;
+                    AmountIncludesDebits = true;
+                    break;
+                }
+
+        if (!ColumnsAreValid()) //a partial guess is worse than none - fall back to asking
+        {
+            DateColumn = -1;
+            RefColumn = -1;
+            AmountColumn = -1;
+        }
+    }
+
+    private void AskForColumnsIfNeeded()
+    {
+        if (ColumnsAreValid())
+        {
+            _selectingCollums = false;
+            return;
+        }
+
+        _selectingCollums = true;
+        _currentThingToSelect = 0;
+        DisplayAlert("Select Date", "Select the date field", "Ok");
+        l_nextField.IsVisible = true;
+        l_nextField.Text = "Select the date field";
     }
 
     private List<Payment> payments = new List<Payment>();
@@ -351,15 +477,19 @@ public partial class StatmentViewer : ContentPage
 
         try
         {
+            decimal amount;
             foreach (int i in _paymentsToProcess)
             {
-                dt = UsfulFuctions.StringToDateTime(CsvFile.data[i][Date]);
-                pay = Payment.AddToCustomer(CsvFile.data[i][Ref], (float)Convert.ToDouble(CsvFile.data[i][Amount]), dt, PaymentMethod.Bank, out customerFound);
+                if (!TryParseAmount(CsvFile.data[i][AmountColumn], out amount))
+                    continue;
+
+                dt = UsfulFuctions.StringToDateTime(CsvFile.data[i][DateColumn]);
+                pay = Payment.AddToCustomer(CsvFile.data[i][RefColumn], (float)amount, dt, PaymentMethod.Bank, out customerFound);
                 if (pay != null)
                     payments.Add(pay);
                 else
                     if (customerFound)
-                    failed.Add($"{CsvFile.data[i][Date]} {CsvFile.data[i][Ref]} {Gloable.CurrenceSymbol}{(float)Convert.ToDouble(CsvFile.data[i][Amount])}");
+                    failed.Add($"{CsvFile.data[i][DateColumn]} {CsvFile.data[i][RefColumn]} {Gloable.CurrenceSymbol}{amount}");
                 else
                     unmatch++;
 
@@ -401,27 +531,7 @@ public partial class StatmentViewer : ContentPage
             Skip = false;
             return;
         }
-        bool invalidData = false;
-        if (Date == -1 || Ref == -1 || Amount == -1)
-            invalidData = true;
-
-        if (Date == Ref || Date == Amount)
-            invalidData = true;
-
-        if (Ref == Amount || Date == Amount)
-            invalidData = true;
-
-        if (invalidData)
-        {
-            _selectingCollums = true;
-            _currentThingToSelect = 0;
-            DisplayAlert("Select Date", "Select the date field", "Ok");
-            l_nextField.IsVisible = true;
-            l_nextField.Text = "Select the date field";
-        }
-        else
-            _selectingCollums = false;
-
+        AskForColumnsIfNeeded();
         BuildGrid();
     }
 }

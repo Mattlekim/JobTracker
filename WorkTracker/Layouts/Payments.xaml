@@ -5,7 +5,7 @@
              Title="Payments">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem x:Name="bnt_ClearFilter" Text="Import Bank Statment" Clicked="bnt_ImportBank"></ToolbarItem>
+        <ToolbarItem x:Name="bnt_ClearFilter" Text="Import Bank Statment (csv or pdf)" Clicked="bnt_ImportBank"></ToolbarItem>
         
     </ContentPage.ToolbarItems>
     
