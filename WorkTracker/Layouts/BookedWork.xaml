@@ -71,9 +71,15 @@
                             <VerticalStackLayout Grid.Column="0" Spacing="2">
                                 <Label Text="{Binding JobFormattedStreet}" FontAttributes="Bold"/>
                                 <HorizontalStackLayout Spacing="8">
-                                    <Label Text="{Binding Name}" TextColor="White" BackgroundColor="#EF6C00" Padding="6,2" FontAttributes="Bold" FontSize="12"/>
+                                    <Label Text="{Binding Name}" TextColor="White" BackgroundColor="#EF6C00" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding HaveJobName}"/>
                                     <Label Text="Done" TextColor="White" BackgroundColor="#4CAF50" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding IsCompleted}"/>
+                                    <!-- what the customer is behind or in credit by, only
+                                         when there is something to settle -->
+                                    <Label Text="{Binding JobFormattedOwed}" TextColor="White" BackgroundColor="{Binding OwedColorCode}" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding ShowOwed}" LineBreakMode="TailTruncation"/>
                                 </HorizontalStackLayout>
+                                <!-- notes get a line of their own so a long one cannot
+                                     push the tags off the row -->
+                                <Label Text="{Binding JobFormattedStringNotes}" TextColor="White" BackgroundColor="#FB8C00" Padding="6,2" FontSize="12" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"/>
                             </VerticalStackLayout>
                             <Label Grid.Column="1" Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" VerticalOptions="Center"/>
                         </Grid>

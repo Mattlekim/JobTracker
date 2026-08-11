@@ -27,6 +27,15 @@ public partial class BookedWork : ContentPage
         List<BookingGroup> groups = new List<BookingGroup>();
 
         List<Job> booked = Job.Query().FindAll(x => x.IsBookedIn && !x.HaveCanceled);
+
+        //taking a payment on this page moves the customer's balance, so the
+        //owed tag has to be worked out again every time the list is built
+        foreach (Job j in booked)
+        {
+            j.Refresh();
+            j.RefreshColors();
+        }
+
         foreach (var day in booked.GroupBy(x => x.DateJobBookinFor.Date).OrderBy(x => x.Key))
         {
             float total = day.Sum(x => x.Price);
