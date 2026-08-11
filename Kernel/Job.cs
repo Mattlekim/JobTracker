@@ -555,6 +555,38 @@ namespace Kernel
         }
 
         /// <summary>
+        /// clear whatever is still owing and mark the job paid, for when the
+        /// money received will never exactly match what was charged - a
+        /// customer rounding down, or a processing fee.
+        ///
+        /// the shortfall is written off, not recorded as income, because it
+        /// was never actually received
+        /// </summary>
+        /// <returns>the amount written off</returns>
+        public float SettleBalance()
+        {
+            MatchCustomer();
+
+            float writtenOff = 0;
+            if (_customer != null)
+            {
+                writtenOff = _customer.Balance;
+                _customer.Balance = 0;
+                Customer.Save();
+            }
+
+            //a direct debit still on its way marks the job paid itself when
+            //it lands, so it is left alone here
+            if (!IsPaidFor && !PaymentPending)
+                IsPaidFor = true;
+
+            Refresh();
+            RefreshColors();
+            Job.Save();
+            return writtenOff;
+        }
+
+        /// <summary>
         /// mark paid against a payment that has already been recorded (and
         /// has therefore already come off the customer's balance). used when
         /// a direct debit finally clears

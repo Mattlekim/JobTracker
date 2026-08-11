@@ -272,9 +272,15 @@ namespace UiInterface
             _refreshing = true;
             try
             {
+                //the fees taken out of payouts are a business expense and
+                //are picked up whether or not anything is still pending
+                int feesAdded = await RecordPayoutFeesAsync();
+
                 List<GoCardlessRequest> pending = GoCardlessRequest.QueryPending();
                 if (pending.Count == 0)
-                    return "No direct debits waiting";
+                    return feesAdded > 0
+                        ? $"No direct debits waiting. {feesAdded} payout fee(s) recorded as expenses"
+                        : "No direct debits waiting";
 
                 int paid = 0, failed = 0, stillPending = 0;
                 bool changed = false;
@@ -334,8 +340,10 @@ namespace UiInterface
                     }
                 }
 
+                string fees = feesAdded > 0 ? $". {feesAdded} payout fee(s) recorded as expenses" : string.Empty;
+
                 if (paid == 0 && failed == 0)
-                    return $"{stillPending} direct debit(s) still on the way";
+                    return $"{stillPending} direct debit(s) still on the way{fees}";
 
                 string summary = string.Empty;
                 if (paid > 0)
@@ -344,12 +352,114 @@ namespace UiInterface
                     summary += (summary == string.Empty ? string.Empty : ", ") + $"{failed} failed";
                 if (stillPending > 0)
                     summary += $", {stillPending} still on the way";
-                return summary;
+                return summary + fees;
             }
             finally
             {
                 _refreshing = false;
             }
+        }
+
+        // ---------------- payouts and their fees ----------------
+
+        public class GcPayout
+        {
+            public string Id;
+            /// <summary>what actually landed in the bank, after fees</summary>
+            public float Amount;
+            /// <summary>the fees GoCardless took out of this payout</summary>
+            public float DeductedFees;
+            public DateTime ArrivalDate;
+            public string Reference = string.Empty;
+        }
+
+        /// <summary>
+        /// the most recent payouts to the bank account. GoCardless takes its
+        /// fee out of the payout, so what arrives is less than what was
+        /// collected
+        /// </summary>
+        public static async Task<List<GcPayout>> ListPayoutsAsync(int limit = 100)
+        {
+            List<GcPayout> payouts = new List<GcPayout>();
+            using JsonDocument doc = await SendAsync(NewRequest(HttpMethod.Get, $"/payouts?limit={limit}&status=paid"));
+
+            foreach (JsonElement p in doc.RootElement.GetProperty("payouts").EnumerateArray())
+            {
+                GcPayout payout = new GcPayout
+                {
+                    Id = p.GetProperty("id").GetString(),
+                    Amount = ReadPence(p, "amount"),
+                    DeductedFees = ReadPence(p, "deducted_fees"),
+                };
+                if (p.TryGetProperty("reference", out JsonElement r) && r.ValueKind == JsonValueKind.String)
+                    payout.Reference = r.GetString();
+                if (p.TryGetProperty("arrival_date", out JsonElement a) && a.ValueKind == JsonValueKind.String)
+                    DateTime.TryParse(a.GetString(), out payout.ArrivalDate);
+                payouts.Add(payout);
+            }
+            return payouts;
+        }
+
+        static float ReadPence(JsonElement element, string name)
+        {
+            if (element.TryGetProperty(name, out JsonElement v) && v.ValueKind == JsonValueKind.Number)
+                return v.GetInt64() / 100f;
+            return 0;
+        }
+
+        /// <summary>
+        /// records the fees GoCardless took out of each payout as a business
+        /// expense, so the books match what actually reached the bank and the
+        /// fees are claimed rather than quietly lost. Already recorded
+        /// payouts are skipped. Returns how many were added.
+        /// </summary>
+        public static async Task<int> RecordPayoutFeesAsync()
+        {
+            if (!IsConnected)
+                return 0;
+
+            List<GcPayout> payouts;
+            try
+            {
+                payouts = await ListPayoutsAsync();
+            }
+            catch
+            {
+                return 0;
+            }
+
+            int added = 0;
+            foreach (GcPayout p in payouts)
+            {
+                if (p.DeductedFees <= 0)
+                    continue;
+                //custom pricing accounts are invoiced instead, so there is
+                //nothing deducted to record
+                if (Expense.FindByReference(p.Id) != null)
+                    continue;
+
+                DateTime date = p.ArrivalDate != default
+                    ? new DateTime(p.ArrivalDate.Year, p.ArrivalDate.Month, p.ArrivalDate.Day)
+                    : UsfulFuctions.DateNow;
+
+                Expense.Add(new Expense
+                {
+                    Date = date,
+                    Amount = p.DeductedFees,
+                    Merchant = "GoCardless",
+                    Category = ExpenseCategory.BankCharges,
+                    Notes = string.IsNullOrWhiteSpace(p.Reference)
+                        ? $"Direct debit fees on payout of {Gloable.CurrenceSymbol}{p.Amount:0.00}"
+                        : $"Direct debit fees on payout {p.Reference} of {Gloable.CurrenceSymbol}{p.Amount:0.00}",
+                    ExternalReference = p.Id,
+                });
+                added++;
+            }
+
+            if (added > 0)
+                Expense.Save();
+
+            return added;
         }
 
         /// <summary>

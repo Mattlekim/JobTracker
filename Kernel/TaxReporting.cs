@@ -214,6 +214,9 @@ namespace Kernel
                 case ExpenseCategory.Insurance:
                     return HmrcExpenseCategory.PremisesRunningCosts;
 
+                case ExpenseCategory.BankCharges:
+                    return HmrcExpenseCategory.InterestAndFinance;
+
                 default:
                     return HmrcExpenseCategory.OtherExpenses;
             }

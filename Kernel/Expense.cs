@@ -19,6 +19,8 @@ namespace Kernel
         Vehicle,
         Insurance,
         Food,
+        /// <summary>card/direct debit processing fees, bank charges</summary>
+        BankCharges,
         Other
     }
 
@@ -139,6 +141,22 @@ namespace Kernel
         /// empty when there is no receipt attached
         /// </summary>
         public string ReceiptFileName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// id of whatever this expense was created from (a GoCardless payout
+        /// for example) so the same thing is never recorded twice
+        /// </summary>
+        public string ExternalReference { get; set; } = string.Empty;
+
+        /// <summary>
+        /// find an expense already recorded from an outside source
+        /// </summary>
+        public static Expense FindByReference(string reference)
+        {
+            if (string.IsNullOrWhiteSpace(reference))
+                return null;
+            return _Expenses.FirstOrDefault(x => x.ExternalReference == reference);
+        }
 
         public const string ReceiptFolder = "receipts";
 

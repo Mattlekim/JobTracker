@@ -306,6 +306,46 @@ public partial class ViewCustomerDetails : ContentPage
         }
     }
 
+    /// <summary>
+    /// the money in rarely matches the amount charged to the penny once a
+    /// fee or a customer rounding down is involved, so this marks the job
+    /// paid and clears the odds and ends left owing
+    /// </summary>
+    private async void tbi_Settle_Clicked(object sender, EventArgs e)
+    {
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null)
+        {
+            await DisplayAlert("Settle Up", "This job has no customer linked to it.", "Ok");
+            return;
+        }
+
+        if (c.Balance == 0)
+        {
+            await DisplayAlert("Settle Up", "This customer does not owe anything.", "Ok");
+            return;
+        }
+
+        string question = c.Balance > 0
+            ? $"{c.FName} {c.SName} still shows {Gloable.CurrenceSymbol}{c.Balance:0.00} owing.\n\n" +
+              "Clear it and mark the job paid? The difference is written off - it is not counted as income, because you never received it."
+            : $"{c.FName} {c.SName} shows {Gloable.CurrenceSymbol}{Math.Abs(c.Balance):0.00} in credit.\n\n" +
+              "Clear it and mark the job paid?";
+
+        if (!await DisplayAlert("Settle Up", question, "Clear It", "Cancel"))
+            return;
+
+        float writtenOff = CurrentJob.SettleBalance();
+
+        if (OnJobDetialsUpdated != null)
+            OnJobDetialsUpdated(CurrentJob);
+
+        await DisplayAlert("Settled",
+            writtenOff > 0
+                ? $"{Gloable.CurrenceSymbol}{writtenOff:0.00} written off. Nothing is owing now."
+                : "Balance cleared. Nothing is owing now.", "Ok");
+    }
+
     private void tbi_Cancel_Job_Clicked(object sender, EventArgs e)
     {
         if (!CurrentJob.HaveCanceled)
