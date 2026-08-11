@@ -180,7 +180,9 @@ public class CalenderDay: INotifyPropertyChanged
     /// </summary>
     public static DateTime ViewedMonth;
 
-	private static Color NeedBookingColor = Color.FromArgb("601515"), BookinColor = Color.FromArgb("313A70");
+	//how a day is filled: work still to do, work all done, and work left behind
+	private static Color BookedColour = Color.FromArgb("EF6C00"), CompletedColour = Color.FromArgb("2E7D32");
+	private static Color OverdueColour = Color.FromArgb("C62828");
 	private static Color ColourCurrentDay = Color.FromArgb("00477A");
     private static Color MyGray = Color.FromArgb("1E1E1E");
 
@@ -215,45 +217,75 @@ public class CalenderDay: INotifyPropertyChanged
 
     public void ResetColor()
     {
-        BgColour = Colors.Transparent;
-        TextColor = Colors.White;
         SelectedDayColor = Colors.White;
         SelectedDayBorderSize = 1;
 
-        bool hasBookedinJobs = false;
-        foreach (Job j in Jobs)
-            if (j.IsBookedIn)
-                hasBookedinJobs = true;
-        //only the actual today is marked as today. this used to compare
-        //against whichever month was on screen, so paging forward lit up the
-        //same day number in that month as though it were today
-        if (UsfulFuctions.Difference(Date, DateNow) == 0)
-        {
-            BgColour = ColourCurrentDay;
-            return;
-        }
+        //only the actual today counts as today. this used to compare against
+        //whichever month was on screen, so paging forward lit up the same day
+        //number in that month as though it were today
+        bool today = UsfulFuctions.Difference(Date, DateNow) == 0;
+        bool outsideMonth = Date.Month != ViewedMonth.Month || Date.Year != ViewedMonth.Year;
+        bool past = UsfulFuctions.DifferenceSigned(Date, DateNow) < 0;
 
-        //days belonging to the months either side of the one being viewed
-        if (Date.Month != ViewedMonth.Month || Date.Year != ViewedMonth.Year)
-        {
-            TextColor = Colors.Grey;
-            BgColour = MyGray;
-            return;
-        }
+        //days from the neighbouring months, and days already gone, are dimmed
+        //so the month being viewed still reads as a block
+        TextColor = outsideMonth || past ? Colors.Grey : Colors.White;
 
-        //days already gone
-        if (UsfulFuctions.DifferenceSigned(Date, DateNow) < 0)
+        if (Jobs.Count == 0)
         {
-            TextColor = Colors.Grey;
-            BgColour = MyGray;
-            return;
-        }
-
-        if (JobCount > 0)
-            if (hasBookedinJobs)
-                BgColour = BookinColor;
+            //a day with nothing on it is left clear, so the days carrying work
+            //are the only ones with any colour to them
+            if (today)
+                BgColour = ColourCurrentDay;
+            else if (outsideMonth)
+                BgColour = MyGray;
             else
-                BgColour = NeedBookingColor;
+                BgColour = Colors.Transparent;
+            return;
+        }
+
+        BgColour = WorkColour(past);
+
+        //the work colour owns the fill, so today is marked with a ring instead
+        //of losing the thing the fill is there to say
+        if (today)
+        {
+            SelectedDayColor = ColourCurrentDay;
+            SelectedDayBorderSize = 3;
+        }
+    }
+
+    /// <summary>
+    /// how a day with work on it is filled: orange while there is still work to
+    /// do, green once it is all done, and a blend of the two part way through so
+    /// a day reads as more done the greener it gets. Work still outstanding on a
+    /// day that has already gone is overdue, and goes red instead.
+    /// </summary>
+    private Color WorkColour(bool past)
+    {
+        int done = 0;
+        foreach (Job j in Jobs)
+            if (j.IsCompleted)
+                done++;
+
+        if (done == Jobs.Count)
+            return CompletedColour;
+
+        //cancelled jobs are dropped before they ever reach a day, so anything
+        //left unfinished here is work that was genuinely missed
+        if (past)
+            return OverdueColour;
+
+        return LerpColour(BookedColour, CompletedColour, (float)done / Jobs.Count);
+    }
+
+    /// <summary>straight blend between two colours, amount 0 gives from, 1 gives to</summary>
+    private static Color LerpColour(Color from, Color to, float amount)
+    {
+        return new Color(
+            from.Red + (to.Red - from.Red) * amount,
+            from.Green + (to.Green - from.Green) * amount,
+            from.Blue + (to.Blue - from.Blue) * amount);
     }
 	public bool CalculateDay()
     {
@@ -538,8 +570,8 @@ public partial class CalenderView : ContentPage
 
     //    _selectedDay.ResetColor();
 //_selectedDay = dayTapped;
-        _selectedDay.SelectedDayColor = Colors.Orange;
-        _selectedDay.SelectedDayBorderSize = 2;
+        _selectedDay.SelectedDayColor = Colors.White;
+        _selectedDay.SelectedDayBorderSize = 3;
 
 
         RefreshPageDate();
@@ -692,8 +724,8 @@ public partial class CalenderView : ContentPage
         if (_selectedDay != null)
             _selectedDay.ResetColor();
         _selectedDay = dayTapped;
-        dayTapped.SelectedDayColor = Colors.Orange;
-        dayTapped.SelectedDayBorderSize = 2;
+        dayTapped.SelectedDayColor = Colors.White;
+        dayTapped.SelectedDayBorderSize = 3;
 
         if (dayTapped.Jobs.Count > 0)
             l_noJobs.IsVisible = false;
@@ -831,8 +863,8 @@ public partial class CalenderView : ContentPage
         if (_selectedDay != null)
             _selectedDay.ResetColor();
         _selectedDay = dayTapped;
-        dayTapped.SelectedDayColor = Colors.Orange;
-        dayTapped.SelectedDayBorderSize = 2;
+        dayTapped.SelectedDayColor = Colors.White;
+        dayTapped.SelectedDayBorderSize = 3;
 
         if (dayTapped.Jobs.Count > 0)
             l_noJobs.IsVisible = false;

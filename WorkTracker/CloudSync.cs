@@ -40,17 +40,33 @@ namespace UiInterface
         /// <summary>status text for the settings page ("Synced 12:03" etc)</summary>
         public static event Action<string> StatusChanged;
 
-        //the app's own google credentials. fill these in once (Google Cloud
-        //Console -> APIs & Services -> Credentials -> Create OAuth client ID,
-        //type 'Desktop app') and signing in becomes just the Connect button -
-        //nobody has to paste anything. a desktop-app client secret is not
-        //actually secret, google expects it to ship inside installed apps.
-        const string BuiltInClientId = "";
-        const string BuiltInClientSecret = "";
+        //the app's own google credentials. these are stand-ins showing the
+        //shape google issues - they cannot sign in to anything. replace both
+        //with the real values (Google Cloud Console -> APIs & Services ->
+        //Credentials -> Create OAuth client ID, type 'Desktop app') and
+        //signing in becomes just the Connect button, nobody has to paste
+        //anything. a desktop-app client secret is not actually secret,
+        //google expects it to ship inside installed apps.
+        const string BuiltInClientId = "000000000000-REPLACE-ME-BEFORE-RELEASE.apps.googleusercontent.com";
+        const string BuiltInClientSecret = "GOCSPX-REPLACE-ME-BEFORE-RELEASE";
 
-        /// <summary>true when credentials are compiled into the app, so the
-        /// settings page can hide the paste-a-key fields</summary>
-        public static bool HasBuiltInClient => BuiltInClientId != string.Empty;
+        /// <summary>anything still carrying this marker is a stand-in and is
+        /// treated exactly as if no credential had been supplied</summary>
+        const string PlaceholderMarker = "REPLACE-ME";
+
+        static bool IsPlaceholder(string value)
+            => value != null && value.Contains(PlaceholderMarker);
+
+        /// <summary>true when real credentials are compiled into the app, so the
+        /// settings page can hide the paste-a-key fields. the stand-ins above do
+        /// not count - hiding the fields while they are in place would leave no
+        /// way to enter a working Client ID by hand.</summary>
+        public static bool HasBuiltInClient => !IsPlaceholder(BuiltInClientId) && BuiltInClientId != string.Empty;
+
+        /// <summary>false while the Client ID is missing or still a stand-in, so
+        /// the settings page can show the setup steps rather than sending the
+        /// user to a Google "invalid_client" error page</summary>
+        public static bool HasUsableClientId => !string.IsNullOrWhiteSpace(ClientId) && !IsPlaceholder(ClientId);
 
         public static string ClientId
         {

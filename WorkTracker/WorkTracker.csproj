@@ -22,6 +22,14 @@
 		<ApplicationDisplayVersion>1.99</ApplicationDisplayVersion>
 		<ApplicationVersion>32</ApplicationVersion>
 
+		<!-- Run Windows unpackaged. Without this the app builds as MSIX, and an
+		     MSIX cannot be launched by `dotnet run` or by the Windows Machine
+		     profile unless the single-project MSIX tooling is switched on - which
+		     is what left this project impossible to start. Only revisit if the app
+		     is ever shipped through the Microsoft Store; Android packaging is
+		     unaffected. See https://aka.ms/MauiTemplateUnpackaged -->
+		<WindowsPackageType>None</WindowsPackageType>
+
 		<!-- stamped into the assembly so the settings page can show when
 		     this build was made, without anyone having to remember -->
 		<BuildDate>$([System.DateTime]::UtcNow.ToString('yyyy-MM-dd'))</BuildDate>

@@ -16,7 +16,14 @@ namespace Kernel
     public static class UsfulFuctions
     {
 
-        public static DateTime DateNow = new(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
+        /// <summary>
+        /// today, worked out fresh every time it is read. this used to be a
+        /// field filled in once when the class first loaded, which is fine on a
+        /// desktop that gets shut down but not on a phone, where the app is left
+        /// running for days - work marked done was stamped with whatever date
+        /// the app happened to have been started on
+        /// </summary>
+        public static DateTime DateNow => DateTime.Now.Date;
 
         public static DateTime DateBase = new DateTime(2000, 1, 1);
 

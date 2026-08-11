@@ -41,6 +41,11 @@
         <Label></Label>
         <BoxView HorizontalOptions="FillAndExpand" VerticalOptions="Center" HeightRequest="2" Color="{AppThemeBinding Light=black, Dark=white}"/>
         <Label></Label>
+        <!-- the address is not offered by the contacts api, so only the name,
+             number and email come across -->
+        <Button x:Name="bnt_fromContacts" Text="Fill From Contacts" Clicked="bnt_FromContacts"
+                BackgroundColor="Transparent" BorderColor="Orange" TextColor="Orange" BorderWidth="2"
+                HorizontalOptions="Start" Margin="0,0,0,8"></Button>
         <Entry x:Name="e_name" Placeholder="Customer Name"></Entry>
         <HorizontalStackLayout>
             <Entry x:Name="e_phone" Placeholder="Phone Number" Keyboard="Telephone" VerticalOptions="Center" MinimumWidthRequest="180"></Entry>

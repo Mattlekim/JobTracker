@@ -59,6 +59,27 @@ public partial class NewCustomer : ContentPage
 		Navigation.PopAsync();
     }
 
+    /// <summary>
+    /// fills the name, phone and email in from the phone's own contacts. a
+    /// field the contact has nothing for is left as it stands rather than
+    /// wiped, so this can be used to top up a half filled in customer
+    /// </summary>
+    private async void bnt_FromContacts(object sender, EventArgs e)
+    {
+        ContactFill.Details picked = await ContactFill.PickAsync(this);
+        if (picked == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(picked.Name))
+            t_fName.Text = picked.Name;
+
+        if (!string.IsNullOrWhiteSpace(picked.Phone))
+            t_phone.Text = picked.Phone;
+
+        if (!string.IsNullOrWhiteSpace(picked.Email))
+            t_email.Text = picked.Email;
+    }
+
     private void bnt_Add(object sender, EventArgs e)
     {
         if (AddNewCustomer)

@@ -177,6 +177,13 @@
                         <ContentView Grid.Column="6" Grid.Row="0">
                             <Label Text="{Binding I4}" IsVisible="{Binding ShowJobDetails}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center"  ></Label>
                         </ContentView>
+
+                        <!-- booked in work is tabbed down the very left edge. last in
+                             the grid so it draws over the row rather than under it,
+                             and input transparent so it does not eat the row's taps -->
+                        <BoxView Grid.Column="0" Grid.Row="0" Color="#EF6C00" WidthRequest="5"
+                                 HorizontalOptions="Start" VerticalOptions="Fill"
+                                 InputTransparent="True" IsVisible="{Binding ShowBookedTab}"></BoxView>
                     </Grid>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

@@ -10,6 +10,27 @@ public partial class QuickAddCustomer : ContentPage
     public static bool IsQuote = false;
 
     public Action<Job> OnJobCreated;
+	/// <summary>
+	/// fills the name, phone and email in from the phone's own contacts. a
+	/// field the contact has nothing for is left as it stands rather than
+	/// wiped, so this can be used to top up what has already been typed
+	/// </summary>
+	private async void bnt_FromContacts(object sender, EventArgs e)
+	{
+		ContactFill.Details picked = await ContactFill.PickAsync(this);
+		if (picked == null)
+			return;
+
+		if (!string.IsNullOrWhiteSpace(picked.Name))
+			e_name.Text = picked.Name;
+
+		if (!string.IsNullOrWhiteSpace(picked.Phone))
+			e_phone.Text = picked.Phone;
+
+		if (!string.IsNullOrWhiteSpace(picked.Email))
+			e_email.Text = picked.Email;
+	}
+
 	public QuickAddCustomer()
 	{
 		InitializeComponent();

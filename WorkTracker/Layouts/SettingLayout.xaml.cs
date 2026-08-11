@@ -265,7 +265,7 @@ public partial class SettingLayout : ContentPage
             CloudSync.ClientSecret = e_cloudClientSecret.Text?.Trim();
         }
 
-        if (string.IsNullOrWhiteSpace(CloudSync.ClientId))
+        if (!CloudSync.HasUsableClientId)
         {
             await DisplayAlert("Cloud Sync",
                 "You need a Client ID first.\n\n" +

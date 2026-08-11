@@ -32,7 +32,7 @@
                             </Label.GestureRecognizers>
                         </Label>
                         
-                        <Label x:Name="l_phone" Text="phone" HorizontalOptions="Center" TextColor="Blue" Padding="4">
+                        <Label x:Name="l_phone" Text="phone" HorizontalOptions="Center" TextColor="LightBlue" Padding="4">
                             <Label.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="l_phoneClicked"></TapGestureRecognizer>
                             </Label.GestureRecognizers>

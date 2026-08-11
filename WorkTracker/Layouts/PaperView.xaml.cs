@@ -93,6 +93,16 @@ public partial class PaperView : ContentPage
 		{
 			get { return ShowJobInformation && IsCanceled; }
 		}
+
+		/// <summary>
+		/// work already promised to a day carries an orange tab down the very
+		/// left of its row, so the bookings stand out while scanning the round.
+		/// once the job is done the booking is spent, so the tab goes with it
+		/// </summary>
+		public bool ShowBookedTab
+		{
+			get { return ShowJobDetails && JobI3 != null && JobI3.IsBookedIn && !JobI3.IsCompleted; }
+		}
 		public Job BaseJob { get; set; }
 
 		public Job _jobI3 { get; set; }
@@ -370,6 +380,8 @@ public partial class PaperView : ContentPage
 
 			IsCanceled = j.HaveCanceled;
 			TNB = j.TNB;
+			//booking a job in, or clearing it, has to show on the row straight away
+			RaisePropertyChanged("ShowBookedTab");
 
 			//a job whose customer has gone still has to draw rather than bring
 			//the page down with it
@@ -670,6 +682,11 @@ public partial class PaperView : ContentPage
 		//ahead than the list reaches still shows at the top
 		List<Job> bookedWork = jobs.FindAll(x => x.IsBookedIn && !x.IsCompleted && !x.HaveCanceled);
 
+		//and taken out of the round: booked work belongs in the block at the top
+		//and nowhere else. it used to be copied up rather than moved, so every
+		//booked house was drawn a second time against its own street
+		jobs.RemoveAll(x => x.IsBookedIn && !x.IsCompleted && !x.HaveCanceled);
+
 		//the list is the work in hand: a job stays on it while it is due,
 		//while it is coming up in the next few days, and for the rest of the
 		//day it was written up so it can still be corrected. everything else
@@ -912,9 +929,8 @@ public partial class PaperView : ContentPage
 
 	/// <summary>
 	/// puts the work booked in at the top of the list, a day at a time and
-	/// grouped by street the same way as the round below it. the rows are a
-	/// second copy of the job rather than the job moved, so the house still
-	/// appears on its own street further down
+	/// grouped by street the same way as the round below it. the job is moved
+	/// here rather than copied, so a booked house is listed once and once only
 	/// </summary>
 	private void AddBookedWorkToTop(List<Job> bookedWork)
 	{

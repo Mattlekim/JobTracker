@@ -34,5 +34,7 @@
 	<string>The photo library is used to attach existing receipt photos to expenses.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Receipt photos taken with the camera can be saved to your photo library.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Your contacts are used to fill in a customer's name, phone number and email so they do not have to be typed twice.</string>
 </dict>
 </plist>

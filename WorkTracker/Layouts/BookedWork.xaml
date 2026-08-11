@@ -48,9 +48,11 @@
 
         <CollectionView.ItemTemplate>
             <DataTemplate>
-                <!-- a short drag is enough to open the actions: on a round you
-                     are working one handed with wet hands -->
-                <SwipeView Threshold="20">
+                <!-- the actions open on a drag: on a round you are working one
+                     handed with wet hands. Threshold is deliberately left unset -
+                     on Android it clamps how far the row opens, so the actions
+                     only peeked out instead of appearing -->
+                <SwipeView>
                     <SwipeView.LeftItems>
                         <SwipeItems>
                             <SwipeItem Text="Done" IconImageSource="tick.png" CommandParameter="{Binding .}" BackgroundColor="#4CAF50" Invoked="On_Job_Compleated"/>

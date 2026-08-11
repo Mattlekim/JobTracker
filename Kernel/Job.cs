@@ -997,13 +997,20 @@ namespace Kernel
                 {
                     DueColorCode = Colors.LightGray;
                     DueColorTextCode = Colors.Black;
-                    int d = UsfulFuctions.Difference(DueDate, UsfulFuctions.DateNow);
+                    //counted from the day the work was actually done, not the day
+                    //it fell due. this used to measure from DueDate, so a job
+                    //cleaned months after it was due reported the whole overdue
+                    //stretch as though that was how long ago it was cleaned -
+                    //work finished this morning came up as "526 Days Ago"
+                    int d = UsfulFuctions.Difference(DateCompleated, UsfulFuctions.DateNow);
                     switch (d)
                     {
                         case 0:
                             return $"Completed Today";
 
-                        case -1:
+                        //Difference has no sign to it, so yesterday counts as
+                        //one. the old -1 here could never be matched
+                        case 1:
                             return $"Completed Yesterday";
 
                     }
