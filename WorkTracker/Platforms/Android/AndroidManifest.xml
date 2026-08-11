@@ -14,9 +14,41 @@
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
 	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
 	<uses-feature android:name="android.hardware.camera" android:required="false" />
+	<!-- from android 11 an app cannot see other apps unless it says which
+	     kinds it needs. without these the messaging and mail apps look as
+	     though they are not installed and texting a customer fails with
+	     "not supported on this device" -->
 	<queries>
 		<intent>
 			<action android:name="android.media.action.IMAGE_CAPTURE" />
+		</intent>
+		<!-- texting a customer -->
+		<intent>
+			<action android:name="android.intent.action.VIEW" />
+			<data android:scheme="smsto" />
+		</intent>
+		<intent>
+			<action android:name="android.intent.action.SENDTO" />
+			<data android:scheme="smsto" />
+		</intent>
+		<!-- emailing a customer -->
+		<intent>
+			<action android:name="android.intent.action.SENDTO" />
+			<data android:scheme="mailto" />
+		</intent>
+		<!-- ringing a customer -->
+		<intent>
+			<action android:name="android.intent.action.DIAL" />
+			<data android:scheme="tel" />
+		</intent>
+		<!-- opening the google sign in page and sharing exports -->
+		<intent>
+			<action android:name="android.intent.action.VIEW" />
+			<data android:scheme="https" />
+		</intent>
+		<intent>
+			<action android:name="android.intent.action.SEND" />
+			<data android:mimeType="*/*" />
 		</intent>
 	</queries>
 	<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="31"/>
