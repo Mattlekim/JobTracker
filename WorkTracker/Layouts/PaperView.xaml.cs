@@ -1233,16 +1233,23 @@ public partial class PaperView : ContentPage
 						count++;
 			}
 
-		//everything on this street that could be booked in for a day
-		List<Job> streetJobs = JobsOnStreet(pi);
+		//what could be booked in for a day from here: the whole street, or
+		//just the run of houses under this heading
+		List<Job> streetJobs = BookableJobs(pi, !pi.IsDateBreak);
+		List<Job> runJobs = pi.IsDateBreak ? streetJobs : BookableJobs(pi, false);
 
 		if (streetJobs.Count > 0 || count > 1)
 			options.Add("-----------");
 
 		if (streetJobs.Count > 0)
 			options.Add(pi.IsDateBreak
-				? $"Book In {streetJobs.Count} From Here"
+				? $"Book In {runJobs.Count} From Here"
 				: $"Book In {streetJobs.Count} On This Street");
+
+		//only worth offering when the street is split by a break, otherwise
+		//it would be the same jobs twice
+		if (!pi.IsDateBreak && runJobs.Count > 0 && runJobs.Count != streetJobs.Count)
+			options.Add($"Book In {runJobs.Count} To The First Break");
 
 		if (count > 1)
 			options.Add($"Mark {count} below as compleated");
@@ -1313,7 +1320,7 @@ public partial class PaperView : ContentPage
 
 		if (result.StartsWith("Book In"))
 		{
-			BookJobFormcs.jobs = streetJobs;
+			BookJobFormcs.jobs = result.Contains("First Break") ? runJobs : streetJobs;
 			await Navigation.PushAsync(new BookJobFormcs());
 			_fullRefresh = true;
 			return;
@@ -1337,12 +1344,13 @@ public partial class PaperView : ContentPage
 	/// <summary>
 	/// the jobs worth booking in from a heading: still to be done, not
 	/// cancelled and not already booked for a day.
-	///
-	/// From a street heading that means the whole street. From one of the
-	/// breaks where the houses were last done at different times, it means
-	/// just that part of the street - which is what is under the break.
 	/// </summary>
-	private List<Job> JobsOnStreet(PaperItem heading)
+	/// <param name="wholeStreet">
+	/// true for every house on the street; false for just the run of houses
+	/// under this heading, which stops at the next break where the houses
+	/// were last done at a different time
+	/// </param>
+	private List<Job> BookableJobs(PaperItem heading, bool wholeStreet)
 	{
 		List<Job> jobs = new List<Job>();
 		foreach (PaperItem p in PaperItems)
@@ -1350,11 +1358,11 @@ public partial class PaperView : ContentPage
 			if (p.JobI3 == null)
 				continue;
 
-			bool wanted = heading.IsDateBreak
-				? p.GroupId == heading.GroupId
-				: SameText(p.PropertyStreet, heading.PropertyStreet)
+			bool wanted = wholeStreet
+				? SameText(p.PropertyStreet, heading.PropertyStreet)
 					&& SameText(p.PropertyCity, heading.PropertyCity)
-					&& SameText(p.PropertyArea, heading.PropertyArea);
+					&& SameText(p.PropertyArea, heading.PropertyArea)
+				: p.GroupId == heading.GroupId;
 
 			if (!wanted)
 				continue;
