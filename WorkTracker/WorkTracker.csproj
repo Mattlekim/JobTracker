@@ -19,8 +19,8 @@
 		<ApplicationIdGuid>20D09131-3A8A-4699-A635-26E57F2BB6C5</ApplicationIdGuid>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>1.97</ApplicationDisplayVersion>
-		<ApplicationVersion>30</ApplicationVersion>
+		<ApplicationDisplayVersion>1.98</ApplicationDisplayVersion>
+		<ApplicationVersion>31</ApplicationVersion>
 
 		<!-- stamped into the assembly so the settings page can show when
 		     this build was made, without anyone having to remember -->

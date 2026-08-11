@@ -33,12 +33,13 @@
             <Grid.RowDefinitions>
                 <RowDefinition></RowDefinition>
                 <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition></ColumnDefinition>
                 <ColumnDefinition></ColumnDefinition>
-               
-               
+
+
             </Grid.ColumnDefinitions>
             <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Padding="4">
                 <Label Text="Show Canceled Jobs" VerticalOptions="Center"></Label>
@@ -50,7 +51,14 @@
                 <DatePicker x:Name="dp_markDate" DateSelected="dp_MarkDate_Selected"></DatePicker>
             </HorizontalStackLayout>
 
-            <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="Hide" HorizontalOptions="Center" BackgroundColor="Transparent" 
+            <!-- off, the list is the work in hand: due, due in the next few
+                 days, or written up today -->
+            <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Padding="4">
+                <Label Text="Show All Jobs" VerticalOptions="Center"></Label>
+                <CheckBox x:Name="cb_showAllJobs" IsChecked="False" BackgroundColor="Transparent"></CheckBox>
+            </HorizontalStackLayout>
+
+            <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="Hide" HorizontalOptions="Center" BackgroundColor="Transparent"
                     BorderColor="{AppThemeBinding Light=Black, Dark=White}" BorderWidth="2" TextColor="{AppThemeBinding Light=Black, Dark=White}"
                     VerticalOptions="Center" Clicked="bnt_hideOptions_Clicked"></Button>
         </Grid>

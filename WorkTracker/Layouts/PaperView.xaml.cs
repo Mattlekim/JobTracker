@@ -117,6 +117,13 @@ public partial class PaperView : ContentPage
 		/// </summary>
 		public bool IsDateBreak { get; set; } = false;
 
+		/// <summary>
+		/// one of the rows in the booked work at the top of the list. they are
+		/// a copy of work that is already further down the list, so they are
+		/// left out of anything that works on the round itself
+		/// </summary>
+		public bool IsBookedRow { get; set; } = false;
+
 		private string _jobNote = string.Empty;
         public string JobNote
 		{
@@ -363,7 +370,11 @@ public partial class PaperView : ContentPage
 
 			IsCanceled = j.HaveCanceled;
 			TNB = j.TNB;
-            float bal = j.GetCustomer().Balance;
+
+			//a job whose customer has gone still has to draw rather than bring
+			//the page down with it
+			Customer customer = j.GetCustomer();
+            float bal = customer == null ? 0 : customer.Balance;
 
             if (bal == 0)
                 Owing = "Nothing Owed";
@@ -589,6 +600,10 @@ public partial class PaperView : ContentPage
 		cb_showCanceledJobs.IsChecked = ShowCancelledJobs;
 		cb_showCanceledJobs.CheckedChanged += cb_showCanceledJobs_Changed;
 
+		cb_showAllJobs.CheckedChanged -= cb_showAllJobs_Changed;
+		cb_showAllJobs.IsChecked = ShowAllJobs;
+		cb_showAllJobs.CheckedChanged += cb_showAllJobs_Changed;
+
 
 
 
@@ -650,6 +665,24 @@ public partial class PaperView : ContentPage
 
 		if (PaperViewFilter != null)
 			PaperViewFilter.Filter(ref jobs);
+
+		//picked out before the list is thinned down, so a day booked further
+		//ahead than the list reaches still shows at the top
+		List<Job> bookedWork = jobs.FindAll(x => x.IsBookedIn && !x.IsCompleted && !x.HaveCanceled);
+
+		//the list is the work in hand: a job stays on it while it is due,
+		//while it is coming up in the next few days, and for the rest of the
+		//day it was written up so it can still be corrected. everything else
+		//is out of the way until all jobs are asked for
+		if (!ShowAllJobs)
+		{
+			HashSet<int> keep = new HashSet<int>();
+			foreach (Job j in jobs)
+				if (IsWorkInHand(j))
+					keep.Add(j.BaseJobId);
+
+			jobs.RemoveAll(x => !keep.Contains(x.BaseJobId));
+		}
 
         jobs = jobs.OrderByDescending(x => x.OrderByDate).ToList();
         
@@ -820,6 +853,9 @@ public partial class PaperView : ContentPage
 		if (PaperItems.Count > 0)
 			PaperItems[PaperItems.Count - 1].GroupId = groupId;
 
+		//the round that is booked in goes above the street list
+		AddBookedWorkToTop(bookedWork);
+
 		//alternating row backgrounds instead of ruled lines; restart at each street
 		bool darkTheme = Application.Current.PlatformAppTheme == AppTheme.Dark;
 		bool alt = false;
@@ -841,6 +877,143 @@ public partial class PaperView : ContentPage
 
         c_jobList.ItemsSource = PaperItems;
     }
+
+	/// <summary>
+	/// how many days ahead a job can be due and still be worth having on the
+	/// list
+	/// </summary>
+	public const int DueSoonDays = 3;
+
+	/// <summary>
+	/// whether this record keeps its house on the job list. work that is due,
+	/// due in the next few days or booked in is in hand; work written up
+	/// today stays until the end of the day so it can still be corrected
+	/// </summary>
+	private static bool IsWorkInHand(Job j)
+	{
+		if (j == null)
+			return false;
+
+		if (!j.IsCompleted)
+		{
+			if (j.IsBookedIn)
+				return true;
+
+			//skipped work has been dealt with for this round, so it only
+			//holds its place for the rest of the day it was skipped on
+			//(whole days, so it still counts right over the new year)
+			if (!j.HaveSkipped)
+				return (j.DueDate.Date - DateTime.Now.Date).TotalDays <= DueSoonDays;
+		}
+
+		DateTime markedOn = j.IsCompleted ? j.DateCompleated : j.DateSkipped;
+		return markedOn.Date == DateTime.Now.Date;
+	}
+
+	/// <summary>
+	/// puts the work booked in at the top of the list, a day at a time and
+	/// grouped by street the same way as the round below it. the rows are a
+	/// second copy of the job rather than the job moved, so the house still
+	/// appears on its own street further down
+	/// </summary>
+	private void AddBookedWorkToTop(List<Job> bookedWork)
+	{
+		if (bookedWork == null || bookedWork.Count == 0)
+			return;
+
+		//one row per house, even if an older record of it was left booked in
+		List<Job> booked = new List<Job>();
+		foreach (Job j in bookedWork.OrderByDescending(x => x.DueDate))
+			if (!booked.Any(x => x.BaseJobId == j.BaseJobId))
+				booked.Add(j);
+
+		int insertAt = 0;
+		foreach (IGrouping<DateTime, Job> day in booked
+			.GroupBy(x => x.DateJobBookinFor.Date)
+			.OrderBy(x => x.Key))
+		{
+			List<Job> daysWork = day.ToList();
+
+			float total = 0;
+			foreach (Job j in daysWork)
+				total += j.EffectivePrice;
+
+			PaperItems.Insert(insertAt++, new PaperItem()
+			{
+				ShowJobInformation = false,
+				IsBookedRow = true,
+				Title = $"Booked In {day.Key.ToString("ddd dd MMM")} - {daysWork.Count} job(s) {Gloable.CurrenceSymbol}{total.ToString("n2")}",
+				FontAttri = FontAttributes.Bold,
+				TitlePadding = new Thickness(4, 12, 4, 4),
+				I3 = day.Key.ToString("dd/MM/yy"),
+			});
+
+			foreach (IGrouping<string, Job> street in daysWork
+				.GroupBy(x => x.Address == null ? string.Empty : x.Address.Street ?? string.Empty)
+				.OrderBy(x => x.Key))
+			{
+				PaperItems.Insert(insertAt++, new PaperItem()
+				{
+					ShowJobInformation = false,
+					IsBookedRow = true,
+					Title = string.IsNullOrWhiteSpace(street.Key) ? "- - - - -" : street.Key,
+					FontAttri = FontAttributes.Italic,
+					TitlePadding = new Thickness(14, 4, 4, 2),
+				});
+
+				foreach (Job j in street.OrderBy(x => x.Address == null ? string.Empty : x.Address.PropertyNameNumber))
+					PaperItems.Insert(insertAt++, BookedRow(j));
+			}
+		}
+
+		//a plain gap so the round below does not read as part of the booking
+		PaperItems.Insert(insertAt, new PaperItem()
+		{
+			ShowJobInformation = false,
+			IsBookedRow = true,
+			Title = " ",
+		});
+	}
+
+	/// <summary>one house in the booked work at the top of the list</summary>
+	private PaperItem BookedRow(Job j)
+	{
+		PaperItem row = new PaperItem()
+		{
+			IsBookedRow = true,
+			Title = j.Address == null ? string.Empty : j.Address.PropertyNameNumber,
+			PropertyNumber = j.Address == null ? string.Empty : j.Address.PropertyNameNumber,
+			BasePice = j.EffectivePrice,
+			Notes = j.Notes,
+			BaseJob = j,
+			JobI3 = j,
+			TranslastionX = 10,
+		};
+
+		row.UpdatePaperRecordI3(j);
+
+		//the balance is written back through the job, so a booked house that
+		//is not on the round below still has a row to write to
+		if (j.Data == null)
+			j.Data = row;
+
+		return row;
+	}
+
+	/// <summary>
+	/// brings every row showing this job back in line. booked work is on the
+	/// list twice, and a job with no row at all is left alone rather than
+	/// bringing the page down
+	/// </summary>
+	private void RefreshRowsForJob(Job j)
+	{
+		if (j == null)
+			return;
+
+		foreach (PaperItem p in PaperItems)
+			if (p.JobI3 == j || p.BaseJob == j)
+				p.UpdatePaperRecordI3(j);
+	}
 
 	private bool SkipNavigatTo = true;
 	private void PaperView_NavigatedTo(object sender, NavigatedToEventArgs e)
@@ -965,6 +1138,8 @@ public partial class PaperView : ContentPage
 		if (result == "Book In")
 		{
 			BookJobFormcs.jobs = new List<Job> { j };
+			//the booked work at the top has to be built again with this in it
+			_fullRefresh = true;
 			await Navigation.PushAsync(new BookJobFormcs());
 			return;
 		}
@@ -973,6 +1148,8 @@ public partial class PaperView : ContentPage
 		{
 			j.UnBookInJob();
 			Job.Save();
+			//and taken back out of the booked work at the top
+			FullPageLoad();
 			return;
 		}
 
@@ -1070,15 +1247,15 @@ public partial class PaperView : ContentPage
 			UpdateJobInstance.CurrentJob = j;
 			UpdateJobInstance uJi = new UpdateJobInstance();
 			Job customJob = j;
-			PaperItem customItem = tappedItem;
 			uJi.OnConfirmed = (() => {
-                customItem?.UpdatePaperRecordI3(customJob);
+                RefreshRowsForJob(customJob);
             });
 			await Navigation.PushAsync(uJi);
 			return;
 		}
 
 		tappedItem?.UpdatePaperRecordI3(j);
+		RefreshRowsForJob(j);
 	}
 
 	private async void grid_Ballence_Tapped(object sender, EventArgs e)
@@ -1142,9 +1319,7 @@ public partial class PaperView : ContentPage
 
 				if (c != null)
 					c.Balance = 0;
-				PaperItem pi = j.Data as PaperItem;
-				pi.Owing = $"Nothing Owed";
-				pi.UpdateColors();
+				RefreshRowsForJob(j);
 
 				Customer.Save();
 			}
@@ -1187,10 +1362,7 @@ public partial class PaperView : ContentPage
                 Payment.Add(j.CustomerId, c.Balance, PaymentMethod.Cash, string.Empty);
                 if (c != null)
 					c.Balance = 0;
-				PaperItem pi = j.Data as PaperItem;
-				pi.Owing = $"Nothing Owed";
-				pi.UpdateColors();
-                pi.UpdatePaperRecordI3(j);
+				RefreshRowsForJob(j);
 
                 Customer.Save();
 				Job.Save();
@@ -1218,8 +1390,13 @@ public partial class PaperView : ContentPage
 	{
         TappedEventArgs args = e as TappedEventArgs;
 		PaperItem pi = args.Parameter as PaperItem;
-		
+
 		if (pi.Title == " ")
+			return;
+
+		//the headings over the booked work are a summary of the round, not a
+		//street to add houses to
+		if (pi.IsBookedRow)
 			return;
 
 		List<string> options = new List<string>();
@@ -1549,6 +1726,25 @@ public partial class PaperView : ContentPage
 			return;
 
 		ShowCancelledJobs = e.Value;
+		FullPageLoad();
+	}
+
+	/// <summary>
+	/// whether every job is listed, or just the work in hand. off to begin
+	/// with - a round that is not due for weeks is not work to do today
+	/// </summary>
+	public static bool ShowAllJobs
+	{
+		get { return Preferences.Get("PaperView_ShowAllJobs", false); }
+		set { Preferences.Set("PaperView_ShowAllJobs", value); }
+	}
+
+	private void cb_showAllJobs_Changed(object sender, CheckedChangedEventArgs e)
+	{
+		if (ShowAllJobs == e.Value)
+			return;
+
+		ShowAllJobs = e.Value;
 		FullPageLoad();
 	}
 
