@@ -530,6 +530,10 @@ public partial class SettingLayout : ContentPage
         GoCardlessRequest.Save(Settings.SaveDataFolder);
         Settings.Save(Settings.SaveDataFolder);
 
+        //receipt photos go in too, otherwise a restored expense points at a
+        //photo that is not there - and the photo is the proof for the taxman
+        int receiptCount = CopyReceiptsIntoBackup(saveDir);
+
         string backupfile = $"Backup{DateTime.Now}.rbf";
         backupfile = backupfile.Replace("/", "-");
         backupfile = backupfile.Replace(":", "");
@@ -537,10 +541,45 @@ public partial class SettingLayout : ContentPage
         backupfile = Path.Combine(Settings.BackupDataFolder, backupfile);
         ZipFile.CreateFromDirectory(saveDir, backupfile);
 
-        await DisplayAlert("Backup Created", "Your backup has been created", "Ok");
+        await DisplayAlert("Backup Created",
+            receiptCount > 0
+                ? $"Your backup has been created, including {receiptCount} receipt photo(s)."
+                : "Your backup has been created", "Ok");
 
         ShareFile sf = new ShareFile(backupfile);
         await Share.RequestAsync(new ShareFileRequest("Work Tracker Backup", sf));
+    }
+
+    /// <summary>
+    /// copies the receipt photos into the folder that gets zipped up, under
+    /// the same 'receipts' name they live in, so restoring puts them back
+    /// where the expenses expect to find them
+    /// </summary>
+    /// <returns>how many photos went in</returns>
+    private static int CopyReceiptsIntoBackup(string saveDir)
+    {
+        try
+        {
+            string source = Expense.GetReceiptFolderPath();
+            string destination = Path.Combine(saveDir, Expense.ReceiptFolder);
+
+            //start clean so photos deleted since the last backup do not linger
+            if (Directory.Exists(destination))
+                Directory.Delete(destination, true);
+            Directory.CreateDirectory(destination);
+
+            int count = 0;
+            foreach (string file in Directory.GetFiles(source))
+            {
+                File.Copy(file, Path.Combine(destination, Path.GetFileName(file)), true);
+                count++;
+            }
+            return count;
+        }
+        catch
+        {
+            return 0;
+        }
     }
 
     private async void bnt_createBackup_Clicked(object sender, EventArgs e)

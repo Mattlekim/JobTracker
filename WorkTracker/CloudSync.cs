@@ -352,20 +352,7 @@ namespace UiInterface
                 Http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
                 //what's in the cloud?
-                List<RemoteFile> remote = new List<RemoteFile>();
-                HttpResponseMessage listResp = await Http.GetAsync(
-                    $"{FilesUrl}?spaces=appDataFolder&fields=files(id,name,modifiedTime)&pageSize=100");
-                string listBody = await listResp.Content.ReadAsStringAsync();
-                if (!listResp.IsSuccessStatusCode)
-                    throw new Exception($"Could not list cloud files: {listBody}");
-                using (JsonDocument doc = JsonDocument.Parse(listBody))
-                    foreach (JsonElement f in doc.RootElement.GetProperty("files").EnumerateArray())
-                        remote.Add(new RemoteFile
-                        {
-                            Id = f.GetProperty("id").GetString(),
-                            Name = f.GetProperty("name").GetString(),
-                            Modified = f.GetProperty("modifiedTime").GetDateTime().ToUniversalTime(),
-                        });
+                List<RemoteFile> remote = await ListRemoteAsync();
 
                 int uploaded = 0, downloaded = 0;
                 bool reloadNeeded = false;
@@ -417,6 +404,11 @@ namespace UiInterface
                     }
                 }
 
+                //receipt photos, so an expense's evidence follows the records
+                (int photosUp, int photosDown) = await SyncReceiptsAsync(remote);
+                uploaded += photosUp;
+                downloaded += photosDown;
+
                 if (reloadNeeded)
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
@@ -442,6 +434,94 @@ namespace UiInterface
                 _syncing = false;
             }
         }
+
+        /// <summary>
+        /// everything in the hidden app folder, following the paging cursor
+        /// so a big pile of receipt photos does not get cut off
+        /// </summary>
+        static async Task<List<RemoteFile>> ListRemoteAsync()
+        {
+            List<RemoteFile> remote = new List<RemoteFile>();
+            string pageToken = null;
+
+            do
+            {
+                string url = $"{FilesUrl}?spaces=appDataFolder&fields=nextPageToken,files(id,name,modifiedTime)&pageSize=1000";
+                if (pageToken != null)
+                    url += $"&pageToken={Uri.EscapeDataString(pageToken)}";
+
+                HttpResponseMessage resp = await Http.GetAsync(url);
+                string body = await resp.Content.ReadAsStringAsync();
+                if (!resp.IsSuccessStatusCode)
+                    throw new Exception($"Could not list cloud files: {body}");
+
+                using JsonDocument doc = JsonDocument.Parse(body);
+                foreach (JsonElement f in doc.RootElement.GetProperty("files").EnumerateArray())
+                    remote.Add(new RemoteFile
+                    {
+                        Id = f.GetProperty("id").GetString(),
+                        Name = f.GetProperty("name").GetString(),
+                        Modified = f.GetProperty("modifiedTime").GetDateTime().ToUniversalTime(),
+                    });
+
+                pageToken = doc.RootElement.TryGetProperty("nextPageToken", out JsonElement t) && t.ValueKind == JsonValueKind.String
+                    ? t.GetString()
+                    : null;
+            }
+            while (pageToken != null);
+
+            return remote;
+        }
+
+        /// <summary>
+        /// receipt photos are named uniquely when they are taken and never
+        /// change afterwards, so there is nothing to resolve: a photo either
+        /// side is missing is simply copied across. Photos are not deleted
+        /// from the cloud, so removing an expense on one device cannot take
+        /// the evidence away from another.
+        /// </summary>
+        static async Task<(int uploaded, int downloaded)> SyncReceiptsAsync(List<RemoteFile> remote)
+        {
+            int uploaded = 0, downloaded = 0;
+
+            try
+            {
+                string folder = Kernel.Expense.GetReceiptFolderPath();
+
+                HashSet<string> remoteNames = new HashSet<string>(
+                    remote.Where(x => x.Name.StartsWith(ReceiptPrefix)).Select(x => x.Name));
+
+                foreach (string path in Directory.GetFiles(folder))
+                {
+                    string name = Path.GetFileName(path);
+                    if (!name.StartsWith(ReceiptPrefix) || remoteNames.Contains(name))
+                        continue;
+
+                    await UploadAsync(name, path, null);
+                    uploaded++;
+                }
+
+                foreach (RemoteFile rf in remote.Where(x => x.Name.StartsWith(ReceiptPrefix)))
+                {
+                    string path = Path.Combine(folder, rf.Name);
+                    if (File.Exists(path))
+                        continue;
+
+                    await DownloadAsync(rf.Id, path);
+                    downloaded++;
+                }
+            }
+            catch
+            {
+                //a photo that will not copy must not sink the whole sync -
+                //the records matter more and it is retried next time
+            }
+
+            return (uploaded, downloaded);
+        }
+
+        /// <summary>how receipt photos are named, see NewExpense</summary>
+        const string ReceiptPrefix = "receipt_";
 
         static async Task<DateTime> UploadAsync(string name, string path, string existingId)
         {
