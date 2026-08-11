@@ -42,7 +42,7 @@
             </Grid.ColumnDefinitions>
             <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Padding="4">
                 <Label Text="Show Canceled Jobs" VerticalOptions="Center"></Label>
-                <CheckBox x:Name="cb_showCanceledJobs" IsChecked="True" BackgroundColor="Transparent"></CheckBox>
+                <CheckBox x:Name="cb_showCanceledJobs" IsChecked="False" BackgroundColor="Transparent"></CheckBox>
             </HorizontalStackLayout>
 
             <HorizontalStackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="End" Padding="4">
@@ -85,16 +85,30 @@
                             <ColumnDefinition Width="0.08*"></ColumnDefinition>
                         </Grid.ColumnDefinitions>
 
-                        <BoxView HorizontalOptions="FillAndExpand" VerticalOptions="Center" HeightRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="0" Grid.ColumnSpan="9" IsVisible="{Binding IsCanceled}"/>
-                        
-                        <!--BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="3" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/>
-                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="4" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/>
-                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="5" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/>
-                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="6" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/>
-                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="7" Grid.Row="0" IsVisible="{Binding ShowJobInformation}"/-->
+                        <!-- a cancelled job collapses to one faded struck through
+                             line instead of a full record; tap it to resume -->
+                        <ContentView BackgroundColor="Transparent" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="8" Padding="4,2" Opacity="0.45"
+                                     IsVisible="{Binding ShowCancelledRow}" IsEnabled="{Binding ShowCancelledRow}">
+                            <HorizontalStackLayout Spacing="6" TranslationX="10">
+                                <Label Text="{Binding Title}" FontAttributes="Bold" TextDecorations="Strikethrough" VerticalOptions="Center"></Label>
+                                <Label Text="{Binding PropertyStreet}" TextDecorations="Strikethrough" VerticalOptions="Center" FontSize="12"></Label>
+                                <Label Text="{Binding Price}" TextDecorations="Strikethrough" VerticalOptions="Center" FontSize="12"></Label>
+                                <Label Text="Cancelled" TextColor="White" BackgroundColor="#C62828" Padding="4,1" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                            </HorizontalStackLayout>
+                            <ContentView.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
+                            </ContentView.GestureRecognizers>
+                        </ContentView>
 
 
-                        <ContentView BackgroundColor="Transparent" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="{Binding RowSpan}" Padding="4" TranslationX="{Binding TranslastionX}" IsVisible="{Binding ShowJobInformation}"  IsEnabled="{Binding ShowJobInformation}">
+                        <!--BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="3" Grid.Row="0" IsVisible="{Binding ShowJobDetails}"/>
+                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="4" Grid.Row="0" IsVisible="{Binding ShowJobDetails}"/>
+                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="5" Grid.Row="0" IsVisible="{Binding ShowJobDetails}"/>
+                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="6" Grid.Row="0" IsVisible="{Binding ShowJobDetails}"/>
+                        <BoxView HorizontalOptions="Start" VerticalOptions="StartAndExpand" WidthRequest="1" Color="{AppThemeBinding Light=black, Dark=white}" Grid.Column="7" Grid.Row="0" IsVisible="{Binding ShowJobDetails}"/-->
+
+
+                        <ContentView BackgroundColor="Transparent" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="{Binding RowSpan}" Padding="4" TranslationX="{Binding TranslastionX}" IsVisible="{Binding ShowJobDetails}"  IsEnabled="{Binding ShowJobDetails}">
                             <Label Text="{Binding Title}"  FontAttributes="{Binding FontAttri}"></Label>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
@@ -104,32 +118,32 @@
                        
 
                         <!-- tnb sits between the number and price so the badges line up -->
-                        <ContentView BackgroundColor="Transparent" Grid.Column="1" Grid.Row="0">
+                        <ContentView BackgroundColor="Transparent" Grid.Column="1" Grid.Row="0" IsVisible="{Binding ShowJobDetails}">
                             <Label Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="4,2" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" HorizontalOptions="Start"></Label>
                         </ContentView>
 
                         <ContentView BackgroundColor="Transparent" Grid.Column="2" Grid.Row="0">
-                            <Label Text="{Binding Price}"  IsVisible="{Binding ShowJobInformation}"  IsEnabled="{Binding ShowJobInformation}" Padding="4,2" VerticalOptions="Center" HorizontalOptions="Start" BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold"></Label>
+                            <Label Text="{Binding Price}"  IsVisible="{Binding ShowJobDetails}"  IsEnabled="{Binding ShowJobDetails}" Padding="4,2" VerticalOptions="Center" HorizontalOptions="Start" BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold"></Label>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
                             </ContentView.GestureRecognizers>
                         </ContentView>
                         <ContentView BackgroundColor="Transparent" Grid.Column="3" Grid.Row="0">
-                            <Label Text="{Binding Notes}"  IsVisible="{Binding ShowJobInformation}"  IsEnabled="{Binding ShowJobInformation}" Padding="2"  FontSize="12" VerticalOptions="Center"></Label>
+                            <Label Text="{Binding Notes}"  IsVisible="{Binding ShowJobDetails}"  IsEnabled="{Binding ShowJobDetails}" Padding="2"  FontSize="12" VerticalOptions="Center"></Label>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
                             </ContentView.GestureRecognizers>
                         </ContentView>
 
                         <ContentView BackgroundColor="Transparent" Grid.Column="4" Grid.Row="0">
-                            <Label Text="{Binding Owing}" TextColor="{Binding OwingColour}" IsVisible="{Binding ShowJobInformation}"  IsEnabled="{Binding ShowJobInformation}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12"></Label>
+                            <Label Text="{Binding Owing}" TextColor="{Binding OwingColour}" IsVisible="{Binding ShowJobDetails}"  IsEnabled="{Binding ShowJobDetails}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center" FontSize="12"></Label>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_Ballence_Tapped" CommandParameter="{Binding JobI3}"></TapGestureRecognizer>
                             </ContentView.GestureRecognizers>
                         </ContentView>
 
                         <ContentView Grid.Column="5" Grid.Row="0" BackgroundColor="{Binding BgColour}">
-                            <Label Text="{Binding I3}" IsVisible="{Binding ShowJobInformation}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center" ></Label>
+                            <Label Text="{Binding I3}" IsVisible="{Binding ShowJobDetails}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center" ></Label>
                         </ContentView>
 
                         <ContentView BackgroundColor="Transparent" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="5" Padding="{Binding TitlePadding}" IsVisible="{Binding NotShowJobInformation}" IsEnabled="{Binding NotShowJobInformation}">
@@ -153,7 +167,7 @@
                         </ContentView>
 
                         <ContentView Grid.Column="6" Grid.Row="0">
-                            <Label Text="{Binding I4}" IsVisible="{Binding ShowJobInformation}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center"  ></Label>
+                            <Label Text="{Binding I4}" IsVisible="{Binding ShowJobDetails}" Padding="2" HorizontalOptions="Center" VerticalOptions="Center"  ></Label>
                         </ContentView>
                     </Grid>
                 </DataTemplate>

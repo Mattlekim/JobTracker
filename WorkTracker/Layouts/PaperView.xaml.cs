@@ -72,7 +72,26 @@ public partial class PaperView : ContentPage
 			{
 				_isCanceled = value;
                 RaisePropertyChanged("IsCanceled");
+                RaisePropertyChanged("ShowJobDetails");
+                RaisePropertyChanged("ShowCancelledRow");
             }
+		}
+
+		/// <summary>
+		/// a normal job row: the full set of columns. a cancelled job shows
+		/// the collapsed line instead
+		/// </summary>
+		public bool ShowJobDetails
+		{
+			get { return ShowJobInformation && !IsCanceled; }
+		}
+
+		/// <summary>
+		/// a cancelled job, shown as one faded struck through line
+		/// </summary>
+		public bool ShowCancelledRow
+		{
+			get { return ShowJobInformation && IsCanceled; }
 		}
 		public Job BaseJob { get; set; }
 
@@ -557,6 +576,11 @@ public partial class PaperView : ContentPage
 
 		g_filters.BindingContext = PaperViewFilter;
 
+		//set before the list is built, and without setting it off again
+		cb_showCanceledJobs.CheckedChanged -= cb_showCanceledJobs_Changed;
+		cb_showCanceledJobs.IsChecked = ShowCancelledJobs;
+		cb_showCanceledJobs.CheckedChanged += cb_showCanceledJobs_Changed;
+
 
 
 
@@ -602,6 +626,10 @@ public partial class PaperView : ContentPage
 	{
         List<Job> jobs = Job.Query();
 		jobs.RemoveAll(x => x.JobNextId == -1 && x.IsCompleted && UsfulFuctions.DifferenceSigned(DateTime.Now, x.DateCompleated) > 30);
+
+		//cancelled work is out of the way unless it is asked for
+		if (!ShowCancelledJobs)
+			jobs.RemoveAll(x => x.HaveCanceled);
 
 		if (PaperViewFilter != null)
 			PaperViewFilter.Filter(ref jobs);
@@ -878,7 +906,12 @@ public partial class PaperView : ContentPage
 		if (result == "Cancel Job")
 		{
 			j.CancelJob();
-			tappedItem?.UpdatePaperRecordI3(j);
+			//while cancelled work is hidden it has to leave the list, not
+			//just collapse in place
+			if (!ShowCancelledJobs)
+				FullPageLoad();
+			else
+				tappedItem?.UpdatePaperRecordI3(j);
 			return;
 		}
 
@@ -1398,6 +1431,25 @@ public partial class PaperView : ContentPage
 			DateToMarkWorkDone = new DateTime(dt.Year, dt.Month, dt.Day);
 		}	
     }
+
+	/// <summary>
+	/// whether cancelled jobs appear in the list at all. off to begin with -
+	/// cancelled work is not work to do
+	/// </summary>
+	public static bool ShowCancelledJobs
+	{
+		get { return Preferences.Get("PaperView_ShowCancelled", false); }
+		set { Preferences.Set("PaperView_ShowCancelled", value); }
+	}
+
+	private void cb_showCanceledJobs_Changed(object sender, CheckedChangedEventArgs e)
+	{
+		if (ShowCancelledJobs == e.Value)
+			return;
+
+		ShowCancelledJobs = e.Value;
+		FullPageLoad();
+	}
 
 	private void bnt_hideOptions_Clicked(object sender, EventArgs e)
 	{
