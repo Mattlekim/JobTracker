@@ -17,7 +17,7 @@ namespace UiInterface
     /// </summary>
     public static class CloudSync
     {
-        static readonly string[] SyncFiles = { "customers.rjt", "jobs.rjt", "quotes.rjt", "payment.rjt" };
+        static readonly string[] SyncFiles = { "customers.rjt", "jobs.rjt", "quotes.rjt", "payment.rjt", "expenses.rjt" };
 
         const string Scope = "https://www.googleapis.com/auth/drive.appdata";
         const string DeviceCodeUrl = "https://oauth2.googleapis.com/device/code";
@@ -320,6 +320,7 @@ namespace UiInterface
                         Job.Reset();
                         Job.Load();
                         Payment.Load();
+                        Expense.Load();
                         DataRefreshNotifier.NotifyDataChanged();
                     });
 

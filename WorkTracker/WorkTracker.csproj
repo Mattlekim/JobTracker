@@ -67,6 +67,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="9.0.111" />
+		<PackageReference Include="Plugin.Maui.OCR" Version="1.1.1" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -96,6 +97,7 @@
 	<ItemGroup>
 	  <Compile Include="..\Kernel\CResult.cs" Link="Kernal\CResult.cs" />
 	  <Compile Include="..\Kernel\Customer.cs" Link="Kernal\Customer.cs" />
+	  <Compile Include="..\Kernel\Expense.cs" Link="Kernal\Expense.cs" />
 	  <Compile Include="..\Kernel\Filter.cs" Link="Kernal\Filter.cs" />
 	  <Compile Include="..\Kernel\Gloable.cs" Link="Kernal\Gloable.cs" />
 	  <Compile Include="..\Kernel\Job.cs" Link="Kernal\Job.cs" />

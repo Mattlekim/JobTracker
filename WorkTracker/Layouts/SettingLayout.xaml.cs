@@ -436,6 +436,7 @@ public partial class SettingLayout : ContentPage
         Customer.Save(Settings.SaveDataFolder);
         Job.Save(Settings.SaveDataFolder);
         Payment.Save(Settings.SaveDataFolder);
+        Expense.Save(Settings.SaveDataFolder);
         Settings.Save(Settings.SaveDataFolder);
 
         string backupfile = $"Backup{DateTime.Now}.rbf";
@@ -495,6 +496,7 @@ public partial class SettingLayout : ContentPage
                     Job.Reset();
                     Job.Load();
                     Payment.Load();
+                    Expense.Load();
                     DataRefreshNotifier.NotifyDataChanged();
                     await DisplayAlert("Success", "Backup has be restored sucsessfuly. Application will now restart", "ok");
                     
@@ -592,10 +594,12 @@ public partial class SettingLayout : ContentPage
                 Job.DeleteData();
                 Customer.DeleteData();
                 Payment.DeleteData();
+                Expense.DeleteData();
 
                 Job.Save();
                 Customer.Save();
                 Payment.Save();
+                Expense.Save();
                 DataRefreshNotifier.NotifyDataChanged();
                 await DisplayAlert("Complete", "All data erased", "Ok");
             }

@@ -10,6 +10,7 @@ namespace WorkTracker
             Customer.Load();
             Job.Load();
             Payment.Load();
+            Expense.Load();
             Settings.Load();
 
             //pulls newer cloud data in the background and pushes future saves

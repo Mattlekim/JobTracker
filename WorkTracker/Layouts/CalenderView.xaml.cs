@@ -91,6 +91,29 @@ public class CalenderDay: INotifyPropertyChanged
             return $"Paid {Gloable.CurrenceSymbol}{PaymentsTotal}";
         }
     }
+
+    public float ExpensesTotal;
+
+    private bool _showExpenses;
+    public bool ShowExpenses
+    {
+        get
+        {
+            return _showExpenses;
+        }
+        set
+        {
+            _showExpenses = value;
+            RaisePropertyChanged("ShowExpenses");
+        }
+    }
+    public string FormatExpenses
+    {
+        get
+        {
+            return $"Spent {Gloable.CurrenceSymbol}{ExpensesTotal:0.00}";
+        }
+    }
 	public ObservableCollection<Job> Jobs = new ObservableCollection<Job>();
 
     private Color _bgColor = Colors.Transparent;
@@ -241,9 +264,13 @@ public class CalenderDay: INotifyPropertyChanged
                 PaymentsTotal += p.Amount;
         ShowPayments = PaymentsTotal != 0;
 
+        ExpensesTotal = Expense.TotalForDate(Date);
+        ShowExpenses = ExpensesTotal != 0;
+
         RaisePropertyChanged("FormatAmount");
         RaisePropertyChanged("FormatJobCount");
         RaisePropertyChanged("FormatPayments");
+        RaisePropertyChanged("FormatExpenses");
         
         ResetColor();
 		if (UsfulFuctions.Difference(Date, DateNow) == 0)
@@ -424,6 +451,13 @@ public partial class CalenderView : ContentPage
             l.SetBinding(Label.IsVisibleProperty, "ShowPayments");
             cell.Add(l);
 
+            l = new Label() { FontSize = 12 };
+            l.BindingContext = _calenderDays[i];
+            l.SetBinding(Label.TextProperty, "FormatExpenses");
+            l.SetBinding(Label.TextColorProperty, "TextColor");
+            l.SetBinding(Label.IsVisibleProperty, "ShowExpenses");
+            cell.Add(l);
+
             border = new Border();
             border.ClassId = i.ToString();
             border.SetAppThemeColor(Border.StrokeProperty, Colors.Black, Colors.White);
@@ -530,9 +564,6 @@ public partial class CalenderView : ContentPage
 
     public async void ShowActionMenu(CalenderDay day)
     {
-        if (day.Jobs.Count == 0)
-            return;
-
         int numberOfJobsBookedIn = 0;
         int numberOfJobsNotBookedIn = 0;
         int bookinJobToMsg = 0;
@@ -578,14 +609,19 @@ public partial class CalenderView : ContentPage
 
         List<string> options = new List<string>();
 
-        if (numberOfJobsBookedIn > 0)
+        options.Add("Add Expense");
+
+        if (day.Jobs.Count > 0)
         {
-            if (numberOfJobsNotBookedIn > 0)
-                options.Add($"Bookin Remaining {numberOfJobsNotBookedIn} Jobs");
-            options.Add($"Cancel {numberOfJobsBookedIn} Jobs Booked In");
+            if (numberOfJobsBookedIn > 0)
+            {
+                if (numberOfJobsNotBookedIn > 0)
+                    options.Add($"Bookin Remaining {numberOfJobsNotBookedIn} Jobs");
+                options.Add($"Cancel {numberOfJobsBookedIn} Jobs Booked In");
+            }
+            else
+                options.Add("Bookin All Jobs");
         }
-        else
-            options.Add("Bookin All Jobs");
 
         if (notbookinJobToMsg + bookinJobToMsg > 0)
         {
@@ -601,6 +637,14 @@ public partial class CalenderView : ContentPage
         string result = await DisplayActionSheet($"{day.Date.DayOfWeek} {day.Date.ToShortDateString()}", "Cancel", null, options.ToArray());
         if (result == null)
             return;
+        if (result == "Add Expense")
+        {
+            NewExpense.ExpenseToEdit = null;
+            NewExpense.JobToLink = null;
+            NewExpense.DateToUse = day.Date;
+            await Navigation.PushAsync(new NewExpense());
+        }
+        else
         if (result.Contains("Bookin Remaining"))
         {
             BookJobFormcs.jobs = day.Jobs.ToList();
@@ -978,8 +1022,12 @@ public partial class CalenderView : ContentPage
             if (UsfulFuctions.Difference(p.Date, _selectedDay.Date) == 0)
                 paymentsTotal += p.Amount;
 
+        float expensesTotal = Expense.TotalForDate(_selectedDay.Date);
+
         l_dayJobTotal.Text = $"Jobs {Gloable.CurrenceSymbol}{jobTotal}";
         l_dayPaymentTotal.Text = $"Paid {Gloable.CurrenceSymbol}{paymentsTotal}";
+        l_dayExpenseTotal.Text = $"Spent {Gloable.CurrenceSymbol}{expensesTotal:0.00}";
+        l_dayExpenseTotal.IsVisible = expensesTotal != 0;
     }
 
     private void On_Job_More(object sender, EventArgs e)
@@ -1008,6 +1056,14 @@ public partial class CalenderView : ContentPage
     {
         Job j = GetJobForSwipe(sender);
         WorkPlanner.EditJobDetails(j, this);
+    }
+
+    private void On_Job_Expense(object sender, EventArgs e)
+    {
+        Job j = GetJobForSwipe(sender);
+        if (j == null)
+            return;
+        WorkPlanner.AddExpenseForJob(j, this);
     }
 
     

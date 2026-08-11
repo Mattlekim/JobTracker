@@ -1,4 +1,6 @@
-﻿namespace WorkTracker
+﻿using Plugin.Maui.OCR;
+
+namespace WorkTracker
 {
     public static class MauiProgram
     {
@@ -9,6 +11,7 @@
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseOcr()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

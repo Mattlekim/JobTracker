@@ -35,6 +35,10 @@
             Icon="payments.png">
             <ShellContent ContentTemplate="{DataTemplate local:Payments}" />
         </Tab>
+        <Tab Title="Expenses"
+            Icon="payments.png">
+            <ShellContent ContentTemplate="{DataTemplate local:Expenses}" />
+        </Tab>
         <Tab Title="Settings"
             Icon="options.png"
              >

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.Expenses"
+             Title="Expenses">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Add Expense" Clicked="bnt_addExpense_Clicked"></ToolbarItem>
+    </ContentPage.ToolbarItems>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <Label x:Name="l_overview" Grid.Row="0" FontSize="Small" FontAttributes="Bold" Padding="8"></Label>
+
+        <Label x:Name="l_noExpenses" Grid.Row="1" FontSize="Medium" HorizontalOptions="Center" Padding="16"
+               Text="No expenses yet. Add one with the 'Add Expense' button, from a job's swipe menu, or from the calendar."
+               IsVisible="false" HorizontalTextAlignment="Center"></Label>
+
+        <CollectionView Grid.Row="2" x:Name="lv_expenses" SelectionMode="Single" SelectionChanged="lv_expenses_SelectionChanged">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <SwipeView>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Edit"
+                                    IconImageSource="edit.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="#1E88E5"
+                                    Invoked="On_Expense_Edit" />
+                                <SwipeItem Text="Delete"
+                                    IconImageSource="cancel.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="#E53935"
+                                    Invoked="On_Expense_Delete" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+
+                        <Grid Padding="6" ColumnSpacing="8">
+                            <FlyoutBase.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Edit" CommandParameter="{Binding Id}" Clicked="On_Expense_Edit" />
+                                    <MenuFlyoutItem Text="Delete" CommandParameter="{Binding Id}" Clicked="On_Expense_Delete" />
+                                </MenuFlyout>
+                            </FlyoutBase.ContextFlyout>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- receipt thumbnail when a photo is attached -->
+                            <Border Grid.Column="0" StrokeThickness="0" StrokeShape="RoundRectangle 6" IsVisible="{Binding HasReceipt}" VerticalOptions="Start">
+                                <Image Source="{Binding ReceiptPhotoPath}" WidthRequest="52" HeightRequest="52" Aspect="AspectFill"></Image>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <HorizontalStackLayout Spacing="6">
+                                    <Label Text="{Binding FormattedAmount}" FontAttributes="Bold" TextColor="White" BackgroundColor="#C62828" Padding="6,3"></Label>
+                                    <Label Text="{Binding FormattedMerchant}" FontAttributes="Bold" Padding="2,3"></Label>
+                                    <Label Text="{Binding FormattedDate}" Padding="2,3"></Label>
+                                </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="6">
+                                    <Label Text="{Binding FormattedCategory}" TextColor="White" BackgroundColor="#7B1FA2" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
+                                    <Label Text="{Binding FormattedLinkedTo}" FontSize="12" Padding="2,2"></Label>
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding Notes}" FontSize="12" IsVisible="{Binding HaveNotes}" LineBreakMode="TailTruncation" MaxLines="1"></Label>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

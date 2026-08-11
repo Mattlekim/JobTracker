@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.NewExpense"
+             Title="Expense">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="Label">
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <StackLayout>
+
+        <Grid Padding="12,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" x:Name="bnt_delete" Text="Delete" Clicked="bnt_delete_Clicked" HorizontalOptions="Start" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#E53935" TextColor="#E53935" CornerRadius="8" Padding="16,6" IsVisible="false"></Button>
+            <Button Grid.Column="1" x:Name="bnt_save" Text="Save Expense" Clicked="bnt_save_Clicked" HorizontalOptions="End" BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="16,6"></Button>
+        </Grid>
+
+        <ScrollView VerticalOptions="FillAndExpand">
+            <VerticalStackLayout Padding="16,4,16,24" Spacing="12">
+
+                <!--  RECEIPT  -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Receipt" Style="{StaticResource SectionTitle}" />
+                        <Label Text="Take a photo of the receipt and the amount, date and shop will be read automatically." Style="{StaticResource Caption}" />
+
+                        <HorizontalStackLayout Spacing="8">
+                            <Button x:Name="bnt_takePhoto" Text="Take Photo" Clicked="bnt_takePhoto_Clicked" BackgroundColor="#1E88E5" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="14,6"></Button>
+                            <Button x:Name="bnt_pickPhoto" Text="Choose Photo" Clicked="bnt_pickPhoto_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5" CornerRadius="8" Padding="14,6"></Button>
+                            <Button x:Name="bnt_removePhoto" Text="Remove" Clicked="bnt_removePhoto_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#E53935" TextColor="#E53935" CornerRadius="8" Padding="14,6" IsVisible="false"></Button>
+                        </HorizontalStackLayout>
+
+                        <Label x:Name="l_scanStatus" Style="{StaticResource Caption}" IsVisible="false"></Label>
+
+                        <Image x:Name="img_receipt" IsVisible="false" MaximumHeightRequest="320" Aspect="AspectFit" HorizontalOptions="Start"></Image>
+
+                        <Button x:Name="bnt_rescan" Text="Read Receipt Again" Clicked="bnt_rescan_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#FB8C00" TextColor="#FB8C00" CornerRadius="8" Padding="14,6" IsVisible="false" HorizontalOptions="Start"></Button>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!--  DETAILS  -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Details" Style="{StaticResource SectionTitle}" />
+
+                        <Label x:Name="l_linkedTo" Style="{StaticResource Caption}"></Label>
+
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label x:Name="l_amountCaption" Text="Amount *" Style="{StaticResource Caption}" />
+                                <Entry x:Name="e_amount" Keyboard="Numeric" Placeholder="0.00"></Entry>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="Date" Style="{StaticResource Caption}" />
+                                <DatePicker x:Name="dp_date" HorizontalOptions="Start"></DatePicker>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                <Label Text="Shop / supplier" Style="{StaticResource Caption}" />
+                                <Entry x:Name="e_merchant" Placeholder="e.g. Screwfix"></Entry>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="Category" Style="{StaticResource Caption}" />
+                                <Picker x:Name="p_category"></Picker>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="Notes" Style="{StaticResource Caption}" />
+                            <Entry x:Name="e_notes" Placeholder="Notes (optional)"></Entry>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </StackLayout>
+</ContentPage>

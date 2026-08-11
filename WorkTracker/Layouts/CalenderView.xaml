@@ -44,6 +44,7 @@
             <HorizontalStackLayout HorizontalOptions="Center">
                 <Label x:Name="l_dayJobTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#2E7D32" Padding="6"></Label>
                 <Label x:Name="l_dayPaymentTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#00796B" Padding="6" Margin="8,0,0,0"></Label>
+                <Label x:Name="l_dayExpenseTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#7B1FA2" Padding="6" Margin="8,0,0,0" IsVisible="false"></Label>
             </HorizontalStackLayout>
         </VerticalStackLayout>
         <!--                       THIS IS THE LIST OF JOBS TO DISPLAY!!!!                       -->
@@ -96,7 +97,13 @@
                                     IconImageSource="edit.png"
                                     CommandParameter="{Binding Id}"
                                     BackgroundColor="#1E88E5"
-                                    Invoked="On_Job_Detials" 
+                                    Invoked="On_Job_Detials"
+                                               />
+                                <SwipeItem Text="Expense"
+                                    IconImageSource="payments.png"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="#7B1FA2"
+                                    Invoked="On_Job_Expense"
                                                />
                             </SwipeItems>
                         </SwipeView.RightItems>
@@ -115,6 +122,8 @@
                                     <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
                                     <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding Id}" Clicked="On_Job_Canceled" />
                                     <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding Id}" Clicked="On_Job_Detials" />
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="Add Expense" CommandParameter="{Binding Id}" Clicked="On_Job_Expense" />
                                 </MenuFlyout>
                             </FlyoutBase.ContextFlyout>
                             <!-- completed jobs show as this narrow faded row; tap to expand -->

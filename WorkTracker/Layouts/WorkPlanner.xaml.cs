@@ -593,6 +593,27 @@ public partial class WorkPlanner : ContentPage
         RefreshPage();
     }
 
+    /// <summary>
+    /// open the new expense page attached to a job (used by the swipe
+    /// menus here and on the calendar)
+    /// </summary>
+    public static void AddExpenseForJob(Job j, Page page)
+    {
+        NewExpense.ExpenseToEdit = null;
+        NewExpense.DateToUse = null;
+        NewExpense.JobToLink = j;
+
+        page.Navigation.PushAsync(new NewExpense());
+    }
+
+    private void On_Job_Expense(object sender, EventArgs e)
+    {
+        Job j = GetJobForSwipe(sender);
+        if (j == null)
+            return;
+        AddExpenseForJob(j, this);
+    }
+
     public static void EditJobDetails(Job j, Page page)
     {
         NewJob.JobToAdd = j;

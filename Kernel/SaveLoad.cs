@@ -309,6 +309,72 @@ namespace Kernel
         }
     }
 
+    public struct ExpenseSaveData
+    {
+        public List<Expense> Expenses;
+        public int NextExpenseId;
+    }
+
+    public partial class Expense
+    {
+        private static string _FilePath = "expenses.rjt";
+
+        public static void Save(string dir = null)
+        {
+            string fileLocation = string.Empty;
+            if (dir != null && dir != string.Empty)
+            {
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                fileLocation = Path.Combine(fileLocation, _FilePath);
+            }
+            else
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+
+            ExpenseSaveData esd = new ExpenseSaveData();
+            esd.Expenses = new List<Expense>();
+            esd.Expenses.AddRange(_Expenses);
+            esd.NextExpenseId = _IdGenerator;
+
+            using (FileStream fs = File.Create(fileLocation))
+            {
+                XmlSerializer xs = new XmlSerializer(typeof(ExpenseSaveData));
+                xs.Serialize(fs, esd);
+            }
+            SyncNotifier.NotifySaved();
+        }
+
+        public static void Load(string dir = null)
+        {
+            string fileLocation = string.Empty;
+            if (dir != null && dir != string.Empty)
+            {
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                fileLocation = Path.Combine(fileLocation, _FilePath);
+            }
+            else
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+
+            ExpenseSaveData esd = new ExpenseSaveData();
+            try
+            {
+                using (FileStream fs = File.OpenRead(fileLocation))
+                {
+                    XmlSerializer xs = new XmlSerializer(typeof(ExpenseSaveData));
+#pragma warning disable CS8605 // Unboxing a possibly null value.
+                    esd = (ExpenseSaveData)xs.Deserialize(fs);
+#pragma warning restore CS8605 // Unboxing a possibly null value.
+
+                    _Expenses.Clear();
+                    _Expenses.AddRange(esd.Expenses);
+                    _IdGenerator = esd.NextExpenseId;
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
+
     public struct PaymentSaveData
     {
         public List<Payment> Payments;

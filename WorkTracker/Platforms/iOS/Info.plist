@@ -28,5 +28,11 @@
 	</array>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
+	<key>NSCameraUsageDescription</key>
+	<string>The camera is used to take photos of receipts to attach to expenses.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>The photo library is used to attach existing receipt photos to expenses.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Receipt photos taken with the camera can be saved to your photo library.</string>
 </dict>
 </plist>
