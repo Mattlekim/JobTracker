@@ -537,9 +537,11 @@ public partial class PaperView : ContentPage
             }
             if (j.JobNextId == -1) //ie no next job
             {
-                PropertyStreet = j.Address.Street;
-                PropertyCity = j.Address.City;
-                PropertyArea = j.Address.Area;
+                //a job made this session can still carry a half filled
+                //address, so nothing here is allowed to stay null
+                PropertyStreet = j.Address.Street ?? string.Empty;
+                PropertyCity = j.Address.City ?? string.Empty;
+                PropertyArea = j.Address.Area ?? string.Empty;
             }
 
 			if (j.HaveCanceled)
@@ -622,6 +624,15 @@ public partial class PaperView : ContentPage
 		PaperViewFilter.SelectedIndex = p_filter_selection.SelectedIndex;
         FullPageLoad();
     }
+	/// <summary>
+	/// compares two bits of an address ignoring case, treating a missing one
+	/// as blank rather than throwing
+	/// </summary>
+	private static bool SameText(string a, string b)
+	{
+		return string.Equals(a ?? string.Empty, b ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+	}
+
     private void FullPageLoad()
 	{
         List<Job> jobs = Job.Query();
@@ -691,9 +702,9 @@ public partial class PaperView : ContentPage
                 location.Add(tmpString);
 				locationData.Add(new PaperViewLocationInfo()
 				{
-					Street = j.Address.Street,
-					City = j.Address.City,
-					Area = j.Address.Area,
+					Street = j.Address.Street ?? string.Empty,
+					City = j.Address.City ?? string.Empty,
+					Area = j.Address.Area ?? string.Empty,
 				});
             }
         }
@@ -702,7 +713,14 @@ public partial class PaperView : ContentPage
 		int count = 0;
         foreach (string street in location)
         {
-            List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x => x.PropertyStreet.ToLower() == locationData[count].Street.ToLower() && x.PropertyArea == locationData[count].Area.ToLower() && x.PropertyCity.ToLower() == locationData[count].City.ToLower());
+            //compared without case on both sides and safe against a half
+            //filled address: area used to be compared with its case left on,
+            //so anything with a capital in it never matched
+            PaperViewLocationInfo here = locationData[count];
+            List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x =>
+                SameText(x.PropertyStreet, here.Street)
+                && SameText(x.PropertyArea, here.Area)
+                && SameText(x.PropertyCity, here.City));
             char[] tmp = street.ToCharArray();
             tmp[0] = char.ToUpper(tmp[0]);
 

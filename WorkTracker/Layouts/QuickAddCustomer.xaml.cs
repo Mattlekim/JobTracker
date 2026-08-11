@@ -121,10 +121,12 @@ public partial class QuickAddCustomer : ContentPage
 
 
 
+        //an entry that was never typed in gives null, which must not reach
+        //the address - empty is what the rest of the app expects
         Location address = new Location()
         {
-            PropertyNameNumber = e_number.Text,
-            Street = e_street.Text
+            PropertyNameNumber = e_number.Text ?? string.Empty,
+            Street = e_street.Text ?? string.Empty
         };
 
         if (e_area.Text != null && e_area.Text != string.Empty)

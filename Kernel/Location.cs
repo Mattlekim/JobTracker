@@ -8,11 +8,13 @@ namespace Kernel
 {
     public class Location
     {
-        public string PropertyNameNumber { get; set; }
-        public string Postcode { get; set; }
-        public string Street { get; set; }
-        public string City { get; set; }
-        public string Area { get; set; }
+        //empty rather than null: a half filled address used to leave nulls
+        //here, which then blew up anything comparing them
+        public string PropertyNameNumber { get; set; } = string.Empty;
+        public string Postcode { get; set; } = string.Empty;
+        public string Street { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string Area { get; set; } = string.Empty;
         public Vector3 GPS_Location { get; set; }
         
         static Location _garbaeCollectorLimiter;
