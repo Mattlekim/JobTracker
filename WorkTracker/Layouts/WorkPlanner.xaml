@@ -304,78 +304,97 @@
                             </HorizontalStackLayout>
                             <!-- one compact line per job, fixed column widths so
                                  the values line up like a spreadsheet -->
+                            <!-- the address gets a line to itself: the tags used to
+                                 sit beside it on fixed width columns that added up to
+                                 more than a phone screen, which squeezed the street
+                                 out of sight entirely -->
                             <Grid IsVisible="{Binding NotCanceled}" ColumnSpacing="2" Padding="2,3">
                                 <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"></RowDefinition>
+                                    <RowDefinition Height="Auto"></RowDefinition>
                                     <RowDefinition Height="Auto"></RowDefinition>
                                     <RowDefinition Height="Auto"></RowDefinition>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                    <ColumnDefinition Width="40"></ColumnDefinition>
+                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
                                     <ColumnDefinition Width="*"></ColumnDefinition>
-                                    <ColumnDefinition Width="90"></ColumnDefinition>
-                                    <ColumnDefinition Width="62"></ColumnDefinition>
-                                    <ColumnDefinition Width="86"></ColumnDefinition>
-                                    <ColumnDefinition Width="100"></ColumnDefinition>
-                                    <ColumnDefinition Width="40"></ColumnDefinition>
+                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
                                 </Grid.ColumnDefinitions>
 
                                 <CheckBox
                                     BackgroundColor="Transparent"
-                                    Grid.Column="0"
+                                    Grid.Row="0" Grid.Column="0"
                                     VerticalOptions="Center"
                                     IsVisible="{Binding SelectionModeEnabled}"
                                     IsChecked="{Binding IsSelected}"
                                     CheckedChanged="cb_streetSelected"  ClassId="{Binding Id}"></CheckBox>
 
-                                <Label Grid.Column="1" Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" VerticalOptions="Center" Padding="4,2" />
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" VerticalOptions="Center" Padding="4,2" />
 
-                                <HorizontalStackLayout Grid.Column="2" VerticalOptions="Center">
-                                    <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" Padding="4,2" VerticalOptions="Center" LineBreakMode="TailTruncation">
+                                <!-- street takes whatever width is left and truncates
+                                     rather than pushing anything off the row -->
+                                <Grid Grid.Row="0" Grid.Column="2" ColumnSpacing="2" VerticalOptions="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"></ColumnDefinition>
+                                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Label Grid.Column="0" Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" Padding="4,2" VerticalOptions="Center" LineBreakMode="TailTruncation">
                                         <Label.GestureRecognizers>
                                             <TapGestureRecognizer Tapped="Job_Street_Filter"></TapGestureRecognizer>
                                         </Label.GestureRecognizers>
                                     </Label>
-                                    <Label Text="{Binding JobFormattedCity}" Padding="4,2" VerticalOptions="Center">
+                                    <Label Grid.Column="1" Text="{Binding JobFormattedCity}" Padding="4,2" VerticalOptions="Center" LineBreakMode="TailTruncation">
                                         <Label.GestureRecognizers>
                                             <TapGestureRecognizer Tapped="Job_City_Filter"></TapGestureRecognizer>
                                         </Label.GestureRecognizers>
                                     </Label>
-                                    <Label Text="{Binding JobFormattedArea}" Padding="4,2" VerticalOptions="Center">
+                                    <Label Grid.Column="2" Text="{Binding JobFormattedArea}" Padding="4,2" VerticalOptions="Center" LineBreakMode="TailTruncation">
                                         <Label.GestureRecognizers>
                                             <TapGestureRecognizer Tapped="Job_Area_Filter"></TapGestureRecognizer>
                                         </Label.GestureRecognizers>
                                     </Label>
-                                    <Label Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="4,2" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" Margin="4,0,0,0"></Label>
-                                    <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="4,2" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" Margin="4,0,0,0"></Label>
-                                    <!-- direct debit requested, waiting for the money to come through -->
-                                    <Label Text="{Binding PaymentPendingText}" TextColor="White" BackgroundColor="#6A1B9A" IsVisible="{Binding PaymentPending}" Padding="4,2" FontSize="12" FontAttributes="Bold" VerticalOptions="Center" Margin="4,0,0,0"></Label>
+                                </Grid>
+
+                                <ImageButton Grid.Row="0" Grid.Column="3" Grid.RowSpan="2" Source="info.png" HeightRequest="30" WidthRequest="30" Padding="4" CornerRadius="15" BackgroundColor="#1E88E5" HorizontalOptions="Center" VerticalOptions="Center" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"></ImageButton>
+
+                                <!-- the job tags on their own line. fixed rows rather
+                                     than a wrapping layout, so nothing depends on a
+                                     measure pass that could collapse inside a list -->
+                                <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Spacing="4" Margin="0,2,0,0">
+                                    <Label Text="{Binding Name}" IsVisible="{Binding HaveJobName}" FontAttributes="Bold" Padding="4,2" BackgroundColor="#EF6C00" TextColor="White" FontSize="12" LineBreakMode="TailTruncation">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Job_Type_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
+
+                                    <Label Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" Padding="4,2" BackgroundColor="#2E7D32" TextColor="White" FontSize="12">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Job_Price_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
+
+                                    <Label BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4,2" FontSize="12"></Label>
+
+                                    <Label IsVisible="{Binding ShowOwed}" BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" Padding="4,2" FontSize="12" LineBreakMode="TailTruncation">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Money_Owed_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
                                 </HorizontalStackLayout>
 
-                                <Label Grid.Column="3" Text="{Binding Name}" IsVisible="{Binding HaveJobName}" FontAttributes="Bold" Padding="4,2" BackgroundColor="#EF6C00" TextColor="White" VerticalOptions="Center" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation">
-                                    <Label.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="Job_Type_Filter"></TapGestureRecognizer>
-                                    </Label.GestureRecognizers>
-                                </Label>
+                                <!-- the flags get a line of their own so a long one
+                                     cannot push the others off the screen -->
+                                <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Spacing="4" Margin="0,2,0,0">
+                                    <Label Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
+                                    <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
+                                    <!-- direct debit requested, waiting for the money to come through -->
+                                    <Label Text="{Binding PaymentPendingText}" TextColor="White" BackgroundColor="#6A1B9A" IsVisible="{Binding PaymentPending}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
+                                </HorizontalStackLayout>
 
-                                <Label Grid.Column="4" Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" Padding="4,2" BackgroundColor="#2E7D32" TextColor="White" VerticalOptions="Center" HorizontalTextAlignment="Center">
-                                    <Label.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="Job_Price_Filter"></TapGestureRecognizer>
-                                    </Label.GestureRecognizers>
-                                </Label>
-
-                                <Label Grid.Column="5" BackgroundColor="{Binding DueColorCode}" Text="{Binding JobFormattedDueTime}" TextColor="{Binding DueColorTextCode}" FontAttributes="Bold" Padding="4,2" VerticalOptions="Center" HorizontalTextAlignment="Center"></Label>
-
-                                <Label Grid.Column="6" IsVisible="{Binding ShowOwed}" BackgroundColor="{Binding OwedColorCode}" Text="{Binding JobFormattedOwed}" TextColor="White" FontAttributes="Bold" Padding="4,2" VerticalOptions="Center" HorizontalTextAlignment="Center" LineBreakMode="TailTruncation">
-                                    <Label.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="Money_Owed_Filter"></TapGestureRecognizer>
-                                    </Label.GestureRecognizers>
-                                </Label>
-
-                                <!-- notes get their own line under the main row -->
-                                <Label Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="6" BackgroundColor="#FB8C00" Text="{Binding JobFormattedStringNotes}" TextColor="White" Padding="4,2" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" VerticalOptions="Center" HorizontalOptions="Start" Margin="0,2,0,0"></Label>
-
-                                <ImageButton Grid.Column="7" Source="info.png" HeightRequest="30" WidthRequest="30" Padding="4" CornerRadius="15" BackgroundColor="#1E88E5" HorizontalOptions="Center" VerticalOptions="Center" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"></ImageButton>
+                                <!-- notes get their own line under the tags -->
+                                <Label Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" BackgroundColor="#FB8C00" Text="{Binding JobFormattedStringNotes}" TextColor="White" Padding="4,2" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" VerticalOptions="Center" HorizontalOptions="Start" Margin="0,2,0,0"></Label>
                             </Grid>
                         </VerticalStackLayout>
                         </Border>
