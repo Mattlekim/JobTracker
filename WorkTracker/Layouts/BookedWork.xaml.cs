@@ -9,16 +9,26 @@ public partial class BookedWork : ContentPage
     {
         public string Header { get; set; }
 
-        public BookingGroup(string header, List<Job> jobs) : base(jobs)
+        /// <summary>the day this work is booked for</summary>
+        public DateTime Date { get; set; }
+
+        public BookingGroup(string header, DateTime date, List<Job> jobs) : base(jobs)
         {
             Header = header;
+            Date = date;
         }
     }
 
     public BookedWork()
     {
         InitializeComponent();
-        NavigatedTo += (s, e) => Reload();
+        //coming back to the page starts again: a date bar left open on the way
+        //out is for a day that may no longer be the one on screen
+        NavigatedTo += (s, e) =>
+        {
+            CloseMoveDay();
+            Reload();
+        };
         Reload();
     }
 
@@ -40,10 +50,126 @@ public partial class BookedWork : ContentPage
         {
             float total = day.Sum(x => x.Price);
             string header = $"{day.Key:ddd dd MMM yyyy} - {day.Count()} jobs {Gloable.CurrenceSymbol}{total}";
-            groups.Add(new BookingGroup(header, day.OrderBy(x => x.JobFormattedStreet).ToList()));
+            groups.Add(new BookingGroup(header, day.Key, day.OrderBy(x => x.JobFormattedStreet).ToList()));
         }
 
         cv_bookings.ItemsSource = groups;
+    }
+
+    //the day whose work is being moved, while the date bar is up
+    private DateTime _dayToMove = DateTime.MinValue;
+
+    /// <summary>
+    /// puts up the date bar for a day. the work is not moved until a date is
+    /// picked and confirmed
+    /// </summary>
+    private void On_Change_Day_Date(object sender, EventArgs e)
+    {
+        BookingGroup g = (sender as Element)?.BindingContext as BookingGroup;
+        if (g == null)
+            return;
+
+        _dayToMove = g.Date.Date;
+        l_moveDay.Text = $"Move all {g.Count} jobs booked for {g.Date:ddd dd MMM yyyy} to:";
+        dp_moveTo.Date = g.Date.Date;
+        vsl_moveDay.IsVisible = true;
+    }
+
+    private void On_Move_Day_Cancel(object sender, EventArgs e)
+    {
+        CloseMoveDay();
+    }
+
+    private void CloseMoveDay()
+    {
+        vsl_moveDay.IsVisible = false;
+        _dayToMove = DateTime.MinValue;
+    }
+
+    /// <summary>
+    /// moves everything still to do on one day over to another day
+    /// </summary>
+    private async void On_Move_Day_Confirm(object sender, EventArgs e)
+    {
+        if (_dayToMove == DateTime.MinValue)
+            return;
+
+        DateTime from = _dayToMove;
+        DateTime to = dp_moveTo.Date.Date;
+
+        if (to == from)
+        {
+            CloseMoveDay();
+            return;
+        }
+
+        //work that is already done stays on the day it was done on, whatever
+        //happens to the rest of that day
+        List<Job> toMove = Job.Query().FindAll(x => x.IsBookedIn && !x.HaveCanceled
+            && !x.IsCompleted && x.DateJobBookinFor.Date == from);
+
+        if (toMove.Count == 0)
+        {
+            await DisplayAlert("Nothing To Move",
+                $"Everything booked for {from:ddd dd MMM yyyy} is already done, so there is nothing to move.", "OK");
+            CloseMoveDay();
+            return;
+        }
+
+        //moving onto a day that already has work does not replace it, the two
+        //days end up as one
+        int alreadyBooked = Job.Query().FindAll(x => x.IsBookedIn && !x.HaveCanceled
+            && x.DateJobBookinFor.Date == to).Count;
+        string joining = alreadyBooked > 0
+            ? $"\n\n{to:ddd dd MMM} already has {alreadyBooked} jobs booked in. The two days will join up."
+            : string.Empty;
+
+        if (!await DisplayAlert("Change Booking Date",
+            $"Move all {toMove.Count} jobs booked for {from:ddd dd MMM yyyy} to {to:ddd dd MMM yyyy}?{joining}",
+            "Move", "Cancel"))
+            return;
+
+        foreach (Job j in toMove)
+            j.BookInJob(to);
+
+        Job.Save();
+
+        //the bookings are a cache keyed on the day, so they have to be built
+        //again now this work sits on a different one
+        DataRefreshNotifier.RebuildBookings();
+
+        CloseMoveDay();
+        Reload();
+
+        await OfferToNotify(toMove, to);
+    }
+
+    /// <summary>
+    /// customers set to be told when work is coming are expecting it on the
+    /// old day, so offer to let them know the new one
+    /// </summary>
+    private async Task OfferToNotify(List<Job> moved, DateTime to)
+    {
+        List<Job> toText = moved.FindAll(x => x.TNB);
+        List<Job> toEmail = moved.FindAll(x => x.ENB);
+
+        if (toText.Count == 0 && toEmail.Count == 0)
+            return;
+
+        string who = "The following customers may be expecting you.\n";
+        foreach (Job j in moved)
+            if (j.TNB || j.ENB)
+                who = $"{who}\n{j.JobFormattedStreet}";
+
+        who = $"{who}\n\nDo you wish to tell them you will now be coming on {to.ToShortDateString()}?";
+
+        if (!await DisplayAlert("Notify Customers", who, "Yes", "No"))
+            return;
+
+        if (toText.Count > 0)
+            await WorkPlanner.TextCustomers(toText, to, WorkPlanner.DefaultRearangeMessage, this);
+        if (toEmail.Count > 0)
+            await WorkPlanner.EmailCustomers(toEmail, to, WorkPlanner.DefaultRearangeMessage, this);
     }
 
     private void job_Tapped(object sender, TappedEventArgs e)

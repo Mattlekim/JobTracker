@@ -4,7 +4,25 @@
              x:Class="UiInterface.Layouts.BookedWork"
              Title="Booked In Work">
 
-    <CollectionView x:Name="cv_bookings" IsGrouped="True">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- the day being moved and the date it is going to. stays hidden
+             until a day's 'Change Date' is used -->
+        <VerticalStackLayout x:Name="vsl_moveDay" Grid.Row="0" IsVisible="False" Padding="12,8" Spacing="6"
+                             BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+            <Label x:Name="l_moveDay" FontAttributes="Bold"/>
+            <HorizontalStackLayout Spacing="8">
+                <DatePicker x:Name="dp_moveTo" VerticalOptions="Center"/>
+                <Button Text="Move" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8" Clicked="On_Move_Day_Confirm"/>
+                <Button Text="Cancel" BackgroundColor="Transparent" TextColor="{StaticResource MidGray}" BorderColor="{StaticResource MidGray}" BorderWidth="2" Padding="8" Clicked="On_Move_Day_Cancel"/>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+
+        <CollectionView x:Name="cv_bookings" Grid.Row="1" IsGrouped="True">
         <CollectionView.EmptyView>
             <Label Text="No work booked in.&#10;&#10;Select jobs in the Work list and use 'Bookin Work' to plan a day."
                    Padding="20" HorizontalTextAlignment="Center" VerticalOptions="Center" FontSize="16"
@@ -13,7 +31,18 @@
 
         <CollectionView.GroupHeaderTemplate>
             <DataTemplate>
-                <Label Text="{Binding Header}" FontAttributes="Bold" FontSize="16" Padding="14,12,14,4"/>
+                <!-- the whole day's work moves together, so the date belongs
+                     on the day rather than on any one job -->
+                <Grid Padding="14,12,14,4" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0" Text="{Binding Header}" FontAttributes="Bold" FontSize="16" VerticalOptions="Center"/>
+                    <Button Grid.Column="1" Text="Change Date" FontSize="12" Padding="8,0" HeightRequest="32" MinimumHeightRequest="32"
+                            BackgroundColor="Transparent" TextColor="#FB8C00" BorderColor="#FB8C00" BorderWidth="2"
+                            VerticalOptions="Center" Clicked="On_Change_Day_Date"/>
+                </Grid>
             </DataTemplate>
         </CollectionView.GroupHeaderTemplate>
 
@@ -87,5 +116,6 @@
                 </SwipeView>
             </DataTemplate>
         </CollectionView.ItemTemplate>
-    </CollectionView>
+        </CollectionView>
+    </Grid>
 </ContentPage>
