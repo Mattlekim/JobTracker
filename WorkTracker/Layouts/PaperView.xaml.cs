@@ -110,6 +110,13 @@ public partial class PaperView : ContentPage
 
 		public bool IsQuote { get; set; } = false;
 
+		/// <summary>
+		/// the row put in where a street's houses were last done at
+		/// different times. it repeats the street so you can still see where
+		/// you are, and can be tapped to book that part of the street
+		/// </summary>
+		public bool IsDateBreak { get; set; } = false;
+
 		private string _jobNote = string.Empty;
         public string JobNote
 		{
@@ -783,9 +790,25 @@ public partial class PaperView : ContentPage
                 if (currentItem.JobI3 != null && nextItem.JobI3 != null)
 					if (currentItem.JobI3.OrderByDate != nextItem.JobI3.OrderByDate)
 					{
-						PaperItem pai = new PaperItem();
-						pai = new PaperItem() { ShowJobInformation = false };
-						pai.GroupId = groupId;
+						//the street is repeated on the break so you can still
+						//see which one you are looking at further down, and it
+						//can be tapped to book that part of it in
+						string streetName = string.IsNullOrWhiteSpace(currentItem.PropertyStreet)
+							? "- - - - -"
+							: currentItem.PropertyStreet;
+
+						PaperItem pai = new PaperItem()
+						{
+							ShowJobInformation = false,
+							IsDateBreak = true,
+							GroupId = groupId,
+							Title = streetName,
+							PropertyStreet = currentItem.PropertyStreet,
+							PropertyCity = currentItem.PropertyCity,
+							PropertyArea = currentItem.PropertyArea,
+							FontAttri = FontAttributes.Italic,
+							TitlePadding = new Thickness(4, 12, 4, 2),
+						};
 						PaperItems.Insert(i + 1, pai);
 
 					}
@@ -1217,7 +1240,9 @@ public partial class PaperView : ContentPage
 			options.Add("-----------");
 
 		if (streetJobs.Count > 0)
-			options.Add($"Book In {streetJobs.Count} On This Street");
+			options.Add(pi.IsDateBreak
+				? $"Book In {streetJobs.Count} From Here"
+				: $"Book In {streetJobs.Count} On This Street");
 
 		if (count > 1)
 			options.Add($"Mark {count} below as compleated");
@@ -1310,15 +1335,28 @@ public partial class PaperView : ContentPage
     }
 
 	/// <summary>
-	/// the jobs on a street that are worth booking in: still to be done, not
-	/// cancelled, and not already booked for a day
+	/// the jobs worth booking in from a heading: still to be done, not
+	/// cancelled and not already booked for a day.
+	///
+	/// From a street heading that means the whole street. From one of the
+	/// breaks where the houses were last done at different times, it means
+	/// just that part of the street - which is what is under the break.
 	/// </summary>
-	private List<Job> JobsOnStreet(PaperItem street)
+	private List<Job> JobsOnStreet(PaperItem heading)
 	{
 		List<Job> jobs = new List<Job>();
 		foreach (PaperItem p in PaperItems)
 		{
-			if (p.GroupId != street.GroupId || p.JobI3 == null)
+			if (p.JobI3 == null)
+				continue;
+
+			bool wanted = heading.IsDateBreak
+				? p.GroupId == heading.GroupId
+				: SameText(p.PropertyStreet, heading.PropertyStreet)
+					&& SameText(p.PropertyCity, heading.PropertyCity)
+					&& SameText(p.PropertyArea, heading.PropertyArea);
+
+			if (!wanted)
 				continue;
 			if (p.JobI3.IsCompleted || p.JobI3.HaveCanceled || p.JobI3.IsBookedIn)
 				continue;

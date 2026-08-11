@@ -263,7 +263,9 @@ public class CalenderDay: INotifyPropertyChanged
 		foreach(Job j in Jobs)
         {
             JobCount++;
-			Amount += j.Price;
+			//what the job is actually worth: a job cleaned at a front only
+			//price counted as the full price here
+			Amount += j.EffectivePrice;
 			EstimatedDuration += j.EstimatedTime;
         }
 
@@ -1081,7 +1083,7 @@ public partial class CalenderView : ContentPage
 
         float jobTotal = 0;
         foreach (Job j in _selectedDay.Jobs)
-            jobTotal += j.Price;
+            jobTotal += j.EffectivePrice;
 
         float paymentsTotal = 0;
         foreach (Payment p in Payment.Query())
