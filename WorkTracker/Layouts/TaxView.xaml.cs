@@ -1,0 +1,247 @@
+namespace UiInterface.Layouts;
+
+using Kernel;
+using UiInterface.ImportExport;
+
+public partial class TaxView : ContentPage
+{
+    private List<int> _taxYears = new List<int>();
+    private bool _building;
+
+    public TaxView()
+    {
+        InitializeComponent();
+
+        //the years there is any data for, newest first, always including
+        //the one we are in now
+        int thisYear = TaxCalendar.TaxYearOf(UsfulFuctions.DateNow);
+        HashSet<int> years = new HashSet<int> { thisYear };
+        foreach (Payment p in Payment.Query())
+            years.Add(TaxCalendar.TaxYearOf(p.Date));
+        foreach (Expense e in Expense.Query())
+            years.Add(TaxCalendar.TaxYearOf(e.Date));
+        foreach (Job j in Job.Query())
+            if (j.IsCompleted && j.DateCompleated.Year > 2001)
+                years.Add(TaxCalendar.TaxYearOf(j.DateCompleated));
+
+        _taxYears = years.Where(y => y >= 2015 && y <= thisYear + 1).OrderByDescending(y => y).ToList();
+
+        _building = true;
+        foreach (int y in _taxYears)
+            p_taxYear.Items.Add(TaxCalendar.YearName(y));
+        p_taxYear.SelectedIndex = 0;
+
+        p_basis.SelectedIndex = Preferences.Get("Tax_Accruals", false) ? 1 : 0;
+        sw_calendarQuarters.IsToggled = Preferences.Get("Tax_CalendarQuarters", false);
+        _building = false;
+
+        NavigatedTo += (s, e) => Refresh();
+    }
+
+    private int SelectedTaxYear
+    {
+        get
+        {
+            if (p_taxYear.SelectedIndex < 0 || p_taxYear.SelectedIndex >= _taxYears.Count)
+                return TaxCalendar.TaxYearOf(UsfulFuctions.DateNow);
+            return _taxYears[p_taxYear.SelectedIndex];
+        }
+    }
+
+    private AccountingBasis SelectedBasis
+    {
+        get { return p_basis.SelectedIndex == 1 ? AccountingBasis.Accruals : AccountingBasis.Cash; }
+    }
+
+    private void Selection_Changed(object sender, EventArgs e)
+    {
+        if (_building)
+            return;
+        Preferences.Set("Tax_Accruals", p_basis.SelectedIndex == 1);
+        Refresh();
+    }
+
+    private void Switch_Toggled(object sender, ToggledEventArgs e)
+    {
+        if (_building)
+            return;
+        Preferences.Set("Tax_CalendarQuarters", sw_calendarQuarters.IsToggled);
+        Refresh();
+    }
+
+    private void Refresh()
+    {
+        int taxYear = SelectedTaxYear;
+        AccountingBasis basis = SelectedBasis;
+        bool calendar = sw_calendarQuarters.IsToggled;
+
+        List<TaxSummary> summaries = TaxSummary.BuildYear(taxYear, basis, calendar);
+        TaxSummary year = summaries[summaries.Count - 1];
+
+        l_yearTitle.Text = $"Tax year {TaxCalendar.YearName(taxYear)} ({year.Period.FormattedDates})";
+        l_yearIncome.Text = year.FormattedIncome;
+        l_yearExpenses.Text = year.FormattedExpenses;
+        l_yearProfit.Text = year.FormattedProfit;
+        l_yearCounts.Text = basis == AccountingBasis.Cash
+            ? $"{year.IncomeCount} payment(s) received, {year.ExpenseCount} expense(s)"
+            : $"{year.IncomeCount} job(s) completed, {year.ExpenseCount} expense(s)";
+
+        l_receiptWarning.IsVisible = year.ExpensesWithoutReceipt > 0;
+        l_receiptWarning.Text = $"{year.ExpensesWithoutReceipt} expense(s) have no receipt photo attached.";
+
+        BuildQuarters(summaries);
+        BuildBoxes(year);
+
+        l_mtdExplain.Text =
+            "Making Tax Digital means keeping your records digitally and sending HMRC a summary every quarter. " +
+            "This app keeps those records - every job, payment and expense with its receipt - and works out the " +
+            "quarterly figures for you.\n\n" +
+            "It cannot send them to HMRC itself: only software HMRC has approved can do that, and approval for " +
+            "this tax year has closed. Export the figures and file them through your accountant or your MTD software.";
+    }
+
+    private void BuildQuarters(List<TaxSummary> summaries)
+    {
+        vsl_quarters.Clear();
+
+        DateTime today = UsfulFuctions.DateNow;
+
+        //everything but the last entry, which is the whole year
+        for (int i = 0; i < summaries.Count - 1; i++)
+        {
+            TaxSummary q = summaries[i];
+
+            bool isCurrent = q.Period.Contains(today);
+            bool isPast = today > q.Period.End;
+
+            Border card = new Border
+            {
+                StrokeThickness = isCurrent ? 2 : 0,
+                Stroke = Colors.Orange,
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 12 },
+                Padding = 12,
+                BackgroundColor = Application.Current.PlatformAppTheme == AppTheme.Dark
+                    ? Color.FromArgb("#1E1E1E")
+                    : Color.FromArgb("#F2F4F7"),
+            };
+
+            VerticalStackLayout content = new VerticalStackLayout { Spacing = 4 };
+
+            HorizontalStackLayout title = new HorizontalStackLayout { Spacing = 8 };
+            title.Add(new Label
+            {
+                Text = q.Period.Name,
+                FontAttributes = FontAttributes.Bold,
+                VerticalOptions = LayoutOptions.Center,
+            });
+            if (isCurrent)
+                title.Add(new Label
+                {
+                    Text = "NOW",
+                    TextColor = Colors.White,
+                    BackgroundColor = Color.FromArgb("#EF6C00"),
+                    Padding = new Thickness(6, 2),
+                    FontSize = 12,
+                    FontAttributes = FontAttributes.Bold,
+                    VerticalOptions = LayoutOptions.Center,
+                });
+            content.Add(title);
+
+            content.Add(new Label
+            {
+                Text = $"{q.Period.FormattedDates}   -   due with HMRC {q.Period.Due.ToShortDateString()}",
+                FontSize = 12,
+                TextColor = isPast && q.Period.Due < today ? Color.FromArgb("#C62828") : Color.FromArgb("#9CA3AF"),
+            });
+
+            Grid figures = new Grid { ColumnSpacing = 8 };
+            figures.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+            figures.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+            figures.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+
+            figures.Add(Figure("Income", q.FormattedIncome, "#2E7D32"), 0, 0);
+            figures.Add(Figure("Expenses", q.FormattedExpenses, "#7B1FA2"), 1, 0);
+            figures.Add(Figure("Profit", q.FormattedProfit, "#00796B"), 2, 0);
+            content.Add(figures);
+
+            card.Content = content;
+            vsl_quarters.Add(card);
+        }
+    }
+
+    private static View Figure(string caption, string value, string colour)
+    {
+        VerticalStackLayout v = new VerticalStackLayout { Spacing = 2 };
+        v.Add(new Label
+        {
+            Text = caption,
+            FontSize = 11,
+            TextColor = Color.FromArgb("#9CA3AF"),
+            HorizontalTextAlignment = TextAlignment.Center,
+        });
+        v.Add(new Label
+        {
+            Text = value,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            BackgroundColor = Color.FromArgb(colour),
+            Padding = new Thickness(4),
+            HorizontalTextAlignment = TextAlignment.Center,
+        });
+        return v;
+    }
+
+    private void BuildBoxes(TaxSummary year)
+    {
+        vsl_boxes.Clear();
+
+        if (year.ExpensesByCategory.Count == 0)
+        {
+            vsl_boxes.Add(new Label { Text = "No expenses recorded for this tax year.", FontSize = 12 });
+            return;
+        }
+
+        foreach (var pair in year.ExpensesByCategory.OrderByDescending(x => x.Value))
+        {
+            Grid row = new Grid();
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            row.Add(new Label
+            {
+                Text = TaxCalendar.HmrcCategoryName(pair.Key),
+                FontSize = 13,
+                VerticalOptions = LayoutOptions.Center,
+            }, 0, 0);
+
+            row.Add(new Label
+            {
+                Text = $"{Gloable.CurrenceSymbol}{pair.Value:0.00}",
+                FontAttributes = FontAttributes.Bold,
+                FontSize = 13,
+                VerticalOptions = LayoutOptions.Center,
+            }, 1, 0);
+
+            vsl_boxes.Add(row);
+        }
+    }
+
+    private async void bnt_export_Clicked(object sender, EventArgs e)
+    {
+        try
+        {
+            int taxYear = SelectedTaxYear;
+            string fileName = $"Tax {TaxCalendar.YearName(taxYear).Replace('/', '-')}.xlsx";
+            string path = Path.Combine(FileSystem.CacheDirectory, fileName);
+
+            using (FileStream fs = File.Create(path))
+                TaxReportWriter.Write(fs, taxYear, SelectedBasis, sw_calendarQuarters.IsToggled);
+
+            await Share.RequestAsync(new ShareFileRequest($"Tax {TaxCalendar.YearName(taxYear)}", new ShareFile(path)));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Export Failed", ex.Message, "Ok");
+        }
+    }
+}

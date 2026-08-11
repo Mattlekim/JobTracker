@@ -738,6 +738,21 @@ namespace Kernel
         /// </summary>
         public float Price;
 
+        /// <summary>
+        /// what the job is actually worth: the alternative price when one
+        /// was used (front only and so on), otherwise the normal price
+        /// </summary>
+        [XmlIgnore]
+        public float EffectivePrice
+        {
+            get
+            {
+                if (UseAlterativePrice >= 0 && AlternativePrices != null && UseAlterativePrice < AlternativePrices.Count)
+                    return AlternativePrices[UseAlterativePrice].Price;
+                return Price;
+            }
+        }
+
         public string SubChargeReason;
         public float SubCharge;
 

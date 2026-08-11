@@ -37,7 +37,8 @@
         </Tab>
         <Tab Title="Expenses"
             Icon="payments.png">
-            <ShellContent ContentTemplate="{DataTemplate local:Expenses}" />
+            <ShellContent Title="Expenses" Route="expense_list" ContentTemplate="{DataTemplate local:Expenses}" />
+            <ShellContent Title="Tax" Route="expense_tax" ContentTemplate="{DataTemplate local:TaxView}" />
         </Tab>
         <Tab Title="Settings"
             Icon="options.png"

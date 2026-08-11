@@ -107,6 +107,7 @@
 	  <Compile Include="..\Kernel\PaymentMethod.cs" Link="Kernal\PaymentMethod.cs" />
 	  <Compile Include="..\Kernel\QueryType.cs" Link="Kernal\QueryType.cs" />
 	  <Compile Include="..\Kernel\SaveLoad.cs" Link="Kernal\SaveLoad.cs" />
+	  <Compile Include="..\Kernel\TaxReporting.cs" Link="Kernal\TaxReporting.cs" />
 	  <Compile Include="..\Kernel\UsefulFuctions.cs" Link="Kernal\UsefulFuctions.cs" />
 	  <Compile Include="..\Kernel\WorkDay.cs" Link="Kernal\WorkDay.cs" />
 	</ItemGroup>
@@ -164,6 +165,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\StatmentViewer.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Layouts\TaxView.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TutorialWorkPlanner.xaml">
