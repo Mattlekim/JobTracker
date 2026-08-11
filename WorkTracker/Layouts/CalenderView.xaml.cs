@@ -384,6 +384,10 @@ public partial class CalenderView : ContentPage
         DateTime startFileter = _calenderDays[0].Date;
         DateTime endFilter = _calenderDays[_calenderDays.Count - 1].Date;
 
+        //a cancelled job is not work to turn up for, so it only stays on the
+        //calendar if it was actually cleaned - that day's takings still count
+        jobs.RemoveAll(x => x.HaveCanceled && !x.IsCompleted);
+
         jobs.RemoveAll(x => x.DateCompleated < startFileter && x.IsCompleted);
         jobs.RemoveAll(x => x.DateCompleated > endFilter && x.IsCompleted);
         jobs.RemoveAll(x => !x.IsCompleted && !x.IsBookedIn && x.DueDate < startFileter);
@@ -975,6 +979,9 @@ public partial class CalenderView : ContentPage
 
         DateTime startFileter = _calenderDays[0].Date;
         DateTime endFilter = _calenderDays[_calenderDays.Count - 1].Date;
+
+        //see BuildPage: cancelled work only shows if it was cleaned anyway
+        jobs.RemoveAll(x => x.HaveCanceled && !x.IsCompleted);
 
         jobs.RemoveAll(x => x.DateCompleated < startFileter && x.IsCompleted);
         jobs.RemoveAll(x => x.DateCompleated > endFilter && x.IsCompleted);
