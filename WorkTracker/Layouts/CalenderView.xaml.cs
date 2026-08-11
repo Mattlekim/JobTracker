@@ -400,48 +400,7 @@ public partial class CalenderView : ContentPage
 
         //now we go through all jobs and find out when they where cleanded
         //we only want jobs within range
-
-        List<Job> jobs = Job.Query();
-
-        DateTime startFileter = _calenderDays[0].Date;
-        DateTime endFilter = _calenderDays[_calenderDays.Count - 1].Date;
-
-        //a cancelled job is not work to turn up for, so it only stays on the
-        //calendar if it was actually cleaned - that day's takings still count
-        jobs.RemoveAll(x => x.HaveCanceled && !x.IsCompleted);
-
-        jobs.RemoveAll(x => x.DateCompleated < startFileter && x.IsCompleted);
-        jobs.RemoveAll(x => x.DateCompleated > endFilter && x.IsCompleted);
-        jobs.RemoveAll(x => !x.IsCompleted && !x.IsBookedIn && x.DueDate < startFileter);
-        jobs.RemoveAll(x => !x.IsCompleted && !x.IsBookedIn && x.DueDate > endFilter);
-        jobs.RemoveAll(x => !x.IsCompleted && x.IsBookedIn && x.DateJobBookinFor < startFileter);
-        jobs.RemoveAll(x => !x.IsCompleted && x.IsBookedIn && x.DateJobBookinFor > endFilter);
-
-        foreach (CalenderDay cd in _calenderDays)
-        {
-            foreach (Job j in jobs)
-            {
-                if (j.IsCompleted)
-                {
-                    if (UsfulFuctions.Difference(cd.Date, j.DateCompleated) == 0)
-                        cd.Jobs.Add(j);
-                }
-                else
-                    if (j.IsBookedIn)
-                {
-                    if (UsfulFuctions.Difference(cd.Date, j.DateJobBookinFor) == 0)
-                        cd.Jobs.Add(j);
-                }
-                else
-                    if (UsfulFuctions.Difference(cd.Date, j.DueDate) == 0)
-                        cd.Jobs.Add(j);
-
-            }
-
-            if (cd.CalculateDay())
-                if (_selectedDay == null)
-                    _selectedDay = cd;
-        }
+        PopulateDays();
 
         Label l = null;
         for (int i = 0; i < _calenderDays.Count; i++)
@@ -1019,22 +978,41 @@ public partial class CalenderView : ContentPage
             _calenderDays[i].Jobs.Clear();
         }
 
+        PopulateDays();
+    }
+
+    /// <summary>
+    /// puts every job on the day it belongs to: work that is done on the day
+    /// it was cleaned, work that is booked in on the day it is booked for,
+    /// and everything else on the day it falls due.
+    ///
+    /// both building the calendar and refreshing it come through here, so a
+    /// job cannot sit on one day when the page is built and another when it
+    /// is refreshed
+    /// </summary>
+    private void PopulateDays()
+    {
         List<Job> jobs = Job.Query();
 
-        DateTime startFileter = _calenderDays[0].Date;
-        DateTime endFilter = _calenderDays[_calenderDays.Count - 1].Date;
+        DateTime startFileter = _calenderDays[0].Date.Date;
+        DateTime endFilter = _calenderDays[_calenderDays.Count - 1].Date.Date;
 
-        //see BuildPage: cancelled work only shows if it was cleaned anyway
+        //a cancelled job is not work to turn up for, so it only stays on the
+        //calendar if it was actually cleaned - that day's takings still count
         jobs.RemoveAll(x => x.HaveCanceled && !x.IsCompleted);
 
-        jobs.RemoveAll(x => x.DateCompleated < startFileter && x.IsCompleted);
-        jobs.RemoveAll(x => x.DateCompleated > endFilter && x.IsCompleted);
-        jobs.RemoveAll(x => !x.IsCompleted && x.DueDate < startFileter);
-        jobs.RemoveAll(x => !x.IsCompleted && x.DueDate > endFilter);
+        //each job is thrown away on the same date it would have been shown
+        //against, so nothing is dropped for being due outside the month while
+        //it is booked in for a day inside it
+        jobs.RemoveAll(x => x.IsCompleted
+            && (x.DateCompleated.Date < startFileter || x.DateCompleated.Date > endFilter));
+        jobs.RemoveAll(x => !x.IsCompleted && x.IsBookedIn
+            && (x.DateJobBookinFor.Date < startFileter || x.DateJobBookinFor.Date > endFilter));
+        jobs.RemoveAll(x => !x.IsCompleted && !x.IsBookedIn
+            && (x.DueDate.Date < startFileter || x.DueDate.Date > endFilter));
 
         foreach (CalenderDay cd in _calenderDays)
         {
-           
             foreach (Job j in jobs)
             {
                 if (j.IsCompleted)
@@ -1043,17 +1021,20 @@ public partial class CalenderView : ContentPage
                         cd.Jobs.Add(j);
                 }
                 else
+                    if (j.IsBookedIn)
+                {
+                    if (UsfulFuctions.Difference(cd.Date, j.DateJobBookinFor) == 0)
+                        cd.Jobs.Add(j);
+                }
+                else
                     if (UsfulFuctions.Difference(cd.Date, j.DueDate) == 0)
-                    cd.Jobs.Add(j);
-
+                        cd.Jobs.Add(j);
             }
 
             if (cd.CalculateDay())
                 if (_selectedDay == null)
                     _selectedDay = cd;
-
         }
-
     }
     public void RefreshPageDate()
     {
