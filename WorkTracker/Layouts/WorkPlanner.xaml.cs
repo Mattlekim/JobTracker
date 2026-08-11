@@ -126,37 +126,11 @@ public partial class WorkPlanner : ContentPage
         ResetDateFilter();
         dp_StartSearchDate.Date = StartFilterDate;
         dp_EndSearchDate.Date = EndFilterDate;
-        //loop through all jobs looking for bookings
-        List<string> dateTimes = new List<string>();
-        List<BookingCatch> bookings = new List<BookingCatch>();
 
-        string tmpstring = string.Empty;
-        int tmpint;
-        foreach (Job j in tmpJobs)
-        {
-            if (j.IsBookedIn)
-            {
-                tmpstring = j.DateJobBookinFor.ToShortDateString();
-                tmpint = dateTimes.IndexOf(tmpstring);
-                if (tmpint == -1)
-                {
-                    dateTimes.Add(tmpstring);
-                    bookings.Add(new BookingCatch()
-                    {
-                        Date = tmpstring,
-                        Jobs = new List<Job>()
-                    });
-                    bookings[bookings.Count - 1].Jobs.Add(j);
-                }
-                else
-                    bookings[tmpint].Jobs.Add(j);
-            }
-        }
-
-        foreach (BookingCatch bc in bookings)
-        {
-            Booking.AddBooking(bc.Jobs, bc.Jobs[0].DateJobBookinFor);
-        }
+        //built from the booked jobs rather than added to what is already
+        //there - opening this page used to pile another copy of every
+        //booking on top of the last
+        DataRefreshNotifier.RebuildBookings();
 
         NavigatedTo += WorkPlanner_NavigatedTo;
         SizeChanged += (s, e) => UpdateMoreInfoLayout();

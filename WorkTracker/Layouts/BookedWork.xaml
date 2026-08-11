@@ -29,6 +29,7 @@
                     </SwipeView.LeftItems>
                     <SwipeView.RightItems>
                         <SwipeItems>
+                            <SwipeItem Text="Unbook" IconImageSource="skip.png" CommandParameter="{Binding .}" BackgroundColor="#6A1B9A" Invoked="On_Job_Unbook"/>
                             <SwipeItem Text="Skip" IconImageSource="skip.png" CommandParameter="{Binding .}" BackgroundColor="#FB8C00" Invoked="On_Job_Skipped"/>
                             <SwipeItem Text="Cancel" IconImageSource="cancel.png" CommandParameter="{Binding .}" BackgroundColor="#E53935" Invoked="On_Job_Canceled"/>
                             <SwipeItem Text="Edit Details" IconImageSource="edit.png" CommandParameter="{Binding .}" BackgroundColor="#1E88E5" Invoked="On_Job_Details"/>
@@ -48,6 +49,7 @@
                                 <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding .}" Clicked="On_Job_Paid"/>
                                 <MenuFlyoutItem Text="More" CommandParameter="{Binding .}" Clicked="On_Job_More"/>
                                 <MenuFlyoutSeparator/>
+                                <MenuFlyoutItem Text="Unbook" CommandParameter="{Binding .}" Clicked="On_Job_Unbook"/>
                                 <MenuFlyoutItem Text="Skip" CommandParameter="{Binding .}" Clicked="On_Job_Skipped"/>
                                 <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding .}" Clicked="On_Job_Canceled"/>
                                 <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding .}" Clicked="On_Job_Details"/>

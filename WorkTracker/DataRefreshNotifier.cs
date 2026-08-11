@@ -18,11 +18,12 @@ namespace UiInterface
         }
 
         /// <summary>
-        /// Booking.Bookings is a static cache normally only built when the
-        /// work planner is first constructed, so after a bulk data change it
-        /// would keep rows pointing at jobs that no longer exist.
+        /// Booking.Bookings is a static cache, so it has to be built from the
+        /// jobs rather than added to - otherwise it keeps rows pointing at
+        /// jobs that have changed or gone, and the same day can end up listed
+        /// more than once.
         /// </summary>
-        static void RebuildBookings()
+        public static void RebuildBookings()
         {
             Booking.Bookings.Clear();
 

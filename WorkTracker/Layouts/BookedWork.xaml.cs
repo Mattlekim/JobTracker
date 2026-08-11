@@ -84,6 +84,27 @@ public partial class BookedWork : ContentPage
         Reload();
     }
 
+    /// <summary>
+    /// takes one job back off the day it was booked for, leaving the rest of
+    /// that day's work booked in
+    /// </summary>
+    private async void On_Job_Unbook(object sender, EventArgs e)
+    {
+        Job j = JobFrom(sender);
+        if (j == null)
+            return;
+
+        if (!await DisplayAlert("Unbook Job",
+            $"Take {j.JobFormattedStreet} off {j.DateJobBookinFor.ToShortDateString()}? The rest of that day stays booked in.",
+            "Unbook", "Cancel"))
+            return;
+
+        Booking.RemoveJobFromBooking(j);
+        Job.Save();
+        j.Refresh();
+        Reload();
+    }
+
     private void On_Job_More(object sender, EventArgs e)
     {
         Job j = JobFrom(sender);
