@@ -54,7 +54,9 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate >
 
-                    <SwipeView x:Name="sv" SwipeStarted="swip_started" SwipeEnded="swip_ended" IsEnabled="{Binding EnabledSwipe}">
+                    <!-- a short drag opens the actions, so the list can be
+                         worked one handed -->
+                    <SwipeView x:Name="sv" Threshold="20" SwipeStarted="swip_started" SwipeEnded="swip_ended" IsEnabled="{Binding EnabledSwipe}">
 
                         <SwipeView.LeftItems  >
                             <SwipeItems >

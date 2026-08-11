@@ -19,7 +19,9 @@
 
         <CollectionView.ItemTemplate>
             <DataTemplate>
-                <SwipeView>
+                <!-- a short drag is enough to open the actions: on a round you
+                     are working one handed with wet hands -->
+                <SwipeView Threshold="20">
                     <SwipeView.LeftItems>
                         <SwipeItems>
                             <SwipeItem Text="Done" IconImageSource="tick.png" CommandParameter="{Binding .}" BackgroundColor="#4CAF50" Invoked="On_Job_Compleated"/>
@@ -27,12 +29,12 @@
                             <SwipeItem Text="More" IconImageSource="more.png" CommandParameter="{Binding .}" BackgroundColor="#546E7A" Invoked="On_Job_More"/>
                         </SwipeItems>
                     </SwipeView.LeftItems>
+                    <!-- unbooking and editing the job are held back for the
+                         hold menu: they are not things to hit by accident -->
                     <SwipeView.RightItems>
                         <SwipeItems>
-                            <SwipeItem Text="Unbook" IconImageSource="skip.png" CommandParameter="{Binding .}" BackgroundColor="#6A1B9A" Invoked="On_Job_Unbook"/>
                             <SwipeItem Text="Skip" IconImageSource="skip.png" CommandParameter="{Binding .}" BackgroundColor="#FB8C00" Invoked="On_Job_Skipped"/>
                             <SwipeItem Text="Cancel" IconImageSource="cancel.png" CommandParameter="{Binding .}" BackgroundColor="#E53935" Invoked="On_Job_Canceled"/>
-                            <SwipeItem Text="Edit Details" IconImageSource="edit.png" CommandParameter="{Binding .}" BackgroundColor="#1E88E5" Invoked="On_Job_Details"/>
                         </SwipeItems>
                     </SwipeView.RightItems>
 
@@ -40,6 +42,12 @@
                             BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="job_Tapped" CommandParameter="{Binding .}"/>
+                            <!-- holding a row brings up everything that can be
+                                 done to it, the swipe actions included -->
+                            <PointerGestureRecognizer PointerPressed="Job_PointerPressed"
+                                                      PointerMoved="Job_PointerMoved"
+                                                      PointerReleased="Job_PointerReleased"
+                                                      PointerExited="Job_PointerReleased"/>
                         </Border.GestureRecognizers>
                         <!-- swipe gestures only work with touch, so desktop
                              (right click) gets the same actions as a menu -->
