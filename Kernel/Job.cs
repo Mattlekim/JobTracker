@@ -351,9 +351,16 @@ namespace Kernel
         {
             get
             {
-                if (!IsCompleted)
-                    return DueDate;
-                return DateCompleated;
+                if (IsCompleted)
+                    return DateCompleated;
+
+                //a skipped job belongs on the day it was skipped, with the
+                //rest of the work done that day, not on the due date it was
+                //pushed out to
+                if (HaveSkipped && DateSkipped > UsfulFuctions.DateBase)
+                    return DateSkipped;
+
+                return DueDate;
             }
         }
 
@@ -661,6 +668,7 @@ namespace Kernel
 
             IsCompleted = true;
             HaveSkipped = false;
+            DateSkipped = UsfulFuctions.DateBase;
             DateCompleated = date;
             if (Frequence > 0)
                 JobNextId = GenerateNextDueDate();
@@ -726,8 +734,23 @@ namespace Kernel
 
         public void SkipJob()
         {
+            SkipJob(UsfulFuctions.DateNow);
+        }
+
+        /// <summary>
+        /// skip the job, noting the day it was skipped on
+        /// </summary>
+        /// <param name="dateSkipped">
+        /// the day you were there and skipped it, which is not necessarily
+        /// today when a round is being written up afterwards
+        /// </param>
+        public void SkipJob(DateTime dateSkipped)
+        {
             DueDate = DueDate.AddDays(7 * Frequence);
             HaveSkipped = true;
+            //kept so the skip stays on the day it happened, alongside the
+            //work done that day, rather than moving with the new due date
+            DateSkipped = dateSkipped;
             Job.Save();
         }
 
@@ -737,6 +760,7 @@ namespace Kernel
                 return;
             DueDate = DueDate.AddDays(-7 * Frequence);
             HaveSkipped = false;
+            DateSkipped = UsfulFuctions.DateBase;
             Job.Save();
         }
 
@@ -1239,6 +1263,12 @@ namespace Kernel
         public bool NotCanceled { get { return !_haveCanceled; } }
 
         public bool HaveSkipped { get; set; } = false;
+
+        /// <summary>
+        /// the day the job was skipped on. jobs saved before this was kept
+        /// have nothing here, and fall back to the due date
+        /// </summary>
+        public DateTime DateSkipped { get; set; }
 
         public DateTime DateCanceled { get; set; }
         public static void Delete(string id)

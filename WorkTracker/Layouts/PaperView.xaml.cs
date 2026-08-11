@@ -1042,7 +1042,12 @@ public partial class PaperView : ContentPage
 
 		if (result.Contains("Skip"))
 		{
-			j.SkipJob();
+			//written up on the day the round was actually done, same as
+			//marking work done
+			if (CustomeMarkDate)
+				j.SkipJob(DateToMarkWorkDone);
+			else
+				j.SkipJob();
 		}
 
 		if (result.Contains("Clear"))
