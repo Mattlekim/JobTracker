@@ -270,15 +270,7 @@ public partial class StatmentViewer : ContentPage
                         continue;
 
 
-                if (Payment.IgnorePaymentList != null)
-                    foreach (string s in Payment.IgnorePaymentList)
-                    {
-                        if (s == CsvFile.data[y][RefColumn])
-                        {
-                            ingnore = true;
-                            break;
-                        }
-                    }
+                ingnore = Payment.IsIgnored(CsvFile.data[y][RefColumn]);
 
                 if (!ingnore)
                     foreach (Customer cust in Customer.Query())
@@ -310,7 +302,28 @@ public partial class StatmentViewer : ContentPage
                 //if (add)
                 if (ingnore)
                 {
-                    _grid.Add(new Label() { Text = "Ingnored" }, 3, row + 2);
+                    //ignoring is easy to do by accident, and it sticks for
+                    //every statement from now on - so there has to be a way
+                    //straight back out of it
+                    HorizontalStackLayout ignored = new HorizontalStackLayout() { Spacing = 6 };
+                    ignored.Add(new Label()
+                    {
+                        Text = "Ignored",
+                        TextColor = Colors.Grey,
+                        VerticalOptions = LayoutOptions.Center,
+                    });
+
+                    Button undo = new Button()
+                    {
+                        Text = "Undo",
+                        VerticalOptions = LayoutOptions.Center,
+                        Padding = 4,
+                        ClassId = CsvFile.data[y][RefColumn],
+                    };
+                    undo.Clicked += bnt_unignore;
+                    ignored.Add(undo);
+
+                    _grid.Add(ignored, 3, row + 2);
                 }
                 else
                 if (linked)
@@ -366,6 +379,16 @@ public partial class StatmentViewer : ContentPage
         Button b = sender as Button;
 
         Payment.IgnorePaymentList.Add(b.ClassId);
+        BuildGrid();
+        Payment.Save();
+    }
+
+    /// <summary>puts back a reference that was ignored by mistake</summary>
+    private void bnt_unignore(object sender, EventArgs e)
+    {
+        Button b = sender as Button;
+
+        Payment.StopIgnoring(b.ClassId);
         BuildGrid();
         Payment.Save();
     }

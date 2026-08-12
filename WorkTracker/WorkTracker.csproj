@@ -200,6 +200,9 @@
 	  <MauiXaml Update="Layouts\KeptStatements.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Layouts\IgnoredPayments.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TaxView.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

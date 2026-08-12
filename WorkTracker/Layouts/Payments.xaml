@@ -6,7 +6,8 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem x:Name="bnt_ClearFilter" Text="Import Bank Statment (csv or pdf)" Clicked="bnt_ImportBank"></ToolbarItem>
-        
+        <ToolbarItem Text="Ignored Payments" Clicked="bnt_ignoredPayments" Order="Secondary"></ToolbarItem>
+
     </ContentPage.ToolbarItems>
     
     <StackLayout>

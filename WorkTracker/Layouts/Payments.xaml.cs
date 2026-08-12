@@ -42,6 +42,15 @@ public partial class Payments : ContentPage
     private void bnt_ImportBank(object sender, EventArgs e)
     {
         selectFile();
-        
+
+    }
+
+    /// <summary>
+    /// where a reference ignored by mistake gets put back, without having to
+    /// find the statement and import it again
+    /// </summary>
+    private void bnt_ignoredPayments(object sender, EventArgs e)
+    {
+        Navigation.PushAsync(new IgnoredPayments());
     }
 }

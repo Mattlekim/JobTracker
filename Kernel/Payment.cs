@@ -189,7 +189,38 @@ namespace Kernel
 
         private Customer _customer;
 
+        /// <summary>
+        /// payment references told to stay out of the statement import. these
+        /// stick for every statement from now on, so it matters that one
+        /// added by mistake can be taken back out again
+        /// </summary>
         public static List<string> IgnorePaymentList = new List<string>();
+
+        public static bool IsIgnored(string reference)
+        {
+            if (IgnorePaymentList == null || reference == null)
+                return false;
+
+            return IgnorePaymentList.Contains(reference);
+        }
+
+        /// <summary>
+        /// stops ignoring a reference, so it comes back on the next statement
+        /// import ready to be linked to a customer
+        /// </summary>
+        public static void StopIgnoring(string reference)
+        {
+            if (IgnorePaymentList == null || reference == null)
+                return;
+
+            IgnorePaymentList.RemoveAll(x => x == reference);
+        }
+
+        public static void StopIgnoringEverything()
+        {
+            if (IgnorePaymentList != null)
+                IgnorePaymentList.Clear();
+        }
         public void MatchCustomer()
         {
             if (_customer == null)

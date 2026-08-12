@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.IgnoredPayments"
+             Title="Ignored Payments">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 10" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="10" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="10">
+
+            <Label x:Name="l_overview" FontAttributes="Bold"></Label>
+            <Label FontSize="12" TextColor="Grey"
+                   Text="Money coming in with one of these references is skipped every time a statement is imported. Put one back and it turns up on the next import ready to be linked to a customer - no payments are lost either way, they are just not brought in."></Label>
+
+            <Label x:Name="l_nothing" IsVisible="false" Padding="0,20" HorizontalTextAlignment="Center"
+                   Text="Nothing is being ignored. References you press Ignore on while importing a statement show up here."></Label>
+
+            <VerticalStackLayout x:Name="vsl_references" Spacing="8"></VerticalStackLayout>
+
+            <Button x:Name="bnt_clearAll" Text="Stop Ignoring Everything" Clicked="bnt_clearAll_Clicked"
+                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="#E53935" TextColor="#E53935"
+                    CornerRadius="8" Padding="16,6" Margin="0,10,0,0" IsVisible="false"></Button>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
