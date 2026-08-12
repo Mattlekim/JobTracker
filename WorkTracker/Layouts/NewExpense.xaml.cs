@@ -407,6 +407,10 @@ public partial class NewExpense : ContentPage
         if (_editing == null)
             Expense.Add(expense);
 
+        //the receipt lives in the folder for the expense's tax year, so
+        //changing the date can move the paperwork with it
+        expense.FileReceiptWithItsYear();
+
         Expense.Save();
 
         RememberPayee(expense);

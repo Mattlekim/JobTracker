@@ -24,6 +24,13 @@ public partial class StatmentViewer : ContentPage
     public static bool SourceIsPdf = false;
 
     /// <summary>
+    /// the statement file itself, held to one side by StatementFile so a copy
+    /// can be filed under its tax year once the columns are known
+    /// </summary>
+    public static string SourceFilePath = null;
+    public static string SourceFileName = null;
+
+    /// <summary>
     /// set before the page is pushed when the statement was opened to deal
     /// with money going out. the money out page opens by itself once the
     /// columns are known, so the user is not left on the payments list
@@ -410,6 +417,7 @@ public partial class StatmentViewer : ContentPage
         Settings.Save();
         BuildGrid();
         ShowMoneyOutState();
+        ArchiveStatement();
         TryOpenMoneyOut();
     }
 
@@ -478,6 +486,7 @@ public partial class StatmentViewer : ContentPage
 
         BuildGrid();
         ShowMoneyOutState();
+        ArchiveStatement();
         Skip = true;
     }
 
@@ -485,6 +494,52 @@ public partial class StatmentViewer : ContentPage
     {
         bnt_moneyOut.IsVisible = !_selectingCollums && CsvFile != null;
         l_noMoneyOut.IsVisible = !_selectingCollums && !CanReadMoneyOut();
+    }
+
+    private bool _archived = false;
+
+    /// <summary>
+    /// keeps a copy of the statement, filed under the tax year most of it
+    /// falls in. the statement is the evidence the figures came off, so it is
+    /// kept with that year's receipts and goes into its backup.
+    /// only possible once the date column is known, which is why it happens
+    /// here rather than when the file was picked
+    /// </summary>
+    private void ArchiveStatement()
+    {
+        if (_archived || _selectingCollums || CsvFile == null)
+            return;
+
+        if (DateColumn < 0 || string.IsNullOrEmpty(SourceFilePath))
+            return;
+
+        _archived = true;
+
+        try
+        {
+            List<DateTime> dates = new List<DateTime>();
+            foreach (string[] row in CsvFile.data)
+            {
+                if (row == null || row.Length <= DateColumn)
+                    continue;
+
+                if (StatementText.TryParseDate(row[DateColumn], out DateTime date))
+                    dates.Add(date);
+            }
+
+            //the same file picked twice keeps the copy already filed
+            long size = new FileInfo(SourceFilePath).Length;
+            if (StatementRecord.FindSameFile(SourceFileName, size) != null)
+                return;
+
+            if (StatementRecord.Keep(SourceFilePath, SourceFileName, dates) != null)
+                StatementRecord.Save();
+        }
+        catch
+        {
+            //failing to keep the file must not stop the import - the figures
+            //read off it matter more
+        }
     }
 
     /// <summary>true once the money out column has been asked about, so a statement without one is not asked about again and again</summary>

@@ -92,6 +92,38 @@ namespace Kernel
             return $"{taxYear}/{(taxYear + 1) % 100:00}";
         }
 
+        /// <summary>
+        /// what a tax year's folder of receipts and statements is called.
+        /// a slash cannot go in a folder name, so it is "2026-27"
+        /// </summary>
+        public static string YearFolderName(int taxYear)
+        {
+            return $"{taxYear}-{(taxYear + 1) % 100:00}";
+        }
+
+        /// <summary>
+        /// every tax year there is anything recorded for, oldest first, and
+        /// always the one we are in now. this is what the backup and export
+        /// pages offer to pick from
+        /// </summary>
+        public static List<int> YearsWithData()
+        {
+            HashSet<int> years = new HashSet<int> { TaxYearOf(UsfulFuctions.DateNow) };
+
+            foreach (Payment p in Payment.Query())
+                years.Add(TaxYearOf(p.Date));
+
+            foreach (Expense e in Expense.Query())
+                years.Add(TaxYearOf(e.Date));
+
+            foreach (StatementRecord s in StatementRecord.Query())
+                years.Add(s.TaxYear);
+
+            List<int> sorted = years.Where(y => y >= 2000 && y <= 2100).ToList();
+            sorted.Sort();
+            return sorted;
+        }
+
         public static TaxPeriod WholeYear(int taxYear)
         {
             return new TaxPeriod

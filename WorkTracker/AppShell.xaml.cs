@@ -12,8 +12,13 @@ namespace WorkTracker
             Payment.Load();
             Expense.Load();
             ExpenseRule.Load();
+            StatementRecord.Load();
             GoCardlessRequest.Load();
             Settings.Load();
+
+            //photos taken before receipts were filed by tax year are still
+            //loose in the receipts folder - put them where they belong
+            Expense.FileLooseReceipts();
 
             //pulls newer cloud data in the background and pushes future saves
             UiInterface.CloudSync.Start();

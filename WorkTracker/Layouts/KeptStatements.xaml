@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.KeptStatements"
+             Title="Bank Statements">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 10" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="10" />
+        </Style>
+        <Style x:Key="RowButton" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="BorderWidth" Value="2" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,4" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="10">
+            <Label x:Name="l_overview" FontAttributes="Bold"></Label>
+            <Label Text="A copy of every statement you import is kept, filed under the tax year most of it falls in. It is the evidence your figures were read off, so it goes into that year's backup and up to the cloud with the receipts."
+                   FontSize="12" TextColor="Grey"></Label>
+
+            <Label x:Name="l_nothing" IsVisible="false" Padding="0,20" HorizontalTextAlignment="Center"
+                   Text="No statements kept yet. Import one from the payments or expenses page."></Label>
+
+            <VerticalStackLayout x:Name="vsl_statements" Spacing="8"></VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

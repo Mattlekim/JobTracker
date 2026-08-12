@@ -69,6 +69,41 @@ For anything that does not need the UI, `KernelDebugger` is much faster to itera
 dotnet run --project KernelDebugger\KernelDebugger.csproj
 ```
 
+## Tax years and the data files
+
+Anything the taxman cares about is kept one file per tax year (UK, 6 April to 5 April — `TaxCalendar`):
+
+| File | Holds |
+| --- | --- |
+| `expenses-<year>.rjt` | that tax year's expenses |
+| `payments-<year>.rjt` | that tax year's income |
+| `statements-<year>.rjt` | the bank statements imported for it |
+| `receipts/<year>/` | its receipt photos |
+| `statements/<year>/` | the statement files themselves |
+
+`<year>` is the year the tax year starts in, so `expenses-2026.rjt` is 2026/27. Folders read as `2026-27`.
+
+Everything else — customers, jobs, quotes, remembered payees, direct debits, settings — is global and never split,
+because last year's figures are meaningless without the customers they came from.
+
+`Kernel/YearlyStore.cs` does the file handling. The important part is `WriteIfChanged`: a year is only written when
+its contents actually differ, so a finished tax year keeps its timestamp and cloud sync has nothing to send for it.
+That is the whole reason for the split, so **do not** write per-year files unconditionally. For the same reason the
+id counter is only stored in the current year's file — writing it everywhere would touch every year on every save.
+
+Everything still loads into one in-memory list, so queries and pages are unaware of the split.
+
+The single `expenses.rjt` / `payment.rjt` files from before this are migrated on load: read, split into years, then
+deleted so nothing deleted since can come back. `CloudSync.PullLegacyFilesAsync` covers the other direction — a
+device installed fresh against a Drive still holding the old files pulls them down once (guarded by a preference so
+it never happens twice).
+
+Backups are built by `ImportExport/TaxYearBackup`. Manual backup asks which tax years to include once there is more
+than one (`Layouts/SelectTaxYears`); the tax page can save any year on its own with its receipts and statements.
+The global files go into every backup regardless. Restoring is unchanged — the zip unpacks over the data folder, so
+a one-year backup puts that year back and leaves the others alone. Backup files are written to the cache folder,
+not next to the data.
+
 ## Receipt photos
 
 `WorkTracker/ReceiptPhoto.cs` scales every receipt photo down and re-encodes it as a JPEG before it is written into
@@ -95,6 +130,11 @@ Nothing is ever imported twice. Every outgoing gets an id built from the date, t
 amount (`Expense.StatementReference`), stored on `Expense.ExternalReference`, so re-importing the same statement —
 or the next one, which overlaps it — finds the expense already there. Identical transactions on the same day are
 told apart by an occurrence number, so two identical fuel stops still count twice.
+
+The statement file itself is kept (`Kernel/StatementRecord.cs`), filed under the tax year most of its transactions
+fall in, so the evidence the figures were read off travels with them into backups and the cloud. It is copied once
+the date column is known — which is why `StatmentViewer.ArchiveStatement` runs there and not at the file picker.
+`Layouts/KeptStatements` lists them.
 
 `Kernel/ExpenseRule.cs` is what makes recurring bills look after themselves: flagging an outgoing as an expense
 (or ignoring it) remembers the payee, and the next statement logs it automatically with the same category and

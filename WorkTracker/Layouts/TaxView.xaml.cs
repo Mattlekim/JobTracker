@@ -226,6 +226,54 @@ public partial class TaxView : ContentPage
         }
     }
 
+    /// <summary>
+    /// keeps the whole of one tax year - the figures, the receipt photos and
+    /// the bank statements they were read off - in a single file that can be
+    /// put somewhere safe or handed to an accountant
+    /// </summary>
+    private async void bnt_saveYear_Clicked(object sender, EventArgs e)
+    {
+        await SaveYears(new List<int> { SelectedTaxYear });
+    }
+
+    private void bnt_statements_Clicked(object sender, EventArgs e)
+    {
+        Navigation.PushAsync(new KeptStatements());
+    }
+
+    private async void bnt_saveYears_Clicked(object sender, EventArgs e)
+    {
+        List<int> years = TaxCalendar.YearsWithData();
+
+        List<int> chosen = await SelectTaxYears.AskAsync(Navigation,
+            "Which tax years do you want to save? Each one takes its receipts and bank statements with it.",
+            "Save", years, new List<int> { SelectedTaxYear });
+
+        if (chosen == null)
+            return;
+
+        await SaveYears(chosen);
+    }
+
+    private async Task SaveYears(List<int> years)
+    {
+        try
+        {
+            TaxYearBackup.BackupResult result = TaxYearBackup.Create(years,
+                TaxYearBackup.FileNameFor(years, false));
+
+            await DisplayAlert("Tax Year Saved",
+                $"Saved {result.FormattedYears}, with {result.Receipts} receipt photo(s) and {result.Statements} bank statement(s). Your customers and round are in there too.",
+                "Ok");
+
+            await Share.RequestAsync(new ShareFileRequest("Work Tracker Tax Year", new ShareFile(result.Path)));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Save Failed", ex.Message, "Ok");
+        }
+    }
+
     private async void bnt_export_Clicked(object sender, EventArgs e)
     {
         try

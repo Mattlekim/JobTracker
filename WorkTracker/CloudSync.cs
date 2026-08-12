@@ -22,7 +22,93 @@ namespace UiInterface
     /// </summary>
     public static class CloudSync
     {
-        static readonly string[] SyncFiles = { "customers.rjt", "jobs.rjt", "quotes.rjt", "payment.rjt", "expenses.rjt", "expenserules.rjt", "directdebits.rjt" };
+        /// <summary>
+        /// the round itself, which belongs to no tax year and is always the
+        /// same handful of files
+        /// </summary>
+        static readonly string[] GlobalFiles = { "customers.rjt", "jobs.rjt", "quotes.rjt", "expenserules.rjt", "directdebits.rjt", Kernel.Payment.IgnoreFilePath };
+
+        /// <summary>
+        /// the tax records, which are one file per tax year. a year that has
+        /// not been touched keeps its timestamp, so nothing is sent for it -
+        /// only the year being worked in moves.
+        /// </summary>
+        static readonly string[] YearlyPrefixes = { Kernel.Expense.FilePrefix, Kernel.Payment.FilePrefix, Kernel.StatementRecord.FilePrefix };
+
+        /// <summary>
+        /// the single files expenses and income used to be kept in, before
+        /// they were split by tax year, with the prefix each turns into
+        /// </summary>
+        static readonly (string Name, string Prefix)[] LegacyFiles =
+        {
+            ("expenses.rjt", Kernel.Expense.FilePrefix),
+            ("payment.rjt", Kernel.Payment.FilePrefix),
+        };
+
+        /// <summary>
+        /// data left in the cloud by a version from before the tax years were
+        /// split up. A device installed fresh has none of it locally, so it is
+        /// pulled down once and the loader turns it into year files. After
+        /// that it is left where it is - never downloaded again, so nothing
+        /// deleted since can come back.
+        /// </summary>
+        static async Task<bool> PullLegacyFilesAsync(List<RemoteFile> remote)
+        {
+            bool pulled = false;
+
+            foreach ((string name, string prefix) in LegacyFiles)
+            {
+                if (Preferences.Get($"CloudSync_LegacyDone_{name}", false))
+                    continue;
+
+                string path = LocalPath(name);
+
+                //this device has its own copy, or has already split it up
+                if (File.Exists(path) || Kernel.YearlyStore.YearsOnDisk(prefix).Count > 0)
+                {
+                    Preferences.Set($"CloudSync_LegacyDone_{name}", true);
+                    continue;
+                }
+
+                RemoteFile rf = remote.FirstOrDefault(x => x.Name == name);
+                if (rf == null)
+                    continue;
+
+                await DownloadAsync(rf.Id, path);
+                Preferences.Set($"CloudSync_LegacyDone_{name}", true);
+                pulled = true;
+            }
+
+            return pulled;
+        }
+
+        /// <summary>
+        /// everything worth syncing: the round, plus every tax year file
+        /// either side has. built fresh each sync because a new tax year -
+        /// or one pulled down from another device - adds files
+        /// </summary>
+        static List<string> FilesToSync(List<RemoteFile> remote)
+        {
+            List<string> names = new List<string>(GlobalFiles);
+
+            void AddName(string name)
+            {
+                if (!names.Contains(name))
+                    names.Add(name);
+            }
+
+            foreach (string prefix in YearlyPrefixes)
+            {
+                foreach (int year in Kernel.YearlyStore.YearsOnDisk(prefix))
+                    AddName($"{prefix}-{year}.rjt");
+
+                foreach (RemoteFile rf in remote)
+                    if (Kernel.YearlyStore.IsYearFile(rf.Name, prefix))
+                        AddName(rf.Name);
+            }
+
+            return names;
+        }
 
         const string Scope = "https://www.googleapis.com/auth/drive.appdata";
         const string AuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -117,7 +203,7 @@ namespace UiInterface
             RefreshToken = string.Empty;
             _accessToken = null;
             _accessTokenExpires = DateTime.MinValue;
-            foreach (string f in SyncFiles)
+            foreach (string f in FilesToSync(new List<RemoteFile>()))
             {
                 Preferences.Remove($"CloudSync_Remote_{f}");
                 Preferences.Remove($"CloudSync_Local_{f}");
@@ -373,7 +459,15 @@ namespace UiInterface
                 int uploaded = 0, downloaded = 0;
                 bool reloadNeeded = false;
 
-                foreach (string name in SyncFiles)
+                //a device installed fresh takes what an older version left in
+                //the cloud, and the loader splits it into tax years
+                if (await PullLegacyFilesAsync(remote))
+                {
+                    reloadNeeded = true;
+                    downloaded++;
+                }
+
+                foreach (string name in FilesToSync(remote))
                 {
                     string path = LocalPath(name);
                     bool localExists = File.Exists(path);
@@ -420,11 +514,6 @@ namespace UiInterface
                     }
                 }
 
-                //receipt photos, so an expense's evidence follows the records
-                (int photosUp, int photosDown) = await SyncReceiptsAsync(remote);
-                uploaded += photosUp;
-                downloaded += photosDown;
-
                 if (reloadNeeded)
                     await MainThread.InvokeOnMainThreadAsync(() =>
                     {
@@ -434,9 +523,25 @@ namespace UiInterface
                         Payment.Load();
                         Expense.Load();
                         ExpenseRule.Load();
+                        StatementRecord.Load();
                         GoCardlessRequest.Load();
                         DataRefreshNotifier.NotifyDataChanged();
                     });
+
+                //the paperwork behind the figures. done after the records are
+                //reloaded, so a photo coming down knows which expense - and
+                //so which tax year folder - it belongs to
+                (int photosUp, int photosDown) = await SyncReceiptsAsync(remote);
+                uploaded += photosUp;
+                downloaded += photosDown;
+
+                (int stmtUp, int stmtDown) = await SyncStatementsAsync(remote);
+                uploaded += stmtUp;
+                downloaded += stmtDown;
+
+                //photos that arrived before the expense that claims them get
+                //put in their year folder now the records have caught up
+                Expense.FileLooseReceipts();
 
                 LastSyncText = $"Synced {DateTime.Now:HH:mm} (up {uploaded}, down {downloaded})";
                 return LastSyncText;
@@ -496,6 +601,12 @@ namespace UiInterface
         /// side is missing is simply copied across. Photos are not deleted
         /// from the cloud, so removing an expense on one device cannot take
         /// the evidence away from another.
+        ///
+        /// Locally they live in a folder per tax year. Drive's app folder is
+        /// flat, so the name is all there is to go on - a photo coming down
+        /// is put in the folder for the tax year of the expense that claims
+        /// it, and in 'unfiled' when nothing does yet. The next sync, once
+        /// the expense has arrived, puts it right.
         /// </summary>
         static async Task<(int uploaded, int downloaded)> SyncReceiptsAsync(List<RemoteFile> remote)
         {
@@ -503,12 +614,13 @@ namespace UiInterface
 
             try
             {
-                string folder = Kernel.Expense.GetReceiptFolderPath();
+                string root = Kernel.Expense.GetReceiptFolderPath();
 
                 HashSet<string> remoteNames = new HashSet<string>(
                     remote.Where(x => x.Name.StartsWith(ReceiptPrefix)).Select(x => x.Name));
 
-                foreach (string path in Directory.GetFiles(folder))
+                //every year folder, and any photo still loose in the root
+                foreach (string path in Directory.GetFiles(root, "*", SearchOption.AllDirectories))
                 {
                     string name = Path.GetFileName(path);
                     if (!name.StartsWith(ReceiptPrefix) || remoteNames.Contains(name))
@@ -518,13 +630,15 @@ namespace UiInterface
                     uploaded++;
                 }
 
+                HashSet<string> localNames = new HashSet<string>(
+                    Directory.GetFiles(root, "*", SearchOption.AllDirectories).Select(Path.GetFileName));
+
                 foreach (RemoteFile rf in remote.Where(x => x.Name.StartsWith(ReceiptPrefix)))
                 {
-                    string path = Path.Combine(folder, rf.Name);
-                    if (File.Exists(path))
+                    if (localNames.Contains(rf.Name))
                         continue;
 
-                    await DownloadAsync(rf.Id, path);
+                    await DownloadAsync(rf.Id, ReceiptDestination(root, rf.Name));
                     downloaded++;
                 }
             }
@@ -537,8 +651,97 @@ namespace UiInterface
             return (uploaded, downloaded);
         }
 
+        /// <summary>the tax year folder a downloaded photo belongs in</summary>
+        static string ReceiptDestination(string root, string name)
+        {
+            foreach (Expense e in Expense.Query())
+                if (e.ReceiptFileName == name)
+                    return Path.Combine(Kernel.Expense.GetReceiptFolderPath(e.TaxYear), name);
+
+            //nothing claims it yet, so it waits loose in the receipts folder
+            //where FileLooseReceipts will find it once the expense arrives
+            return Path.Combine(root, name);
+        }
+
+        /// <summary>
+        /// the bank statements themselves, which are the evidence the figures
+        /// were read off. They are filed by tax year here and flat in Drive,
+        /// so the year is carried in the name they are stored under.
+        /// </summary>
+        static async Task<(int uploaded, int downloaded)> SyncStatementsAsync(List<RemoteFile> remote)
+        {
+            int uploaded = 0, downloaded = 0;
+
+            try
+            {
+                string root = Kernel.StatementRecord.GetStatementFolderPath();
+
+                HashSet<string> remoteNames = new HashSet<string>(
+                    remote.Where(x => x.Name.StartsWith(StatementPrefix)).Select(x => x.Name));
+
+                foreach (StatementRecord record in StatementRecord.Query())
+                {
+                    if (!record.FileKept)
+                        continue;
+
+                    string name = RemoteStatementName(record.TaxYear, record.StoredFileName);
+                    if (remoteNames.Contains(name))
+                        continue;
+
+                    await UploadAsync(name, record.StoredPath, null);
+                    uploaded++;
+                }
+
+                foreach (RemoteFile rf in remote.Where(x => x.Name.StartsWith(StatementPrefix)))
+                {
+                    string path = LocalStatementPath(root, rf.Name);
+                    if (path == null || File.Exists(path))
+                        continue;
+
+                    await DownloadAsync(rf.Id, path);
+                    downloaded++;
+                }
+            }
+            catch
+            {
+                //same as the photos - worth retrying, not worth failing over
+            }
+
+            return (uploaded, downloaded);
+        }
+
         /// <summary>how receipt photos are named, see NewExpense</summary>
         const string ReceiptPrefix = "receipt_";
+
+        /// <summary>how a kept statement is named in the cloud: stmt_2026-27__statement_....pdf</summary>
+        const string StatementPrefix = "stmt_";
+
+        const string StatementYearSeparator = "__";
+
+        static string RemoteStatementName(int taxYear, string storedFileName)
+        {
+            return $"{StatementPrefix}{TaxCalendar.YearFolderName(taxYear)}{StatementYearSeparator}{storedFileName}";
+        }
+
+        /// <summary>where a statement coming down from the cloud goes, from its name</summary>
+        static string LocalStatementPath(string root, string remoteName)
+        {
+            string rest = remoteName.Substring(StatementPrefix.Length);
+            int split = rest.IndexOf(StatementYearSeparator, StringComparison.Ordinal);
+            if (split <= 0)
+                return null;
+
+            string yearFolder = rest.Substring(0, split);
+            string fileName = rest.Substring(split + StatementYearSeparator.Length);
+            if (fileName.Length == 0)
+                return null;
+
+            string folder = Path.Combine(root, yearFolder);
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+
+            return Path.Combine(folder, fileName);
+        }
 
         static async Task<DateTime> UploadAsync(string name, string path, string existingId)
         {

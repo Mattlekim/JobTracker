@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.SelectTaxYears"
+             Title="Tax Years">
+
+    <Grid Padding="12" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <Label Grid.Row="0" x:Name="l_prompt" FontAttributes="Bold"></Label>
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8" x:Name="hsl_quickPick">
+            <Button Text="All Years" Clicked="bnt_all_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5" CornerRadius="8" Padding="12,4" FontSize="13"></Button>
+            <Button Text="This Year Only" Clicked="bnt_thisYear_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5" CornerRadius="8" Padding="12,4" FontSize="13"></Button>
+        </HorizontalStackLayout>
+
+        <ScrollView Grid.Row="2">
+            <VerticalStackLayout x:Name="vsl_years" Spacing="4"></VerticalStackLayout>
+        </ScrollView>
+
+        <HorizontalStackLayout Grid.Row="3" Spacing="8" HorizontalOptions="End">
+            <Button Text="Cancel" Clicked="bnt_cancel_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#6B7280" TextColor="#6B7280" CornerRadius="8" Padding="16,6"></Button>
+            <Button x:Name="bnt_ok" Text="Back Up" Clicked="bnt_ok_Clicked" BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="16,6"></Button>
+        </HorizontalStackLayout>
+    </Grid>
+
+</ContentPage>

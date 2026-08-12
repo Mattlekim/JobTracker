@@ -19,6 +19,9 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Export" Clicked="bnt_export_Clicked"></ToolbarItem>
+        <ToolbarItem Text="Save This Tax Year" Clicked="bnt_saveYear_Clicked" Order="Secondary"></ToolbarItem>
+        <ToolbarItem Text="Save Other Tax Years" Clicked="bnt_saveYears_Clicked" Order="Secondary"></ToolbarItem>
+        <ToolbarItem Text="Bank Statements" Clicked="bnt_statements_Clicked" Order="Secondary"></ToolbarItem>
     </ContentPage.ToolbarItems>
 
     <ScrollView>

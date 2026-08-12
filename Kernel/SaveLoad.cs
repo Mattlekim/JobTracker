@@ -317,60 +317,136 @@ namespace Kernel
 
     public partial class Expense
     {
-        private static string _FilePath = "expenses.rjt";
+        /// <summary>the one file everything used to go in, before the years were split up</summary>
+        private const string _LegacyFilePath = "expenses.rjt";
+
+        /// <summary>expenses-2026.rjt holds the 2026/27 tax year</summary>
+        public const string FilePrefix = "expenses";
 
         public static void Save(string dir = null)
         {
-            string fileLocation = string.Empty;
-            if (dir != null && dir != string.Empty)
-            {
-                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
-                fileLocation = Path.Combine(fileLocation, _FilePath);
-            }
-            else
-                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+            Save(dir, null);
+        }
 
-            ExpenseSaveData esd = new ExpenseSaveData();
-            esd.Expenses = new List<Expense>();
-            esd.Expenses.AddRange(_Expenses);
-            esd.NextExpenseId = _IdGenerator;
-
-            using (FileStream fs = File.Create(fileLocation))
+        /// <summary>
+        /// writes one file per tax year. only the years that have actually
+        /// changed get written, so a finished year keeps its timestamp and
+        /// the cloud has nothing to send for it.
+        /// <paramref name="onlyYears"/> limits it to the years asked for,
+        /// which is how a backup of one tax year is made
+        /// </summary>
+        public static void Save(string dir, HashSet<int> onlyYears)
+        {
+            Dictionary<int, List<Expense>> byYear = new Dictionary<int, List<Expense>>();
+            foreach (Expense e in _Expenses)
             {
-                XmlSerializer xs = new XmlSerializer(typeof(ExpenseSaveData));
-                xs.Serialize(fs, esd);
+                int year = TaxCalendar.TaxYearOf(e.Date);
+                if (onlyYears != null && !onlyYears.Contains(year))
+                    continue;
+
+                if (!byYear.TryGetValue(year, out List<Expense> list))
+                {
+                    list = new List<Expense>();
+                    byYear[year] = list;
+                }
+                list.Add(e);
             }
+
+            //the id counter only goes in the tax year we are in, so adding an
+            //expense today cannot change a finished year's file
+            int currentYear = TaxCalendar.TaxYearOf(UsfulFuctions.DateNow);
+
+            foreach (KeyValuePair<int, List<Expense>> year in byYear)
+            {
+                ExpenseSaveData esd = new ExpenseSaveData();
+                esd.Expenses = year.Value;
+                esd.NextExpenseId = year.Key == currentYear ? _IdGenerator : 0;
+
+                YearlyStore.WriteIfChanged(YearlyStore.PathFor(FilePrefix, year.Key, dir),
+                    YearlyStore.Serialise(esd));
+            }
+
+            //a year whose last expense has been deleted should not be left
+            //behind looking like it still holds something
+            if (onlyYears == null)
+                foreach (int year in YearlyStore.YearsOnDisk(FilePrefix, dir))
+                    if (!byYear.ContainsKey(year))
+                        YearlyStore.DeleteYear(FilePrefix, year, dir);
+
             SyncNotifier.NotifySaved();
         }
 
         public static void Load(string dir = null)
         {
-            string fileLocation = string.Empty;
-            if (dir != null && dir != string.Empty)
-            {
-                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
-                fileLocation = Path.Combine(fileLocation, _FilePath);
-            }
-            else
-                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+            _Expenses.Clear();
+            _IdGenerator = 0;
 
-            ExpenseSaveData esd = new ExpenseSaveData();
+            HashSet<int> ids = new HashSet<int>();
+            int nextId = 0;
+
+            foreach (int year in YearlyStore.YearsOnDisk(FilePrefix, dir))
+            {
+                try
+                {
+                    ExpenseSaveData esd = YearlyStore.Deserialise<ExpenseSaveData>(YearlyStore.PathFor(FilePrefix, year, dir));
+                    if (esd.Expenses != null)
+                        foreach (Expense e in esd.Expenses)
+                            if (ids.Add(e.Id))
+                                _Expenses.Add(e);
+
+                    if (esd.NextExpenseId > nextId)
+                        nextId = esd.NextExpenseId;
+                }
+                catch
+                {
+                    //one unreadable year must not lose the others
+                }
+            }
+
+            bool migrated = LoadLegacyFile(dir, ids, ref nextId);
+
+            foreach (Expense e in _Expenses)
+                if (e.Id >= nextId)
+                    nextId = e.Id + 1;
+
+            _IdGenerator = nextId;
+
+            if (migrated)
+            {
+                Save(dir);
+                YearlyStore.RetireLegacyFile(_LegacyFilePath, dir);
+            }
+        }
+
+        /// <summary>
+        /// picks up the single file expenses used to be kept in, so it can be
+        /// split into years. the caller takes it away once the year files are
+        /// written, so anything deleted since cannot come back the next time
+        /// the app starts
+        /// </summary>
+        private static bool LoadLegacyFile(string dir, HashSet<int> ids, ref int nextId)
+        {
+            string path = YearlyStore.LegacyPath(_LegacyFilePath, dir);
+            if (!File.Exists(path))
+                return false;
+
             try
             {
-                using (FileStream fs = File.OpenRead(fileLocation))
-                {
-                    XmlSerializer xs = new XmlSerializer(typeof(ExpenseSaveData));
-#pragma warning disable CS8605 // Unboxing a possibly null value.
-                    esd = (ExpenseSaveData)xs.Deserialize(fs);
-#pragma warning restore CS8605 // Unboxing a possibly null value.
+                ExpenseSaveData esd = YearlyStore.Deserialise<ExpenseSaveData>(path);
+                if (esd.Expenses != null)
+                    foreach (Expense e in esd.Expenses)
+                        if (ids.Add(e.Id))
+                            _Expenses.Add(e);
 
-                    _Expenses.Clear();
-                    _Expenses.AddRange(esd.Expenses);
-                    _IdGenerator = esd.NextExpenseId;
-                }
+                if (esd.NextExpenseId > nextId)
+                    nextId = esd.NextExpenseId;
+
+                return true;
             }
             catch
             {
+                //leave a file that will not read alone rather than lose it
+                return false;
             }
         }
     }
@@ -439,6 +515,93 @@ namespace Kernel
             catch
             {
             }
+        }
+    }
+
+    public struct StatementRecordSaveData
+    {
+        public List<StatementRecord> Records;
+        public int NextRecordId;
+    }
+
+    public partial class StatementRecord
+    {
+        public static void Save(string dir = null)
+        {
+            Save(dir, null);
+        }
+
+        /// <summary>
+        /// one file per tax year, alongside that year's expenses and income,
+        /// so the statements the figures came off travel with them
+        /// </summary>
+        public static void Save(string dir, HashSet<int> onlyYears)
+        {
+            Dictionary<int, List<StatementRecord>> byYear = new Dictionary<int, List<StatementRecord>>();
+            foreach (StatementRecord record in _Records)
+            {
+                if (onlyYears != null && !onlyYears.Contains(record.TaxYear))
+                    continue;
+
+                if (!byYear.TryGetValue(record.TaxYear, out List<StatementRecord> list))
+                {
+                    list = new List<StatementRecord>();
+                    byYear[record.TaxYear] = list;
+                }
+                list.Add(record);
+            }
+
+            int currentYear = TaxCalendar.TaxYearOf(UsfulFuctions.DateNow);
+
+            foreach (KeyValuePair<int, List<StatementRecord>> year in byYear)
+            {
+                StatementRecordSaveData srsd = new StatementRecordSaveData();
+                srsd.Records = year.Value;
+                srsd.NextRecordId = year.Key == currentYear ? _IdGenerator : 0;
+
+                YearlyStore.WriteIfChanged(YearlyStore.PathFor(FilePrefix, year.Key, dir),
+                    YearlyStore.Serialise(srsd));
+            }
+
+            if (onlyYears == null)
+                foreach (int year in YearlyStore.YearsOnDisk(FilePrefix, dir))
+                    if (!byYear.ContainsKey(year))
+                        YearlyStore.DeleteYear(FilePrefix, year, dir);
+
+            SyncNotifier.NotifySaved();
+        }
+
+        public static void Load(string dir = null)
+        {
+            _Records.Clear();
+            _IdGenerator = 0;
+
+            HashSet<int> ids = new HashSet<int>();
+            int nextId = 0;
+
+            foreach (int year in YearlyStore.YearsOnDisk(FilePrefix, dir))
+            {
+                try
+                {
+                    StatementRecordSaveData srsd = YearlyStore.Deserialise<StatementRecordSaveData>(YearlyStore.PathFor(FilePrefix, year, dir));
+                    if (srsd.Records != null)
+                        foreach (StatementRecord record in srsd.Records)
+                            if (ids.Add(record.Id))
+                                _Records.Add(record);
+
+                    if (srsd.NextRecordId > nextId)
+                        nextId = srsd.NextRecordId;
+                }
+                catch
+                {
+                }
+            }
+
+            foreach (StatementRecord record in _Records)
+                if (record.Id >= nextId)
+                    nextId = record.Id + 1;
+
+            _IdGenerator = nextId;
         }
     }
 
@@ -515,78 +678,185 @@ namespace Kernel
         public List<string> paymentsToIgnore;
     }
 
+    /// <summary>
+    /// the references told to stay out of the payment import. nothing to do
+    /// with any one tax year, so it keeps its own small file rather than
+    /// being copied into every year
+    /// </summary>
+    public struct PaymentIgnoreSaveData
+    {
+        public List<string> paymentsToIgnore;
+    }
+
     public partial class Payment
     {
-        private static string _FilePath = "payment.rjt";
+        /// <summary>the one file everything used to go in, before the years were split up</summary>
+        private const string _LegacyFilePath = "payment.rjt";
+
+        /// <summary>payments-2026.rjt holds the money taken in the 2026/27 tax year</summary>
+        public const string FilePrefix = "payments";
+
+        public const string IgnoreFilePath = "paymentignore.rjt";
+
         public static void Save(string dir = null)
         {
+            Save(dir, null);
+        }
 
-            string fileLocation = string.Empty;
-            if (dir != null && dir != string.Empty)
+        /// <summary>
+        /// writes one file per tax year, and only the years whose payments
+        /// have actually changed. <paramref name="onlyYears"/> limits it to
+        /// the years asked for, which is how one tax year is backed up on
+        /// its own
+        /// </summary>
+        public static void Save(string dir, HashSet<int> onlyYears)
+        {
+            Dictionary<int, List<Payment>> byYear = new Dictionary<int, List<Payment>>();
+            foreach (Payment p in _Payments)
             {
-                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
-                fileLocation = Path.Combine(fileLocation, _FilePath);
+                int year = TaxCalendar.TaxYearOf(p.Date);
+                if (onlyYears != null && !onlyYears.Contains(year))
+                    continue;
+
+                if (!byYear.TryGetValue(year, out List<Payment> list))
+                {
+                    list = new List<Payment>();
+                    byYear[year] = list;
+                }
+                list.Add(p);
             }
-            else
-                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
 
-            PaymentSaveData psd = new PaymentSaveData()
+            //the id counter only goes in the tax year we are in, so taking a
+            //payment today cannot change a finished year's file
+            int currentYear = TaxCalendar.TaxYearOf(UsfulFuctions.DateNow);
+
+            foreach (KeyValuePair<int, List<Payment>> year in byYear)
             {
+                PaymentSaveData psd = new PaymentSaveData();
+                psd.Payments = year.Value;
+                psd.NextPaymentId = year.Key == currentYear ? _IdGenerator : 0;
+                psd.paymentsToIgnore = new List<string>();
 
-            };
-
-
-            psd.Payments = new List<Payment>();
-            psd.Payments.AddRange(_Payments);
-            psd.NextPaymentId = _IdGenerator;
-            psd.paymentsToIgnore = new List<string>();
-            psd.paymentsToIgnore.AddRange(Payment.IgnorePaymentList);
-
-            using (FileStream fs = File.Create(fileLocation))
-            {
-                XmlSerializer xs = new XmlSerializer(typeof(PaymentSaveData));
-                xs.Serialize(fs, psd);
-
+                YearlyStore.WriteIfChanged(YearlyStore.PathFor(FilePrefix, year.Key, dir),
+                    YearlyStore.Serialise(psd));
             }
+
+            if (onlyYears == null)
+                foreach (int year in YearlyStore.YearsOnDisk(FilePrefix, dir))
+                    if (!byYear.ContainsKey(year))
+                        YearlyStore.DeleteYear(FilePrefix, year, dir);
+
+            SaveIgnoreList(dir);
+
             SyncNotifier.NotifySaved();
+        }
+
+        private static void SaveIgnoreList(string dir)
+        {
+            PaymentIgnoreSaveData pisd = new PaymentIgnoreSaveData();
+            pisd.paymentsToIgnore = new List<string>();
+            if (IgnorePaymentList != null)
+                pisd.paymentsToIgnore.AddRange(IgnorePaymentList);
+
+            YearlyStore.WriteIfChanged(Path.Combine(YearlyStore.Folder(dir), IgnoreFilePath),
+                YearlyStore.Serialise(pisd));
         }
 
         public static void Load(string dir = null)
         {
-            string fileLocation = string.Empty;
-            if (dir != null && dir != string.Empty)
+            _Payments.Clear();
+            _IdGenerator = 0;
+
+            HashSet<int> ids = new HashSet<int>();
+            int nextId = 0;
+
+            foreach (int year in YearlyStore.YearsOnDisk(FilePrefix, dir))
             {
-                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
-                fileLocation = Path.Combine(fileLocation, _FilePath);
+                try
+                {
+                    PaymentSaveData psd = YearlyStore.Deserialise<PaymentSaveData>(YearlyStore.PathFor(FilePrefix, year, dir));
+                    if (psd.Payments != null)
+                        foreach (Payment p in psd.Payments)
+                            if (ids.Add(p.Id))
+                                _Payments.Add(p);
+
+                    if (psd.NextPaymentId > nextId)
+                        nextId = psd.NextPaymentId;
+                }
+                catch
+                {
+                    //one unreadable year must not lose the others
+                }
             }
-            else
-                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
 
-            PaymentSaveData csd = new PaymentSaveData()
+            LoadIgnoreList(dir);
+
+            bool migrated = LoadLegacyFile(dir, ids, ref nextId);
+
+            foreach (Payment p in _Payments)
+                if (p.Id >= nextId)
+                    nextId = p.Id + 1;
+
+            _IdGenerator = nextId;
+
+            if (migrated)
             {
+                Save(dir);
+                YearlyStore.RetireLegacyFile(_LegacyFilePath, dir);
+            }
+        }
 
-            };
+        private static void LoadIgnoreList(string dir)
+        {
+            IgnorePaymentList = new List<string>();
             try
             {
-                using (FileStream fs = File.OpenRead(fileLocation))
-                {
-                    XmlSerializer xs = new XmlSerializer(typeof(PaymentSaveData));
-#pragma warning disable CS8605 // Unboxing a possibly null value.
-                    csd = (PaymentSaveData)xs.Deserialize(fs);
-#pragma warning restore CS8605 // Unboxing a possibly null value.
+                string path = Path.Combine(YearlyStore.Folder(dir), IgnoreFilePath);
+                if (!File.Exists(path))
+                    return;
 
-
-                    _Payments.Clear();
-                    _Payments.AddRange(csd.Payments);
-                    _IdGenerator = csd.NextPaymentId;
-
-                    Payment.IgnorePaymentList = new List<string>();
-                    Payment.IgnorePaymentList.AddRange(csd.paymentsToIgnore);
-                }
+                PaymentIgnoreSaveData pisd = YearlyStore.Deserialise<PaymentIgnoreSaveData>(path);
+                if (pisd.paymentsToIgnore != null)
+                    IgnorePaymentList.AddRange(pisd.paymentsToIgnore);
             }
             catch
             {
+            }
+        }
 
+        /// <summary>
+        /// picks up the single file payments used to be kept in, so it can be
+        /// split into years. the ignore list rode along in the same file, so
+        /// it comes out of here too
+        /// </summary>
+        private static bool LoadLegacyFile(string dir, HashSet<int> ids, ref int nextId)
+        {
+            string path = YearlyStore.LegacyPath(_LegacyFilePath, dir);
+            if (!File.Exists(path))
+                return false;
+
+            try
+            {
+                PaymentSaveData psd = YearlyStore.Deserialise<PaymentSaveData>(path);
+                if (psd.Payments != null)
+                    foreach (Payment p in psd.Payments)
+                        if (ids.Add(p.Id))
+                            _Payments.Add(p);
+
+                if (psd.NextPaymentId > nextId)
+                    nextId = psd.NextPaymentId;
+
+                if (psd.paymentsToIgnore != null)
+                    foreach (string reference in psd.paymentsToIgnore)
+                        if (!IgnorePaymentList.Contains(reference))
+                            IgnorePaymentList.Add(reference);
+
+                return true;
+            }
+            catch
+            {
+                //leave a file that will not read alone rather than lose it
+                return false;
             }
         }
     }

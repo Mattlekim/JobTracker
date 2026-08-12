@@ -190,7 +190,8 @@ namespace Kernel
         public const string ReceiptFolder = "receipts";
 
         /// <summary>
-        /// folder where receipt photos are stored, created on demand
+        /// the top of the receipt photo store, created on demand. photos
+        /// themselves live in a tax year folder underneath it
         /// </summary>
         public static string GetReceiptFolderPath()
         {
@@ -198,6 +199,25 @@ namespace Kernel
             if (!Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
             return dir;
+        }
+
+        /// <summary>
+        /// where one tax year's receipts are kept, so a year can be backed up
+        /// or handed over with the paperwork that goes with it
+        /// </summary>
+        public static string GetReceiptFolderPath(int taxYear)
+        {
+            string dir = Path.Combine(GetReceiptFolderPath(), TaxCalendar.YearFolderName(taxYear));
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            return dir;
+        }
+
+        /// <summary>the tax year this expense - and so its receipt - belongs to</summary>
+        [XmlIgnore]
+        public int TaxYear
+        {
+            get { return TaxCalendar.TaxYearOf(Date); }
         }
 
         [XmlIgnore]
@@ -210,7 +230,9 @@ namespace Kernel
         }
 
         /// <summary>
-        /// full path of the receipt photo on this device
+        /// full path of the receipt photo on this device: in its tax year
+        /// folder, or loose in the receipts folder for a photo taken before
+        /// the years were split up
         /// </summary>
         [XmlIgnore]
         public string ReceiptPhotoPath
@@ -219,8 +241,76 @@ namespace Kernel
             {
                 if (string.IsNullOrWhiteSpace(ReceiptFileName))
                     return string.Empty;
-                return Path.Combine(GetReceiptFolderPath(), ReceiptFileName);
+
+                string filed = Path.Combine(GetReceiptFolderPath(TaxYear), ReceiptFileName);
+                if (File.Exists(filed))
+                    return filed;
+
+                string loose = Path.Combine(GetReceiptFolderPath(), ReceiptFileName);
+                if (File.Exists(loose))
+                    return loose;
+
+                //nothing there yet - a photo about to be written goes in the
+                //tax year folder
+                return filed;
             }
+        }
+
+        /// <summary>
+        /// puts the receipt in the folder for the tax year the expense is in.
+        /// called after saving, because changing an expense's date can move
+        /// it into another tax year and the paperwork has to follow it
+        /// </summary>
+        public void FileReceiptWithItsYear()
+        {
+            if (string.IsNullOrWhiteSpace(ReceiptFileName))
+                return;
+
+            try
+            {
+                string wanted = Path.Combine(GetReceiptFolderPath(TaxYear), ReceiptFileName);
+                string current = ReceiptPhotoPath;
+
+                if (current == wanted || !File.Exists(current))
+                    return;
+
+                File.Move(current, wanted, true);
+            }
+            catch
+            {
+                //a photo that will not move stays where it is and is still
+                //found by the fallback in ReceiptPhotoPath
+            }
+        }
+
+        /// <summary>
+        /// moves photos taken before receipts were filed by tax year into the
+        /// right folder. anything nobody claims is left where it is
+        /// </summary>
+        public static int FileLooseReceipts()
+        {
+            int moved = 0;
+            try
+            {
+                Dictionary<string, Expense> owners = new Dictionary<string, Expense>();
+                foreach (Expense e in _Expenses)
+                    if (!string.IsNullOrWhiteSpace(e.ReceiptFileName) && !owners.ContainsKey(e.ReceiptFileName))
+                        owners[e.ReceiptFileName] = e;
+
+                foreach (string path in Directory.GetFiles(GetReceiptFolderPath()))
+                {
+                    string name = Path.GetFileName(path);
+                    if (!owners.TryGetValue(name, out Expense owner))
+                        continue;
+
+                    File.Move(path, Path.Combine(GetReceiptFolderPath(owner.TaxYear), name), true);
+                    moved++;
+                }
+            }
+            catch
+            {
+            }
+            return moved;
         }
 
         public void DeleteReceiptPhoto()

@@ -35,6 +35,13 @@ public static class StatementFile
 
             StatmentViewer.SourceIsPdf = isPdf;
             StatmentViewer.CsvFile = file;
+
+            //the picked file is kept to one side, because the statement is
+            //filed away once the columns are known and by then the picker's
+            //own copy of it may be gone
+            StatmentViewer.SourceFileName = fr.FileName;
+            StatmentViewer.SourceFilePath = await HoldOntoFileAsync(fr);
+
             return file;
         }
         catch (InvalidDataException ex)
@@ -47,6 +54,29 @@ public static class StatementFile
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// copies the picked file into the app's cache so it is still there when
+    /// the statement gets filed under its tax year
+    /// </summary>
+    private static async Task<string> HoldOntoFileAsync(FileResult picked)
+    {
+        try
+        {
+            string path = Path.Combine(FileSystem.CacheDirectory, $"statement_pick_{Guid.NewGuid().ToString("N").Substring(0, 8)}{Path.GetExtension(picked.FileName)}");
+
+            using (Stream source = await picked.OpenReadAsync())
+            using (FileStream dest = File.Create(path))
+                await source.CopyToAsync(dest);
+
+            return path;
+        }
+        catch
+        {
+            //not being able to keep a copy must not stop the import itself
+            return null;
+        }
     }
 
     /// <summary>

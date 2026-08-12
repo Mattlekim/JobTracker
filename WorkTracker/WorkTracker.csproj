@@ -117,6 +117,8 @@
 	  <Compile Include="..\Kernel\Customer.cs" Link="Kernal\Customer.cs" />
 	  <Compile Include="..\Kernel\Expense.cs" Link="Kernal\Expense.cs" />
 	  <Compile Include="..\Kernel\ExpenseRule.cs" Link="Kernal\ExpenseRule.cs" />
+	  <Compile Include="..\Kernel\StatementRecord.cs" Link="Kernal\StatementRecord.cs" />
+	  <Compile Include="..\Kernel\YearlyStore.cs" Link="Kernal\YearlyStore.cs" />
 	  <Compile Include="..\Kernel\Filter.cs" Link="Kernal\Filter.cs" />
 	  <Compile Include="..\Kernel\Gloable.cs" Link="Kernal\Gloable.cs" />
 	  <Compile Include="..\Kernel\GoCardlessRequest.cs" Link="Kernal\GoCardlessRequest.cs" />
@@ -190,6 +192,12 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\ExpenseRules.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Layouts\SelectTaxYears.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Layouts\KeptStatements.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TaxView.xaml">

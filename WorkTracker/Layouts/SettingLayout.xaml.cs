@@ -1,6 +1,7 @@
 namespace UiInterface.Layouts;
 
 using Kernel;
+using UiInterface.ImportExport;
 using System.Globalization;
 using System.Reflection;
 using System.Xml.Serialization;
@@ -700,82 +701,57 @@ public partial class SettingLayout : ContentPage
         Job.JobNames[i] = entry.Text;
     }
 
+    /// <summary>
+    /// The round - customers, jobs, quotes, remembered payees, settings -
+    /// goes into every backup, because last year's figures make no sense
+    /// without the customers they came from. The tax records are filed by
+    /// year, so once there is more than one year of them the backup asks
+    /// which years to take.
+    /// </summary>
     private async void CreateBackup()
     {
-        //step one copy files to backup save folder
+        List<int> years = TaxCalendar.YearsWithData();
+        bool everything = true;
 
-        string saveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Settings.SaveDataFolder);
-
-        if (!Directory.Exists(saveDir))
+        if (years.Count > 1)
         {
-            Directory.CreateDirectory(saveDir);
+            List<int> chosen = await SelectTaxYears.AskAsync(Navigation,
+                "Which tax years do you want in this backup? Customers, jobs and settings always go in.",
+                "Back Up", years);
+
+            if (chosen == null)
+                return;
+
+            everything = chosen.Count == years.Count;
+            years = chosen;
         }
 
-        Customer.Save(Settings.SaveDataFolder);
-        Job.Save(Settings.SaveDataFolder);
-        Payment.Save(Settings.SaveDataFolder);
-        Expense.Save(Settings.SaveDataFolder);
-        ExpenseRule.Save(Settings.SaveDataFolder);
-        GoCardlessRequest.Save(Settings.SaveDataFolder);
-        Settings.Save(Settings.SaveDataFolder);
-
-        //receipt photos go in too, otherwise a restored expense points at a
-        //photo that is not there - and the photo is the proof for the taxman
-        int receiptCount = CopyReceiptsIntoBackup(saveDir);
-
-        string backupfile = $"Backup{DateTime.Now}.rbf";
-        backupfile = backupfile.Replace("/", "-");
-        backupfile = backupfile.Replace(":", "");
-        backupfile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), backupfile);
-        backupfile = Path.Combine(Settings.BackupDataFolder, backupfile);
-        ZipFile.CreateFromDirectory(saveDir, backupfile);
-
-        await DisplayAlert("Backup Created",
-            receiptCount > 0
-                ? $"Your backup has been created, including {receiptCount} receipt photo(s)."
-                : "Your backup has been created", "Ok");
-
-        ShareFile sf = new ShareFile(backupfile);
-        await Share.RequestAsync(new ShareFileRequest("Work Tracker Backup", sf));
+        await RunBackup(years, everything, "Work Tracker Backup");
     }
 
-    /// <summary>
-    /// copies the receipt photos into the folder that gets zipped up, under
-    /// the same 'receipts' name they live in, so restoring puts them back
-    /// where the expenses expect to find them
-    /// </summary>
-    /// <returns>how many photos went in</returns>
-    private static int CopyReceiptsIntoBackup(string saveDir)
+    private async Task RunBackup(List<int> years, bool everything, string shareTitle)
     {
+        TaxYearBackup.BackupResult result;
         try
         {
-            string source = Expense.GetReceiptFolderPath();
-            string destination = Path.Combine(saveDir, Expense.ReceiptFolder);
-
-            //start clean so photos deleted since the last backup do not linger
-            if (Directory.Exists(destination))
-                Directory.Delete(destination, true);
-            Directory.CreateDirectory(destination);
-
-            int count = 0;
-            foreach (string file in Directory.GetFiles(source))
-            {
-                File.Copy(file, Path.Combine(destination, Path.GetFileName(file)), true);
-                count++;
-            }
-            return count;
+            result = TaxYearBackup.Create(years, TaxYearBackup.FileNameFor(years, everything));
         }
-        catch
+        catch (Exception ex)
         {
-            return 0;
+            await DisplayAlert("Backup Failed", $"The backup could not be created: {ex.Message}", "Ok");
+            return;
         }
+
+        await DisplayAlert("Backup Created",
+            $"Backed up {result.FormattedYears}, with {result.Receipts} receipt photo(s) and {result.Statements} bank statement(s).",
+            "Ok");
+
+        ShareFile sf = new ShareFile(result.Path);
+        await Share.RequestAsync(new ShareFileRequest(shareTitle, sf));
     }
 
-    private async void bnt_createBackup_Clicked(object sender, EventArgs e)
+    private void bnt_createBackup_Clicked(object sender, EventArgs e)
     {
-
-
-
         CreateBackup();
     }
 
@@ -817,6 +793,7 @@ public partial class SettingLayout : ContentPage
                     Payment.Load();
                     Expense.Load();
                     ExpenseRule.Load();
+                    StatementRecord.Load();
                     GoCardlessRequest.Load();
                     DataRefreshNotifier.NotifyDataChanged();
                     await DisplayAlert("Success", "Backup has be restored sucsessfuly. Application will now restart", "ok");
@@ -923,6 +900,7 @@ public partial class SettingLayout : ContentPage
                 Payment.DeleteData();
                 Expense.DeleteData();
                 ExpenseRule.DeleteData();
+                StatementRecord.DeleteData();
                 GoCardlessRequest.DeleteData();
 
                 Job.Save();
@@ -930,6 +908,7 @@ public partial class SettingLayout : ContentPage
                 Payment.Save();
                 Expense.Save();
                 ExpenseRule.Save();
+                StatementRecord.Save();
                 GoCardlessRequest.Save();
                 DataRefreshNotifier.NotifyDataChanged();
                 await DisplayAlert("Complete", "All data erased", "Ok");
