@@ -38,7 +38,14 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Label Grid.Column="0" Text="{Binding Header}" FontAttributes="Bold" FontSize="16" VerticalOptions="Center"/>
+                    <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                        <Label Text="{Binding Header}" FontAttributes="Bold" FontSize="16"/>
+                        <!-- how far through the day you are, and what is left of it -->
+                        <HorizontalStackLayout Spacing="8">
+                            <Label Text="{Binding Progress}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#455A64" Padding="6,2"/>
+                            <Label Text="{Binding TimeLeft}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#EF6C00" Padding="6,2" IsVisible="{Binding ShowTimeLeft}"/>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
                     <Button Grid.Column="1" Text="Change Date" FontSize="12" Padding="8,0" HeightRequest="32" MinimumHeightRequest="32"
                             BackgroundColor="Transparent" TextColor="#FB8C00" BorderColor="#FB8C00" BorderWidth="2"
                             VerticalOptions="Center" Clicked="On_Change_Day_Date"/>

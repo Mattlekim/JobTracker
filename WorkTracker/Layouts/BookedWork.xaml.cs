@@ -12,10 +12,76 @@ public partial class BookedWork : ContentPage
         /// <summary>the day this work is booked for</summary>
         public DateTime Date { get; set; }
 
+        /// <summary>how much of the day is done, e.g. "3 of 8 done, 5 left"</summary>
+        public string Progress { get; set; } = string.Empty;
+
+        /// <summary>roughly how long what is left will take</summary>
+        public string TimeLeft { get; set; } = string.Empty;
+
+        public bool ShowTimeLeft { get; set; }
+
+        /// <summary>the jobs on this day that have been done</summary>
+        public int DoneCount { get; set; }
+
+        /// <summary>the jobs on this day still to do</summary>
+        public int LeftCount { get; set; }
+
         public BookingGroup(string header, DateTime date, List<Job> jobs) : base(jobs)
         {
             Header = header;
             Date = date;
+            WorkOutProgress();
+        }
+
+        /// <summary>
+        /// How the day is going, the same figures the calendar shows. A job
+        /// with no estimate of its own falls back to the default job time on
+        /// the settings page, so the figure is not quietly optimistic on a
+        /// round that has never had times filled in. Cancelled jobs are not
+        /// work left and are not counted either way.
+        /// </summary>
+        private void WorkOutProgress()
+        {
+            int minutesLeft = 0;
+
+            foreach (Job j in this)
+            {
+                if (j.HaveCanceled)
+                    continue;
+
+                if (j.IsCompleted)
+                {
+                    DoneCount++;
+                    continue;
+                }
+
+                LeftCount++;
+                minutesLeft += j.EstimatedTime > 0 ? j.EstimatedTime : Settings.DefaultJobDuration;
+            }
+
+            int total = DoneCount + LeftCount;
+
+            if (LeftCount == 0)
+                Progress = total == 1 ? "Done" : $"All {total} done";
+            else
+                Progress = $"{DoneCount} of {total} done, {LeftCount} left";
+
+            //no times filled in anywhere - better to say nothing than "0m left"
+            ShowTimeLeft = minutesLeft > 0;
+            TimeLeft = $"About {FormatMinutes(minutesLeft)} left";
+        }
+
+        /// <summary>minutes as a person would say them - 2h 30m, 45m, 3h</summary>
+        private static string FormatMinutes(int minutes)
+        {
+            int hours = minutes / 60;
+            int rest = minutes % 60;
+
+            if (hours == 0)
+                return $"{rest}m";
+            if (rest == 0)
+                return $"{hours}h";
+            return $"{hours}h {rest}m";
         }
     }
 
@@ -81,7 +147,19 @@ public partial class BookedWork : ContentPage
             return;
 
         _dayToMove = g.Date.Date;
-        l_moveDay.Text = $"Move all {g.Count} jobs booked for {g.Date:ddd dd MMM yyyy} to:";
+
+        //houses already done stay on the day they were done - say so here
+        //rather than let the bar promise to move the lot
+        string staying = g.DoneCount == 0
+            ? string.Empty
+            : g.DoneCount == 1
+                ? " (1 already done stays put)"
+                : $" ({g.DoneCount} already done stay put)";
+
+        l_moveDay.Text = g.LeftCount == 1
+            ? $"Move the 1 job still to do on {g.Date:ddd dd MMM yyyy} to:{staying}"
+            : $"Move the {g.LeftCount} jobs still to do on {g.Date:ddd dd MMM yyyy} to:{staying}";
+
         dp_moveTo.Date = g.Date.Date;
         vsl_moveDay.IsVisible = true;
     }
@@ -121,9 +199,16 @@ public partial class BookedWork : ContentPage
 
         if (toMove.Count == 0)
         {
+            //the whole day is finished with, so the only thing left worth
+            //doing to it is clearing it off the board
             await DisplayAlert("Nothing To Move",
                 $"Everything booked for {from:ddd dd MMM yyyy} is already done, so there is nothing to move.", "OK");
+
+            await OfferToClearDoneJobs(from);
+
+            DataRefreshNotifier.RebuildBookings();
             CloseMoveDay();
+            Reload();
             return;
         }
 
@@ -144,6 +229,11 @@ public partial class BookedWork : ContentPage
             j.BookInJob(to);
 
         Job.Save();
+
+        //what is left on the old day is work that is finished with. offer to
+        //take it off the booking so the day clears out rather than sitting
+        //there looking like there is still something to go back for
+        await OfferToClearDoneJobs(from);
 
         //the bookings are a cache keyed on the day, so they have to be built
         //again now this work sits on a different one
@@ -372,6 +462,35 @@ public partial class BookedWork : ContentPage
             return;
 
         await UnbookJob(j);
+    }
+
+    /// <summary>
+    /// Takes the finished houses off a day's booking, once the rest of that
+    /// day has been moved somewhere else. They keep their done mark and the
+    /// date they were done on - all that goes is the booking, which has
+    /// nothing left to say once the day it belonged to has moved on.
+    /// </summary>
+    private async Task OfferToClearDoneJobs(DateTime day)
+    {
+        List<Job> done = Job.Query().FindAll(x => x.IsBookedIn && !x.HaveCanceled
+            && x.IsCompleted && x.DateJobBookinFor.Date == day.Date);
+
+        if (done.Count == 0)
+            return;
+
+        string what = done.Count == 1
+            ? $"1 house on {day:ddd dd MMM yyyy} is already done and has stayed there."
+            : $"{done.Count} houses on {day:ddd dd MMM yyyy} are already done and have stayed there.";
+
+        if (!await DisplayAlert("Clear The Day?",
+            $"{what}\n\nTake them off the booking so the day clears? The work stays marked done either way.",
+            "Take Them Off", "Leave Them"))
+            return;
+
+        foreach (Job j in done)
+            Booking.RemoveJobFromBooking(j);
+
+        Job.Save();
     }
 
     private async Task UnbookJob(Job j)
