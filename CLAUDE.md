@@ -268,6 +268,19 @@ is false there and sharing stays the only way out — anything calling this must
 
 The tax page's Export asks *Save To This Device* or *Share* when the platform can do both.
 
+## Job types
+
+`Job.JobNames` is the list of job types, edited on the settings page and saved with the settings. `DefaultJobName`
+is the first of them and is what anything without a type falls back to: `Job.Load` fills a blank type in as the
+file is read, the new job form picks it when a job's own type is not on the list any more, and Quick Add — which
+never asks what the work is — gives it to everything it creates. A type that is on the job but no longer on the
+list is left alone; it still says what the work is, and retyping it because somebody renamed an entry would lose
+that.
+
+**`Settings.Load()` must run before `Job.Load()`** (`AppShell`), because the job types come out of the settings
+file. The other way round, work with no type gets the first *built in* type rather than the first of this round's
+own. Only what is in memory is changed — the file catches up on the next save, like the other tidy ups done on load.
+
 ## Versioning
 
 `ApplicationDisplayVersion` and `ApplicationVersion` live in `WorkTracker/WorkTracker.csproj` and must both be

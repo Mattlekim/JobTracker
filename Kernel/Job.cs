@@ -45,6 +45,27 @@ namespace Kernel
             get { return JobNames.Count > 0 ? JobNames[0] : string.Empty; }
         }
 
+        /// <summary>
+        /// gives a job the first job type when it has none at all. work added
+        /// through Quick Add never had one - that form does not ask - so it is
+        /// put right as the file is read rather than leaving every one of them
+        /// blank until somebody opens it.
+        ///
+        /// a type that is simply not on the list any anymore is left alone: it
+        /// says what the work is, and a job typed Gutter Clear must not turn
+        /// into Windows because that entry was edited on the settings page.
+        ///
+        /// only what is in memory is changed. the file is written the next
+        /// time something is saved, like every other tidy up done on load.
+        /// </summary>
+        public static void FillInJobType(Job job)
+        {
+            if (job == null || !string.IsNullOrWhiteSpace(job.Name))
+                return;
+
+            job.Name = DefaultJobName;
+        }
+
         public GridLength Gr { get; set; } = new GridLength(0.3, GridUnitType.Star);
 
         /// <summary>
