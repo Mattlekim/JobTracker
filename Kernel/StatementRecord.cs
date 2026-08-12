@@ -12,9 +12,14 @@ namespace Kernel
     ///
     /// The statement is the evidence behind the figures - if the taxman asks
     /// where a number came from, the answer is the statement it was read off.
-    /// So the file itself is kept, filed under the tax year most of it falls
-    /// in, and goes into that year's backup and up to the cloud along with
-    /// the receipts.
+    /// So the file itself is kept, filed under the tax year it covers, and
+    /// goes into that year's backup and up to the cloud along with the
+    /// receipts.
+    ///
+    /// A statement that straddles 5 April is kept in <em>both</em> tax years,
+    /// one record and one copy of the file each. Backing up or handing over a
+    /// single year then still has the whole of the evidence behind it, rather
+    /// than half of it sitting in a year nobody asked for.
     /// </summary>
     public partial class StatementRecord
     {
@@ -41,12 +46,30 @@ namespace Kernel
 
         public DateTime Imported { get; set; }
 
-        /// <summary>the dates the statement covers, as read off it</summary>
+        /// <summary>
+        /// the dates this tax year's part of the statement covers. for a
+        /// statement that straddles 5 April these are the dates either side
+        /// of it, not the whole file
+        /// </summary>
         public DateTime FirstTransaction { get; set; }
         public DateTime LastTransaction { get; set; }
 
-        /// <summary>how many rows were read off it</summary>
+        /// <summary>the dates the whole file covers, however many years it runs across</summary>
+        public DateTime FileFirstTransaction { get; set; }
+        public DateTime FileLastTransaction { get; set; }
+
+        /// <summary>how many rows fall in this tax year</summary>
         public int Transactions { get; set; }
+
+        /// <summary>how many rows are in the file altogether</summary>
+        public int FileTransactions { get; set; }
+
+        /// <summary>true when the file runs across 5 April and is kept in another year as well</summary>
+        [XmlIgnore]
+        public bool Crossover
+        {
+            get { return FileTransactions > Transactions; }
+        }
 
         /// <summary>size of the kept file, used to spot the same file being imported again</summary>
         public long FileSize { get; set; }
@@ -144,94 +167,133 @@ namespace Kernel
         }
 
         /// <summary>
-        /// the same statement imported a second time. matched on the file's
-        /// name and size, which is enough to recognise the file the bank
-        /// hands out again without reading the whole thing back
+        /// the same statement already kept in a tax year. matched on the
+        /// file's name and size, which is enough to recognise the file the
+        /// bank hands out again without reading the whole thing back
         /// </summary>
-        public static StatementRecord FindSameFile(string originalFileName, long fileSize)
+        public static StatementRecord FindSameFile(string originalFileName, long fileSize, int taxYear)
         {
             if (string.IsNullOrWhiteSpace(originalFileName))
                 return null;
 
             return _Records.FirstOrDefault(x => x.FileSize == fileSize
+                && x.TaxYear == taxYear
                 && string.Equals(x.OriginalFileName, originalFileName, StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>
-        /// keeps a copy of a statement that has just been imported, filed
-        /// under the tax year most of its transactions fall in
+        /// keeps a copy of a statement that has just been imported, in every
+        /// tax year it covers. a statement running across 5 April is kept in
+        /// both, so either year can be backed up or handed over on its own
+        /// and still have all of its evidence with it.
+        /// years it is already kept in are left as they are
         /// </summary>
         /// <param name="sourcePath">the file the user picked</param>
         /// <param name="dates">the transaction dates read off it</param>
-        public static StatementRecord Keep(string sourcePath, string originalFileName, List<DateTime> dates)
+        /// <returns>the records added, one per tax year newly filed</returns>
+        public static List<StatementRecord> Keep(string sourcePath, string originalFileName, List<DateTime> dates)
         {
+            List<StatementRecord> added = new List<StatementRecord>();
+
             if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
-                return null;
+                return added;
 
-            int taxYear = YearFor(dates);
-
-            DateTime first = dates != null && dates.Count > 0 ? dates.Min() : UsfulFuctions.DateNow;
-            DateTime last = dates != null && dates.Count > 0 ? dates.Max() : UsfulFuctions.DateNow;
+            DateTime fileFirst = dates != null && dates.Count > 0 ? dates.Min() : UsfulFuctions.DateNow;
+            DateTime fileLast = dates != null && dates.Count > 0 ? dates.Max() : UsfulFuctions.DateNow;
 
             string extension = Path.GetExtension(originalFileName);
             if (string.IsNullOrEmpty(extension))
                 extension = Path.GetExtension(sourcePath);
 
             //dated and made unique, so two statements from the same bank do
-            //not land on top of one another
-            string stored = $"statement_{first:yyyyMMdd}_{last:yyyyMMdd}_{Guid.NewGuid().ToString("N").Substring(0, 6)}{extension}";
-            string destination = Path.Combine(GetStatementFolderPath(taxYear), stored);
+            //not land on top of one another. both years keep the same name,
+            //because it is the same file
+            string stored = $"statement_{fileFirst:yyyyMMdd}_{fileLast:yyyyMMdd}_{Guid.NewGuid().ToString("N").Substring(0, 6)}{extension}";
 
+            long sourceSize;
             try
             {
-                File.Copy(sourcePath, destination, true);
+                sourceSize = new FileInfo(sourcePath).Length;
             }
             catch
             {
-                return null;
+                return added;
             }
 
-            StatementRecord record = new StatementRecord()
-            {
-                TaxYear = taxYear,
-                OriginalFileName = originalFileName ?? Path.GetFileName(sourcePath),
-                StoredFileName = stored,
-                Imported = UsfulFuctions.DateNow,
-                FirstTransaction = first,
-                LastTransaction = last,
-                Transactions = dates == null ? 0 : dates.Count,
-                FileSize = new FileInfo(destination).Length,
-            };
+            string name = originalFileName ?? Path.GetFileName(sourcePath);
 
-            return Add(record);
+            foreach (int taxYear in YearsFor(dates))
+            {
+                if (FindSameFile(name, sourceSize, taxYear) != null)
+                    continue;
+
+                List<DateTime> inYear = DatesIn(dates, taxYear);
+
+                string destination = Path.Combine(GetStatementFolderPath(taxYear), stored);
+                try
+                {
+                    File.Copy(sourcePath, destination, true);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                added.Add(Add(new StatementRecord()
+                {
+                    TaxYear = taxYear,
+                    OriginalFileName = name,
+                    StoredFileName = stored,
+                    Imported = UsfulFuctions.DateNow,
+                    FirstTransaction = inYear.Count > 0 ? inYear.Min() : fileFirst,
+                    LastTransaction = inYear.Count > 0 ? inYear.Max() : fileLast,
+                    FileFirstTransaction = fileFirst,
+                    FileLastTransaction = fileLast,
+                    Transactions = inYear.Count,
+                    FileTransactions = dates == null ? 0 : dates.Count,
+                    FileSize = sourceSize,
+                }));
+            }
+
+            return added;
         }
 
         /// <summary>
-        /// which tax year a statement belongs in. a statement that straddles
-        /// 5 April goes in whichever year most of it falls in
+        /// every tax year a statement covers, oldest first. one for a normal
+        /// statement, two for one that runs across 5 April
         /// </summary>
-        public static int YearFor(List<DateTime> dates)
+        public static List<int> YearsFor(List<DateTime> dates)
         {
-            if (dates == null || dates.Count == 0)
-                return TaxCalendar.TaxYearOf(UsfulFuctions.DateNow);
+            List<int> years = new List<int>();
 
-            Dictionary<int, int> counts = new Dictionary<int, int>();
+            if (dates == null || dates.Count == 0)
+            {
+                years.Add(TaxCalendar.TaxYearOf(UsfulFuctions.DateNow));
+                return years;
+            }
+
             foreach (DateTime date in dates)
             {
                 int year = TaxCalendar.TaxYearOf(date);
-                counts[year] = counts.TryGetValue(year, out int count) ? count + 1 : 1;
+                if (!years.Contains(year))
+                    years.Add(year);
             }
 
-            int best = TaxCalendar.TaxYearOf(dates[0]);
-            int bestCount = 0;
-            foreach (KeyValuePair<int, int> pair in counts)
-                if (pair.Value > bestCount || (pair.Value == bestCount && pair.Key > best))
-                {
-                    best = pair.Key;
-                    bestCount = pair.Value;
-                }
+            years.Sort();
+            return years;
+        }
 
-            return best;
+        private static List<DateTime> DatesIn(List<DateTime> dates, int taxYear)
+        {
+            List<DateTime> inYear = new List<DateTime>();
+            if (dates == null)
+                return inYear;
+
+            foreach (DateTime date in dates)
+                if (TaxCalendar.TaxYearOf(date) == taxYear)
+                    inYear.Add(date);
+
+            return inYear;
         }
 
         public string FormattedPeriod
@@ -250,6 +312,29 @@ namespace Kernel
             {
                 return $"Imported {Imported.ToShortDateString()}, {Transactions} transactions";
             }
+        }
+
+        /// <summary>
+        /// says so when this is one half of a statement that runs across
+        /// 5 April, and what the whole file covers
+        /// </summary>
+        [XmlIgnore]
+        public string FormattedCrossover
+        {
+            get
+            {
+                if (!Crossover)
+                    return string.Empty;
+
+                return $"Runs across 5 April - the whole statement covers {FileFirstTransaction.ToShortDateString()} " +
+                    $"to {FileLastTransaction.ToShortDateString()} ({FileTransactions} transactions) and is kept in both tax years.";
+            }
+        }
+
+        [XmlIgnore]
+        public bool ShowCrossover
+        {
+            get { return Crossover; }
         }
 
         [XmlIgnore]

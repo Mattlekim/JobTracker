@@ -60,6 +60,14 @@ public partial class KeptStatements : ContentPage
         content.Add(new Label { Text = record.FormattedPeriod, FontSize = 13 });
         content.Add(new Label { Text = record.FormattedImported, FontSize = 12, TextColor = Colors.Grey });
 
+        if (record.Crossover)
+            content.Add(new Label
+            {
+                Text = record.FormattedCrossover,
+                FontSize = 12,
+                TextColor = Color.FromArgb("#EF6C00"),
+            });
+
         if (!record.FileKept)
             content.Add(new Label
             {
@@ -111,9 +119,11 @@ public partial class KeptStatements : ContentPage
 
     private async void Delete(StatementRecord record)
     {
-        if (!await DisplayAlert("Delete Statement?",
-                $"'{record.OriginalFileName}' will be thrown away. The payments and expenses read off it are kept - only the statement itself goes.",
-                "Delete", "Cancel"))
+        string message = $"'{record.OriginalFileName}' will be thrown away. The payments and expenses read off it are kept - only the statement itself goes.";
+        if (record.Crossover)
+            message += $"\n\nThis statement runs across 5 April. Only the {TaxCalendar.YearName(record.TaxYear)} copy goes; the other tax year keeps its own.";
+
+        if (!await DisplayAlert("Delete Statement?", message, "Delete", "Cancel"))
             return;
 
         StatementRecord.Remove(record.Id);

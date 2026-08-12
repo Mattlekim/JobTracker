@@ -527,12 +527,10 @@ public partial class StatmentViewer : ContentPage
                     dates.Add(date);
             }
 
-            //the same file picked twice keeps the copy already filed
-            long size = new FileInfo(SourceFilePath).Length;
-            if (StatementRecord.FindSameFile(SourceFileName, size) != null)
-                return;
-
-            if (StatementRecord.Keep(SourceFilePath, SourceFileName, dates) != null)
+            //a statement that runs across 5 April is kept in both tax years.
+            //Keep leaves alone any year it is already filed in, so picking
+            //the same file twice does not make a second copy
+            if (StatementRecord.Keep(SourceFilePath, SourceFileName, dates).Count > 0)
                 StatementRecord.Save();
         }
         catch

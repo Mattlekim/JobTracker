@@ -131,10 +131,13 @@ amount (`Expense.StatementReference`), stored on `Expense.ExternalReference`, so
 or the next one, which overlaps it — finds the expense already there. Identical transactions on the same day are
 told apart by an occurrence number, so two identical fuel stops still count twice.
 
-The statement file itself is kept (`Kernel/StatementRecord.cs`), filed under the tax year most of its transactions
-fall in, so the evidence the figures were read off travels with them into backups and the cloud. It is copied once
-the date column is known — which is why `StatmentViewer.ArchiveStatement` runs there and not at the file picker.
-`Layouts/KeptStatements` lists them.
+The statement file itself is kept (`Kernel/StatementRecord.cs`), filed under the tax year it covers, so the
+evidence the figures were read off travels with them into backups and the cloud. A statement that straddles
+5 April is kept in **both** tax years — one record and one copy of the file each — so backing up or handing over a
+single year still has all of its evidence, rather than half of it sitting in a year nobody asked for. Each record
+holds its own year's date range and transaction count alongside the whole file's, which is what `Crossover` keys
+off. It is copied once the date column is known — which is why `StatmentViewer.ArchiveStatement` runs there and not
+at the file picker. `Layouts/KeptStatements` lists them.
 
 `Kernel/ExpenseRule.cs` is what makes recurring bills look after themselves: flagging an outgoing as an expense
 (or ignoring it) remembers the payee, and the next statement logs it automatically with the same category and
