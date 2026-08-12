@@ -115,6 +115,20 @@ written instead — a receipt is never lost to save space.
 The size and quality are on the settings page, along with a button that goes back over photos taken before this
 existed. That one only replaces a photo when the new file really is smaller.
 
+## Quotes
+
+A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never
+goes near `_Jobs` — it is not due, cannot be done or paid for, and must not count as work anywhere.
+
+`Layouts/Quotes` is the third page under the Work tab, next to the Overview and the List. Quotes were briefly shown
+as a section at the bottom of the work list instead; they are not on that list any more, so nothing there needs to
+know about them. `Job.AcceptQuote` is the only way a quote becomes work — it moves the same object across, keeping
+its id, price and frequency, and sets the day it starts. `Job.DeleteQuote` throws one away.
+
+`Job.Save` writes `quotes.rjt` every time, empty or not. It used to skip the file when there were no quotes left,
+which left the previous file on disk, so the last quote accepted or deleted came back on the next start.
+`Job.DeleteData` clears both lists for the same reason.
+
 ## Duplicate customers
 
 `Layouts/TidyCustomers` and `Kernel/CustomerMerge.cs` exist to clear up after a bug rather than to add anything.

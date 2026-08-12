@@ -131,26 +131,25 @@ namespace Kernel
             }
 
 
-            if (_Quotes.Count > 0)
+            //written every time, empty or not. this used to be skipped when
+            //there were no quotes left, which left the last file on disk -
+            //so a quote taken up or thrown out came back the next time the
+            //app was started
+            if (dir != null && dir != string.Empty)
             {
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                fileLocation = Path.Combine(fileLocation, _FilePathQuotes);
+            }
+            else
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePathQuotes);
 
-                if (dir != null && dir != string.Empty)
-                {
-                    fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
-                    fileLocation = Path.Combine(fileLocation, _FilePathQuotes);
-                }
-                else
-                    fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePathQuotes);
+            csd.Jobs = new List<Job>();
+            csd.Jobs.AddRange(_Quotes);
 
-                csd.Jobs = new List<Job>();
-                csd.Jobs.AddRange(_Quotes);
-
-                using (FileStream fs = File.Create(fileLocation))
-                {
-                    XmlSerializer xs = new XmlSerializer(typeof(JobSaveData));
-                    xs.Serialize(fs, csd);
-
-                }
+            using (FileStream fs = File.Create(fileLocation))
+            {
+                XmlSerializer xs = new XmlSerializer(typeof(JobSaveData));
+                xs.Serialize(fs, csd);
             }
             SyncNotifier.NotifySaved();
         }

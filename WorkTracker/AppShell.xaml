@@ -21,6 +21,9 @@
             x:Name="tab_work">
             <ShellContent Title="Overview" Route="work_overview" x:Name="sc_workOverview" ContentTemplate="{DataTemplate local:PaperView}"/>
             <ShellContent Title="List" Route="work_list" x:Name="sc_workList" ContentTemplate="{DataTemplate local:WorkPlanner}"/>
+            <!-- priced up but not taken on. kept off the round and off the
+                 work list, because a quote is not due and cannot be done -->
+            <ShellContent Title="Quotes" Route="work_quotes" x:Name="sc_workQuotes" ContentTemplate="{DataTemplate local:Quotes}"/>
         </Tab>
         <Tab Title="Booked" x:Name="tab_booked"
             Icon="booked.png">

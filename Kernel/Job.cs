@@ -82,6 +82,45 @@ namespace Kernel
         }
 
         /// <summary>
+        /// the quote was taken up: it comes off the quote list and goes on
+        /// the round, first due on the day given.
+        ///
+        /// it keeps its id, its price and how often it is to be done, because
+        /// it is the same piece of work - it has just stopped being a maybe.
+        /// </summary>
+        public static bool AcceptQuote(Job quote, DateTime firstDue)
+        {
+            if (quote == null || !_Quotes.Remove(quote))
+                return false;
+
+            quote.DueDate = firstDue;
+            quote.IsCompleted = false;
+            quote.DateCompleated = UsfulFuctions.DateBase;
+            quote.IsPaidFor = false;
+            quote.PaymentId = -1;
+            quote.JobNextId = -1;
+            quote.PreviousJobId = -1;
+            quote.HaveCanceled = false;
+            quote.HaveSkipped = false;
+            quote.DisableSwipe = false;
+
+            _Jobs.Add(quote);
+
+            Save();
+            return true;
+        }
+
+        /// <summary>the work was not wanted, or was quoted twice</summary>
+        public static bool DeleteQuote(int id)
+        {
+            if (_Quotes.RemoveAll(x => x.Id == id) == 0)
+                return false;
+
+            Save();
+            return true;
+        }
+
+        /// <summary>
         /// add a new job
         /// </summary>
         /// <param name="customerId">the customer the job belongs too</param>
@@ -272,6 +311,10 @@ namespace Kernel
         public static void DeleteData()
         {
             _Jobs.Clear();
+
+            //the quotes went with the jobs before this was here, so deleting
+            //everything or restoring a backup left the old ones behind
+            _Quotes.Clear();
         }
 
         public List<AlternativePrice> AlternativePrices;
