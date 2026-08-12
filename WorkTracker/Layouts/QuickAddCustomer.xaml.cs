@@ -7,7 +7,14 @@ public partial class QuickAddCustomer : ContentPage
 {
 	public static Location TheAddress;
 
+    /// <summary>
+    /// set before the page is pushed to make this a quote rather than a job.
+    /// it is read once, in the constructor, and put back to false: a static
+    /// left set would turn the next ordinary job into a quote as well
+    /// </summary>
     public static bool IsQuote = false;
+
+    private readonly bool _isQuote;
 
     public Action<Job> OnJobCreated;
 	/// <summary>
@@ -58,11 +65,14 @@ public partial class QuickAddCustomer : ContentPage
 
 	public QuickAddCustomer()
 	{
+		_isQuote = IsQuote;
+		IsQuote = false;
+
 		InitializeComponent();
 		vsl_main.BindingContext = TheAddress;
 
 		WireAddressSuggestions();
-        if (IsQuote)
+        if (_isQuote)
         {
             this.Title = "Add New Quote";
             bnt_Add.Text = "Add Quote";
@@ -87,26 +97,26 @@ public partial class QuickAddCustomer : ContentPage
         hsl_frequency.IsVisible = !cb_oneOff.IsChecked;
     }
 
-	private void bnt_SaveJob_Clicked(object sender, EventArgs e)
+	private async void bnt_SaveJob_Clicked(object sender, EventArgs e)
 	{
 		//so we do validation
 		if (e_number.Text == null || e_number.Text == string.Empty)
 		{
-			DisplayAlert("Error", "You must enter a property number / name", "Ok");
+			await DisplayAlert("Error", "You must enter a property number / name", "Ok");
 			return;
 		}
 
         if (e_street.Text == null || e_street.Text == string.Empty)
         {
-            DisplayAlert("Error", "You must enter a street", "Ok");
+            await DisplayAlert("Error", "You must enter a street", "Ok");
             return;
         }
 
         if (e_price.Text == null || e_price.Text == string.Empty)
         {
-            if (!IsQuote)
+            if (!_isQuote)
             {
-                DisplayAlert("Error", "Price can not be empty!", "Ok");
+                await DisplayAlert("Error", "Price can not be empty!", "Ok");
                 return;
             }
             
@@ -121,7 +131,7 @@ public partial class QuickAddCustomer : ContentPage
             }
             catch
             {
-                DisplayAlert("Error", "Duration not valid. Please enter price again", "Ok");
+                await DisplayAlert("Error", "Duration not valid. Please enter price again", "Ok");
                 return;
             }
         }
@@ -135,11 +145,11 @@ public partial class QuickAddCustomer : ContentPage
         }
         catch
         {
-            if (IsQuote)
+            if (_isQuote)
                 price = 0;
             else
             {
-                DisplayAlert("Error", "Price not valid. Please enter price again", "Ok");
+                await DisplayAlert("Error", "Price not valid. Please enter price again", "Ok");
                 return;
             }
         }
@@ -151,7 +161,7 @@ public partial class QuickAddCustomer : ContentPage
         {
             if (e_frequcney.Text == null || e_frequcney.Text == string.Empty)
             {
-                DisplayAlert("Error", "Frequency must be 0 or bigger.'", "Ok");
+                await DisplayAlert("Error", "Frequency must be 0 or bigger.'", "Ok");
                 return;
             }
 
@@ -161,7 +171,7 @@ public partial class QuickAddCustomer : ContentPage
             }
             catch
             {
-                DisplayAlert("Error", "Frequency not valid. Please Enter a number 0 or bigger.", "Ok");
+                await DisplayAlert("Error", "Frequency not valid. Please Enter a number 0 or bigger.", "Ok");
                 return;
             }
         }
@@ -169,14 +179,14 @@ public partial class QuickAddCustomer : ContentPage
         if (cb_tnb.IsChecked || cb_tac.IsChecked)
 			if (e_phone.Text == null || e_phone.Text == string.Empty)
 			{
-                DisplayAlert("Error", "You must enter a phone number to use 'Text Night Before' or 'Text After Completion'", "Ok");
+                await DisplayAlert("Error", "You must enter a phone number to use 'Text Night Before' or 'Text After Completion'", "Ok");
                 return;
             }
 
         if (cb_enb.IsChecked || cb_er.IsChecked)
             if (e_email.Text == null || e_email.Text == string.Empty)
             {
-                DisplayAlert("Error", "You must enter a email to use 'Email Night Before' or 'Email Recipt'", "Ok");
+                await DisplayAlert("Error", "You must enter a email to use 'Email Night Before' or 'Email Recipt'", "Ok");
                 return;
             }
 
@@ -234,7 +244,7 @@ public partial class QuickAddCustomer : ContentPage
 
         j.DueDate = dp_StartDate.Date;
 
-        if (IsQuote)
+        if (_isQuote)
             Job.AddQuote(j);
         else
             Job.Add(j);
@@ -246,7 +256,13 @@ public partial class QuickAddCustomer : ContentPage
         if (OnJobCreated != null)
             OnJobCreated(j);
 
-        Navigation.PopAsync();
+        //a quote is not put on the round, so say where it has gone - looking
+        //for it among the work is looking in the wrong place
+        if (_isQuote)
+            await DisplayAlert("Quote Created",
+                "The quote is in the Quotes section at the bottom of Work > List.", "Ok");
+
+        await Navigation.PopAsync();
     }
     /// <summary>
     /// offers the streets, towns and areas already on the round as the

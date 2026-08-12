@@ -175,6 +175,14 @@
                             </VerticalStackLayout>
                         </Grid>
 
+                        <!-- the streets, towns and areas already on the round,
+                             offered as they are typed. without these the same
+                             street goes in three different ways and splits
+                             itself up in every list that groups by street -->
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout x:Name="hsl_streetSuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>
+                        </ScrollView>
+
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"></ColumnDefinition>
@@ -189,6 +197,13 @@
                                 <Entry x:Name="t_area"></Entry>
                             </VerticalStackLayout>
                         </Grid>
+
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout x:Name="hsl_citySuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>
+                        </ScrollView>
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout x:Name="hsl_areaSuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>
+                        </ScrollView>
 
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Postcode" Style="{StaticResource Caption}" />

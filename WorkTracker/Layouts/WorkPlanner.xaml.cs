@@ -319,6 +319,10 @@ public partial class WorkPlanner : ContentPage
             DisableSwipe = true,
             CustomerId = -1,
             Price = total,
+
+            //a heading has no due date, and without one it worked the tag out
+            //from the year dot and put "810223 Days Late" on itself in red
+            DueDate = UsfulFuctions.DateNow,
         };
         header.Address = new Location()
         {

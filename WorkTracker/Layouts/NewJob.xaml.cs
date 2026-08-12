@@ -36,9 +36,40 @@ public partial class NewJob : ContentPage
 
         cb_differentAddress.CheckedChanged += Cb_differentAddress_CheckedChanged;
 
+        WireAddressSuggestions();
 
         SetZindexLables();
 
+    }
+
+    /// <summary>
+    /// offers the streets, towns and areas already on the round as the
+    /// address is typed. picking a street fills the town and area in with
+    /// wherever that street is, because a street only sits in one town.
+    ///
+    /// this page went without them for a while, which is the page most of
+    /// the round is added through - so the help was missing exactly where it
+    /// was wanted
+    /// </summary>
+    private void WireAddressSuggestions()
+    {
+        Controles.SuggestionBox.Attach(t_street, hsl_streetSuggestions, Customer.KnownStreets, picked =>
+        {
+            Location where = Customer.AddressForStreet(picked);
+            if (where == null)
+                return;
+
+            //only fills in what has been left empty - never types over
+            //something already put in by hand
+            if (string.IsNullOrWhiteSpace(t_city.Text) && !string.IsNullOrWhiteSpace(where.City))
+                t_city.Text = where.City;
+
+            if (string.IsNullOrWhiteSpace(t_area.Text) && !string.IsNullOrWhiteSpace(where.Area))
+                t_area.Text = where.Area;
+        });
+
+        Controles.SuggestionBox.Attach(t_city, hsl_citySuggestions, Customer.KnownCities);
+        Controles.SuggestionBox.Attach(t_area, hsl_areaSuggestions, Customer.KnownAreas);
     }
 
     private void SetZindexLables()
@@ -376,7 +407,43 @@ public partial class NewJob : ContentPage
         Navigation.PushAsync(new JobsList());
     }
 
+    /// <summary>
+    /// reads a number out of a box.
+    ///
+    /// this was Convert.ToDouble, which throws on an empty box and on a
+    /// figure written the way another country writes it. The throw came out
+    /// in the middle of the save, from a button handler with nothing to catch
+    /// it - so pressing Save did nothing at all, or took the app down, and
+    /// what had already been written stayed half done. An empty box means
+    /// nothing rather than an error, and anything that is not a number is
+    /// said out loud.
+    /// </summary>
+    private static bool TryRead(Entry box, out float value)
+    {
+        value = 0;
+
+        string text = box == null ? null : box.Text;
+        if (string.IsNullOrWhiteSpace(text))
+            return true;
+
+        return float.TryParse(text.Trim(), out value);
+    }
+
     private async void bnt_Add(object sender, EventArgs e)
+    {
+        try
+        {
+            await SaveJob();
+        }
+        catch (Exception ex)
+        {
+            //nothing here should get this far, but a save that fails must say
+            //so rather than leaving the form sitting there looking ignored
+            await DisplayAlert("Cannot Save Job", ex.Message, "Ok");
+        }
+    }
+
+    private async Task SaveJob()
     {
         if (t_houseNumberName.Text == null || t_houseNumberName.Text == String.Empty)
         {
@@ -463,11 +530,38 @@ public partial class NewJob : ContentPage
 
         JobToAdd.Name = p_JobType.SelectedItem as string;
 
+        float price;
+        if (!TryRead(t_price, out price))
+        {
+            await DisplayAlert("Cannot Save Job", "The price is not a number.", "Ok");
+            return;
+        }
+
+        float duration;
+        if (!TryRead(e_estimatedDruation, out duration))
+        {
+            await DisplayAlert("Cannot Save Job", "The estimated duration is not a number.", "Ok");
+            return;
+        }
+
+        float balance;
+        if (!TryRead(e_startingBallence, out balance))
+        {
+            await DisplayAlert("Cannot Save Job", "The balance is not a number.", "Ok");
+            return;
+        }
+        balance = Math.Abs(balance);
+
+        //the picker says which way round it is, so the figure itself is
+        //always typed in as a plain amount
+        if ((string)p_ballenceType.SelectedItem != "Debt")
+            balance = -balance;
+
         JobToAdd.SetFrequence(ChosenFrequence(), (FrequenceType)p_frequencyType.SelectedIndex);
-        JobToAdd.EstimatedTime = Convert.ToInt32(e_estimatedDruation.Text);
+        JobToAdd.EstimatedTime = (int)duration;
         JobToAdd.Description = t_description.Text;
         JobToAdd.Notes = t_notes.Text;
-        JobToAdd.Price = (float)Convert.ToDouble(t_price.Text);
+        JobToAdd.Price = price;
         
 
         if (JobToAdd.Address == null)
@@ -501,10 +595,7 @@ public partial class NewJob : ContentPage
             customer.Phone = t_customerPhone.Text;
 
 
-            if ((string)p_ballenceType.SelectedItem == "Debt")
-                customer.Balance = Math.Abs((float)Convert.ToDouble(e_startingBallence.Text));
-            else
-                customer.Balance = -Math.Abs((float)Convert.ToDouble(e_startingBallence.Text));
+            customer.Balance = balance;
 
             if (cb_differentAddress.IsChecked)
             {
@@ -545,10 +636,7 @@ public partial class NewJob : ContentPage
             customer.Phone = t_customerPhone.Text;
 
 
-            if ((string)p_ballenceType.SelectedItem == "Debt")
-                customer.Balance = Math.Abs((float)Convert.ToDouble(e_startingBallence.Text));
-            else
-                customer.Balance = -Math.Abs((float)Convert.ToDouble(e_startingBallence.Text));
+            customer.Balance = balance;
 
 
             Customer.Add(customer);
@@ -576,8 +664,12 @@ public partial class NewJob : ContentPage
 
         if (AddNewJob)
         {
+            //a quote is not put on the round, so say where it has gone -
+            //looking for it among the work is looking in the wrong place
             if (await DisplayAlert(_asQuote ? "Quote Created" : "Job Created",
-                    _asQuote ? "Would you like to add another quote" : "Would you like to add another job", "Yes", "No"))
+                    _asQuote
+                        ? "The quote is in the Quotes section at the bottom of Work > List.\n\nWould you like to add another quote?"
+                        : "Would you like to add another job", "Yes", "No"))
             {
                 t_customerEmail.Text = String.Empty;
                 t_customerName.Text = String.Empty;
