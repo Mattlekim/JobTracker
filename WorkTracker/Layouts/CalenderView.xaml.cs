@@ -1085,6 +1085,8 @@ public partial class CalenderView : ContentPage
             l_dayJobTotal.Text = $"Jobs {Gloable.CurrenceSymbol}0";
             l_dayPaymentTotal.Text = $"Paid {Gloable.CurrenceSymbol}0";
             l_dayExpenseTotal.IsVisible = false;
+            l_dayProgress.IsVisible = false;
+            l_dayTimeLeft.IsVisible = false;
             return;
         }
 
@@ -1109,6 +1111,62 @@ public partial class CalenderView : ContentPage
         l_dayPaymentTotal.Text = $"Paid {Gloable.CurrenceSymbol}{paymentsTotal}";
         l_dayExpenseTotal.Text = $"Spent {Gloable.CurrenceSymbol}{expensesTotal:0.00}";
         l_dayExpenseTotal.IsVisible = expensesTotal != 0;
+
+        ShowDayProgress();
+    }
+
+    /// <summary>
+    /// How the day is going: how much of it is done, and roughly how long
+    /// what is left will take.
+    ///
+    /// A job with no estimate of its own falls back to the default job time
+    /// from the settings page, so the figure is not quietly optimistic on a
+    /// round that has never had times filled in. Cancelled jobs are not work
+    /// left and are not counted either way.
+    /// </summary>
+    private void ShowDayProgress()
+    {
+        int done = 0, left = 0, minutesLeft = 0;
+
+        foreach (Job j in _selectedDay.Jobs)
+        {
+            if (j.HaveCanceled)
+                continue;
+
+            if (j.IsCompleted)
+            {
+                done++;
+                continue;
+            }
+
+            left++;
+            minutesLeft += j.EstimatedTime > 0 ? j.EstimatedTime : Settings.DefaultJobDuration;
+        }
+
+        int total = done + left;
+
+        l_dayProgress.IsVisible = total > 0;
+        if (left == 0)
+            l_dayProgress.Text = total == 1 ? "Done" : $"All {total} done";
+        else
+            l_dayProgress.Text = $"{done} of {total} done, {left} left";
+
+        //no times filled in anywhere - better to say nothing than "0m left"
+        l_dayTimeLeft.IsVisible = minutesLeft > 0;
+        l_dayTimeLeft.Text = $"About {FormatMinutes(minutesLeft)} left";
+    }
+
+    /// <summary>minutes as a person would say them - 2h 30m, 45m, 3h</summary>
+    private static string FormatMinutes(int minutes)
+    {
+        int hours = minutes / 60;
+        int rest = minutes % 60;
+
+        if (hours == 0)
+            return $"{rest}m";
+        if (rest == 0)
+            return $"{hours}h";
+        return $"{hours}h {rest}m";
     }
 
     private void On_Job_More(object sender, EventArgs e)
