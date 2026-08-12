@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.StatementExpenses"
+             Title="Money Out">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 10" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="10" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+        <Style x:Key="RowButton" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="BorderWidth" Value="2" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,4" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="10">
+
+            <Label x:Name="l_overview" FontAttributes="Bold"></Label>
+            <Label x:Name="l_explain" Style="{StaticResource Caption}"
+                   Text="Everything that went out of the account is listed here. Flag the business ones as expenses and ignore the rest - both are remembered, so a bill that comes round every month is logged by itself next time and the ones you ignored stay out of the way."></Label>
+
+            <Label x:Name="l_autoLogged" TextColor="#2E7D32" IsVisible="false"></Label>
+            <Label x:Name="l_nothing" IsVisible="false" HorizontalTextAlignment="Center" Padding="0,20"
+                   Text="No money going out was found on this statement."></Label>
+
+            <VerticalStackLayout x:Name="vsl_lines" Spacing="8"></VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

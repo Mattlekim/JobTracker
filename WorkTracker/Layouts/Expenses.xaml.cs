@@ -1,6 +1,7 @@
 namespace UiInterface.Layouts;
 
 using Kernel;
+using UiInterface.ImportExport;
 
 public partial class Expenses : ContentPage
 {
@@ -39,6 +40,26 @@ public partial class Expenses : ContentPage
         NewExpense.DateToUse = null;
         NewExpense.ExpenseToEdit = null;
         Navigation.PushAsync(new NewExpense());
+    }
+
+    /// <summary>
+    /// reads a statement for what went out of the account rather than what
+    /// came in. the statement viewer is still what works out which column is
+    /// which, and it hands straight over to the money out page
+    /// </summary>
+    private async void bnt_importStatement_Clicked(object sender, EventArgs e)
+    {
+        CSVFile file = await StatementFile.PickAsync(this);
+        if (file == null)
+            return;
+
+        StatmentViewer.OpenMoneyOut = true;
+        await Navigation.PushAsync(new StatmentViewer());
+    }
+
+    private void bnt_expenseRules_Clicked(object sender, EventArgs e)
+    {
+        Navigation.PushAsync(new ExpenseRules());
     }
 
     private Expense GetExpenseForMenu(object sender)

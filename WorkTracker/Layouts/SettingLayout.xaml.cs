@@ -20,6 +20,17 @@ public struct SettingsData
     public int PdfDate, PdfRef, PdfAmount;
     public bool PdfDebitAndCreditTogether;
 
+    /// <summary>
+    /// the money out column, for banks that keep money in and money out
+    /// apart. saved as "the column plus one" so settings written before this
+    /// existed read back as 0, which means "not chosen yet" rather than
+    /// "column 0"
+    /// </summary>
+    public int DebitPlusOne, PdfDebitPlusOne;
+
+    /// <summary>how hard receipt photos are squashed before they are stored</summary>
+    public int ReceiptPhotoMaxSize, ReceiptPhotoQuality;
+
     public List<string> JobNames;
 
     public int DefaultFrequence;
@@ -81,6 +92,12 @@ public class Settings
         sd.PdfRef = StatmentViewer.PdfRef;
         sd.PdfAmount = StatmentViewer.PdfAmount;
         sd.PdfDebitAndCreditTogether = StatmentViewer.PdfDebitAndCreditTogether;
+
+        sd.DebitPlusOne = StatmentViewer.Debit + 1;
+        sd.PdfDebitPlusOne = StatmentViewer.PdfDebit + 1;
+
+        sd.ReceiptPhotoMaxSize = ReceiptPhoto.MaxSize;
+        sd.ReceiptPhotoQuality = ReceiptPhoto.Quality;
 
         sd.DefaultFrequence = DefaultFrequence;
         sd.DefalutFrequenceType = DefaultFrequenceType;
@@ -145,6 +162,16 @@ public class Settings
                 StatmentViewer.PdfRef = sd.PdfRef;
                 StatmentViewer.PdfAmount = sd.PdfAmount;
                 StatmentViewer.PdfDebitAndCreditTogether = sd.PdfDebitAndCreditTogether;
+
+                //0 is what settings saved before the money out column existed
+                //read back as, and means it has not been chosen
+                StatmentViewer.Debit = sd.DebitPlusOne - 1;
+                StatmentViewer.PdfDebit = sd.PdfDebitPlusOne - 1;
+
+                //0 from an older settings file, which the property turns back
+                //into the default
+                ReceiptPhoto.MaxSize = sd.ReceiptPhotoMaxSize;
+                ReceiptPhoto.Quality = sd.ReceiptPhotoQuality;
 
                 DefaultFrequence = sd.DefaultFrequence;
                 DefaultFrequenceType = sd.DefalutFrequenceType;
@@ -455,7 +482,88 @@ public partial class SettingLayout : ContentPage
         e_pv_done.Text = PaperView.PaperItem.StringDone;
         e_pv_paid.Text = PaperView.PaperItem.StringPaid;
         e_pv_donepaid.Text = PaperView.PaperItem.StringDonePaid;
+        ShowReceiptPhotoSection();
         SetZindexLables();
+    }
+
+    /// <summary>
+    /// how hard receipt photos are squashed, and how much room the ones
+    /// already taken are using
+    /// </summary>
+    private void ShowReceiptPhotoSection()
+    {
+        if (p_photoQuality.Items.Count == 0)
+            foreach (string name in ReceiptPhoto.QualityNames)
+                p_photoQuality.Items.Add(name);
+
+        //set straight, so choosing the setting that is already in use does
+        //not count as a change and save over itself
+        _loadingPhotoQuality = true;
+        p_photoQuality.SelectedIndex = ReceiptPhoto.QualityChoice;
+        _loadingPhotoQuality = false;
+
+        ShowPhotoQualityDetail();
+        ShowReceiptStorage();
+    }
+
+    private bool _loadingPhotoQuality = false;
+
+    private void ShowPhotoQualityDetail()
+    {
+        l_photoQualityDetail.Text = $"Photos are scaled to {ReceiptPhoto.MaxSize} pixels on the longest side at {ReceiptPhoto.Quality}% quality.";
+    }
+
+    private void ShowReceiptStorage()
+    {
+        long size = ReceiptPhoto.StoredSize();
+        l_receiptStorage.Text = size == 0
+            ? "No receipt photos stored yet."
+            : $"Receipt photos are using {ReceiptPhoto.FormatSize(size)}.";
+    }
+
+    private void p_photoQuality_Changed(object sender, EventArgs e)
+    {
+        if (_loadingPhotoQuality || p_photoQuality.SelectedIndex < 0)
+            return;
+
+        ReceiptPhoto.QualityChoice = p_photoQuality.SelectedIndex;
+        Settings.Save();
+        ShowPhotoQualityDetail();
+    }
+
+    /// <summary>
+    /// goes back over the photos taken before any of this existed and
+    /// squashes them too, which is where most of the space is
+    /// </summary>
+    private async void bnt_recompressPhotos_Clicked(object sender, EventArgs e)
+    {
+        long before = ReceiptPhoto.StoredSize();
+        if (before == 0)
+        {
+            await DisplayAlert("Receipt Photos", "There are no receipt photos to shrink.", "Ok");
+            return;
+        }
+
+        if (!await DisplayAlert("Shrink Photos?",
+                $"Every receipt photo will be scaled down to the size set above. They stay readable, but the full size originals cannot be got back afterwards. {ReceiptPhoto.FormatSize(before)} is being used now.",
+                "Shrink Them", "Cancel"))
+            return;
+
+        bnt_recompressPhotos.IsEnabled = false;
+        bnt_recompressPhotos.Text = "Shrinking...";
+
+        (int shrunk, long saved) = await ReceiptPhoto.RecompressStoredAsync();
+
+        bnt_recompressPhotos.Text = "Shrink Photos Already Saved";
+        bnt_recompressPhotos.IsEnabled = true;
+
+        ShowReceiptStorage();
+
+        await DisplayAlert("Receipt Photos",
+            shrunk == 0
+                ? "Nothing to do - the photos are already as small as they are going to get."
+                : $"{shrunk} photo(s) shrunk, saving {ReceiptPhoto.FormatSize(saved)}.",
+            "Ok");
     }
 
     private void SetZindexLables()
@@ -607,6 +715,7 @@ public partial class SettingLayout : ContentPage
         Job.Save(Settings.SaveDataFolder);
         Payment.Save(Settings.SaveDataFolder);
         Expense.Save(Settings.SaveDataFolder);
+        ExpenseRule.Save(Settings.SaveDataFolder);
         GoCardlessRequest.Save(Settings.SaveDataFolder);
         Settings.Save(Settings.SaveDataFolder);
 
@@ -707,6 +816,7 @@ public partial class SettingLayout : ContentPage
                     Job.Load();
                     Payment.Load();
                     Expense.Load();
+                    ExpenseRule.Load();
                     GoCardlessRequest.Load();
                     DataRefreshNotifier.NotifyDataChanged();
                     await DisplayAlert("Success", "Backup has be restored sucsessfuly. Application will now restart", "ok");
@@ -812,12 +922,14 @@ public partial class SettingLayout : ContentPage
                 Customer.DeleteData();
                 Payment.DeleteData();
                 Expense.DeleteData();
+                ExpenseRule.DeleteData();
                 GoCardlessRequest.DeleteData();
 
                 Job.Save();
                 Customer.Save();
                 Payment.Save();
                 Expense.Save();
+                ExpenseRule.Save();
                 GoCardlessRequest.Save();
                 DataRefreshNotifier.NotifyDataChanged();
                 await DisplayAlert("Complete", "All data erased", "Ok");

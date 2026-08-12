@@ -56,6 +56,19 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!--  BANK STATEMENT, only when the expense came off one  -->
+                <Border x:Name="vsl_remember" Style="{StaticResource Card}" IsVisible="false">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="From Your Bank" Style="{StaticResource SectionTitle}" />
+                        <Label x:Name="l_statementLine" Style="{StaticResource Caption}"></Label>
+                        <HorizontalStackLayout Spacing="8">
+                            <Switch x:Name="sw_remember" IsToggled="True" VerticalOptions="Center"></Switch>
+                            <Label Text="Remember this payee" VerticalOptions="Center" FontAttributes="Bold"></Label>
+                        </HorizontalStackLayout>
+                        <Label Text="Leave this on for a bill that comes round again - insurance, car tax, a phone contract - and it will be logged by itself, with this category and note, every time it turns up on a statement." Style="{StaticResource Caption}" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <!--  DETAILS  -->
                 <Border Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="10">

@@ -22,10 +22,33 @@ public partial class NewExpense : ContentPage
     /// </summary>
     public static Expense ExpenseToEdit = null;
 
+    /// <summary>
+    /// an outgoing off a bank statement being turned into an expense
+    /// </summary>
+    public class StatementPrefill
+    {
+        public DateTime Date;
+        public float Amount;
+
+        /// <summary>the payee exactly as the bank printed it</summary>
+        public string Reference = string.Empty;
+
+        /// <summary>the id that stops the same statement line being recorded twice</summary>
+        public string ExternalReference = string.Empty;
+    }
+
+    /// <summary>
+    /// set when the expense is being made from a bank statement outgoing.
+    /// fills in what the statement already knows and offers to remember the
+    /// payee, so the same bill logs itself next month
+    /// </summary>
+    public static StatementPrefill FromStatement = null;
+
     public Action OnExpenseSaved;
 
     private Job _job;
     private Expense _editing;
+    private StatementPrefill _statement;
 
     /// <summary>
     /// receipt photo file (name inside the receipts folder) attached in this
@@ -42,8 +65,10 @@ public partial class NewExpense : ContentPage
 
         _job = JobToLink;
         _editing = ExpenseToEdit;
+        _statement = FromStatement;
         JobToLink = null;
         ExpenseToEdit = null;
+        FromStatement = null;
 
         foreach (string s in Enum.GetNames(typeof(ExpenseCategory)))
             p_category.Items.Add(s);
@@ -82,10 +107,50 @@ public partial class NewExpense : ContentPage
         }
         DateToUse = null;
 
+        SetUpStatementExpense();
+
         if (_job != null)
             l_linkedTo.Text = $"Attached to job: {_job.JobFormattedStreet} {_job.JobFormattedCity}";
         else
             l_linkedTo.Text = "Attached to day (no job)";
+    }
+
+    /// <summary>
+    /// fills in what the bank statement already knows and offers to remember
+    /// the payee, so a bill that comes round every month logs itself the next
+    /// time a statement is imported
+    /// </summary>
+    private void SetUpStatementExpense()
+    {
+        if (_statement == null)
+            return;
+
+        vsl_remember.IsVisible = true;
+        l_statementLine.Text = $"From your bank statement: {_statement.Date.ToShortDateString()}  " +
+            $"{Gloable.CurrenceSymbol}{_statement.Amount:0.00}\n{_statement.Reference}";
+
+        //an expense already logged from this line keeps whatever was typed
+        //on it before - only a new one takes its details from the statement
+        if (_editing == null)
+        {
+            Title = "Statement Expense";
+            e_amount.Text = _statement.Amount.ToString("0.00");
+            dp_date.Date = _statement.Date;
+            e_merchant.Text = ExpenseRule.FriendlyMerchant(_statement.Reference);
+        }
+
+        ExpenseRule existing = ExpenseRule.FindMatch(_statement.Reference);
+        if (existing != null && !existing.Ignore)
+        {
+            //already a remembered payee - keep it that way unless told otherwise
+            sw_remember.IsToggled = true;
+            if (_editing == null)
+            {
+                p_category.SelectedIndex = (int)existing.Category;
+                if (string.IsNullOrWhiteSpace(e_notes.Text))
+                    e_notes.Text = existing.Notes;
+            }
+        }
     }
 
     protected override void OnNavigatedFrom(NavigatedFromEventArgs args)
@@ -169,14 +234,15 @@ public partial class NewExpense : ContentPage
 
     private async Task AttachPhoto(FileResult photo)
     {
-        //copy the photo into the app's receipts folder
+        //copy the photo into the app's receipts folder, scaled down on the
+        //way in - a camera photo is several megabytes and every one of them
+        //is kept, backed up and synced for as long as the records are
         string fileName = $"receipt_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N").Substring(0, 6)}.jpg";
         string path = Path.Combine(Expense.GetReceiptFolderPath(), fileName);
 
         using (Stream source = await photo.OpenReadAsync())
-        using (FileStream dest = File.Create(path))
         {
-            await source.CopyToAsync(dest);
+            await ReceiptPhoto.SaveCompressedAsync(source, path);
         }
 
         //a photo attached earlier this session is replaced, not kept
@@ -333,10 +399,17 @@ public partial class NewExpense : ContentPage
             expense.ReceiptFileName = _pendingReceiptFile;
         }
 
+        //the id off the statement line, which is what stops the same
+        //transaction being recorded again when statements overlap
+        if (_statement != null && !string.IsNullOrWhiteSpace(_statement.ExternalReference))
+            expense.ExternalReference = _statement.ExternalReference;
+
         if (_editing == null)
             Expense.Add(expense);
 
         Expense.Save();
+
+        RememberPayee(expense);
 
         _saved = true;
 
@@ -344,6 +417,31 @@ public partial class NewExpense : ContentPage
             OnExpenseSaved();
 
         await Navigation.PopAsync();
+    }
+
+    /// <summary>
+    /// keeps - or drops - the rule that logs this payee automatically the
+    /// next time it turns up on a statement
+    /// </summary>
+    private void RememberPayee(Expense expense)
+    {
+        if (_statement == null)
+            return;
+
+        if (sw_remember.IsToggled)
+        {
+            ExpenseRule.Remember(_statement.Reference, false, expense.Category, expense.Notes);
+            ExpenseRule.Save();
+            return;
+        }
+
+        //switched off: an expense rule left behind would keep logging it
+        ExpenseRule rule = ExpenseRule.FindMatch(_statement.Reference);
+        if (rule != null && !rule.Ignore)
+        {
+            ExpenseRule.Remove(rule.Id);
+            ExpenseRule.Save();
+        }
     }
 
     private async void bnt_delete_Clicked(object sender, EventArgs e)

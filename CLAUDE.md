@@ -69,6 +69,39 @@ For anything that does not need the UI, `KernelDebugger` is much faster to itera
 dotnet run --project KernelDebugger\KernelDebugger.csproj
 ```
 
+## Receipt photos
+
+`WorkTracker/ReceiptPhoto.cs` scales every receipt photo down and re-encodes it as a JPEG before it is written into
+the receipts folder, because each one is kept for as long as the records are, backed up, and synced to Drive.
+It uses `Microsoft.Maui.Graphics` (`PlatformImage` everywhere except Windows, where the same job is done by
+`W2DImageLoadingService`), so there is no extra dependency. If the photo cannot be decoded the original bytes are
+written instead — a receipt is never lost to save space.
+
+The size and quality are on the settings page, along with a button that goes back over photos taken before this
+existed. That one only replaces a photo when the new file really is smaller.
+
+## Bank statement imports
+
+A statement is read once and then looked at from two sides:
+
+- `Layouts/StatmentViewer` — money coming in, matched to customers as payments.
+- `Layouts/StatementExpenses` — money going out, flagged as expenses or ignored.
+
+`StatmentViewer` still owns the column setup (which column is the date, the reference, the amount, and now the
+money out column) and remembers csv and pdf layouts apart. `ImportExport/StatementFile` picks and reads the file
+for both pages.
+
+Nothing is ever imported twice. Every outgoing gets an id built from the date, the normalised payee and the
+amount (`Expense.StatementReference`), stored on `Expense.ExternalReference`, so re-importing the same statement —
+or the next one, which overlaps it — finds the expense already there. Identical transactions on the same day are
+told apart by an occurrence number, so two identical fuel stops still count twice.
+
+`Kernel/ExpenseRule.cs` is what makes recurring bills look after themselves: flagging an outgoing as an expense
+(or ignoring it) remembers the payee, and the next statement logs it automatically with the same category and
+note. Payee text is matched through `StatementText.PayeeKey`, which strips the reference numbers and the
+"direct debit"/"card payment" wrapping the bank puts around the name. Rules are editable on the
+`Layouts/ExpenseRules` page, and live in `expenserules.rjt` alongside the other data files.
+
 ## Google Drive sync
 
 `WorkTracker/CloudSync.cs` syncs the `.rjt` data files and receipt photos with the user's Drive `appDataFolder`

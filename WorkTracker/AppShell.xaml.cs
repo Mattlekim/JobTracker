@@ -11,6 +11,7 @@ namespace WorkTracker
             Job.Load();
             Payment.Load();
             Expense.Load();
+            ExpenseRule.Load();
             GoCardlessRequest.Load();
             Settings.Load();
 

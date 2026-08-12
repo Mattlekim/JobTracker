@@ -6,12 +6,19 @@
     <ScrollView VerticalScrollBarVisibility="Always" Orientation="Both">
         <VerticalStackLayout>
         <Label x:Name="l_nextField" Text="Make sure that the higlighted fields are in the correct posstions" HorizontalOptions="Start" BackgroundColor="#EF6C00" IsVisible="false" FontSize="Title"></Label>
-        <HorizontalStackLayout>
+        <HorizontalStackLayout Spacing="8">
 
 
         <Button Text="Import Payments" Clicked="bnt_importPayments"></Button>
-            
+
+        <!-- the other half of the statement: what went out, to be flagged as expenses -->
+        <Button x:Name="bnt_moneyOut" Text="Money Out / Expenses" Clicked="bnt_moneyOut_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#EF6C00" TextColor="#EF6C00" IsVisible="false"></Button>
+
+        <Button x:Name="bnt_noMoneyOut" Text="No Money Out Column" Clicked="bnt_noMoneyOut_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#EF6C00" TextColor="#EF6C00" IsVisible="false"></Button>
+
         </HorizontalStackLayout>
+
+        <Label x:Name="l_noMoneyOut" Text="The money out column of this statement has not been set yet. Press 'Money Out / Expenses' to point at it." TextColor="Grey" IsVisible="false"></Label>
         <Line HorizontalOptions="StartAndExpand"></Line>
        
         <AbsoluteLayout x:Name="hsl_header"></AbsoluteLayout>

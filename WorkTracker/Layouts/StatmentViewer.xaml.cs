@@ -8,14 +8,30 @@ public partial class StatmentViewer : ContentPage
 	public static int Date = -1, Ref = -1, Amount = -1;
     public static bool DebitAndCreditTogether = false;
 
+    /// <summary>
+    /// the column money going out is printed in, for banks that keep money in
+    /// and money out in separate columns. -1 when the statement has no such
+    /// column, either because the amount column carries both or because the
+    /// user said there is not one
+    /// </summary>
+    public static int Debit = -1;
+
     /// <summary>a pdf statement has different columns to the same bank's csv, so the two are remembered apart</summary>
-    public static int PdfDate = -1, PdfRef = -1, PdfAmount = -1;
+    public static int PdfDate = -1, PdfRef = -1, PdfAmount = -1, PdfDebit = -1;
     public static bool PdfDebitAndCreditTogether = false;
 
     /// <summary>set by whoever loaded the file, before this page is pushed</summary>
     public static bool SourceIsPdf = false;
 
+    /// <summary>
+    /// set before the page is pushed when the statement was opened to deal
+    /// with money going out. the money out page opens by itself once the
+    /// columns are known, so the user is not left on the payments list
+    /// </summary>
+    public static bool OpenMoneyOut = false;
+
     private readonly bool _isPdf = SourceIsPdf;
+    private bool _openMoneyOut = OpenMoneyOut;
 
     private int DateColumn
     {
@@ -35,11 +51,24 @@ public partial class StatmentViewer : ContentPage
         set { if (_isPdf) PdfAmount = value; else Amount = value; }
     }
 
+    private int DebitColumn
+    {
+        get => _isPdf ? PdfDebit : Debit;
+        set { if (_isPdf) PdfDebit = value; else Debit = value; }
+    }
+
     private bool AmountIncludesDebits
     {
         get => _isPdf ? PdfDebitAndCreditTogether : DebitAndCreditTogether;
         set { if (_isPdf) PdfDebitAndCreditTogether = value; else DebitAndCreditTogether = value; }
     }
+
+    //the columns of whichever statement is open, for pages that only read them
+    public static int ActiveDateColumn => SourceIsPdf ? PdfDate : Date;
+    public static int ActiveRefColumn => SourceIsPdf ? PdfRef : Ref;
+    public static int ActiveAmountColumn => SourceIsPdf ? PdfAmount : Amount;
+    public static int ActiveDebitColumn => SourceIsPdf ? PdfDebit : Debit;
+    public static bool ActiveAmountIncludesDebits => SourceIsPdf ? PdfDebitAndCreditTogether : DebitAndCreditTogether;
 
     private bool _selectingCollums = false;
     private int _currentThingToSelect = 0;
@@ -50,10 +79,28 @@ public partial class StatmentViewer : ContentPage
         Date = -1;
         Ref = -1;
         Amount = -1;
+        Debit = -1;
 
         PdfDate = -1;
         PdfRef = -1;
         PdfAmount = -1;
+        PdfDebit = -1;
+    }
+
+    /// <summary>
+    /// whether the loaded statement gives any way of telling money going out
+    /// from money coming in
+    /// </summary>
+    public static bool CanReadMoneyOut()
+    {
+        if (CsvFile == null || ActiveDateColumn == -1 || ActiveRefColumn == -1)
+            return false;
+
+        //one signed column holds both, so a negative is money going out
+        if (ActiveAmountIncludesDebits)
+            return ActiveAmountColumn != -1;
+
+        return ActiveDebitColumn != -1;
     }
 
     /// <summary>
@@ -328,16 +375,44 @@ public partial class StatmentViewer : ContentPage
     {
         if (await DisplayAlert("Debits / Credits same field", "Are the credits and debits of this statment part of the same field?", "Yes", "No"))
         {
+            //one signed column: money out is simply a negative amount
             AmountIncludesDebits = true;
+            DebitColumn = -1;
             l_nextField.IsVisible = false;
+            FinishColumnSelection();
+            return;
         }
-        else
-            AmountIncludesDebits = false;
 
+        AmountIncludesDebits = false;
+
+        //money in and money out are kept apart, so the money out column has
+        //to be pointed at as well before the expenses can be read
+        l_nextField.IsVisible = true;
+        l_nextField.Text = "Select the money out / paid out field";
+        bnt_noMoneyOut.IsVisible = true;
+        await DisplayAlert("Select Money Out",
+            "Select the money out / paid out field, so outgoings can be flagged as expenses. Press 'No Money Out Column' if this statement has not got one.", "Ok");
+    }
+
+    /// <summary>the statement has money in only - there is nothing to flag as an expense</summary>
+    private void bnt_noMoneyOut_Clicked(object sender, EventArgs e)
+    {
+        DebitColumn = -1;
+        FinishColumnSelection();
+    }
+
+    private void FinishColumnSelection()
+    {
         _selectingCollums = false;
+        _currentThingToSelect = 0;
+        l_nextField.IsVisible = false;
+        bnt_noMoneyOut.IsVisible = false;
         Settings.Save();
         BuildGrid();
+        ShowMoneyOutState();
+        TryOpenMoneyOut();
     }
+
     private void Cb_CheckedChanged(object sender, CheckedChangedEventArgs e)
     {
         if (!e.Value)
@@ -346,6 +421,12 @@ public partial class StatmentViewer : ContentPage
         CheckBox cb = sender as CheckBox;
         int i = Convert.ToInt32(cb.ClassId);
         string s = string.Empty;
+
+        //the last column finishes the selection, which throws this grid away
+        //and builds the statement one - so it has to wait until the marker
+        //has been put on the column that was just picked
+        bool lastColumn = false;
+
         switch(_currentThingToSelect)
         {
             case 0: //date
@@ -365,12 +446,19 @@ public partial class StatmentViewer : ContentPage
                 s = "Amount";
                 UpdateFields();
                 break;
-         
+            case 3: //money out, when the bank keeps it in its own column
+                DebitColumn = i;
+                s = "Money Out";
+                lastColumn = true;
+                break;
         }
         cb.IsChecked = false;
         cb.IsVisible = false;
         _grid.Add(new Label() { Text = s, BackgroundColor = Colors.OrangeRed }, i, 0);
         _currentThingToSelect++;
+
+        if (lastColumn)
+            FinishColumnSelection();
     }
 
     public StatmentViewer()
@@ -384,10 +472,79 @@ public partial class StatmentViewer : ContentPage
         if (_isPdf && !ColumnsAreValid())
             GuessColumnsFromHeader();
 
+        OpenMoneyOut = false;
+
         AskForColumnsIfNeeded();
 
         BuildGrid();
+        ShowMoneyOutState();
         Skip = true;
+    }
+
+    private void ShowMoneyOutState()
+    {
+        bnt_moneyOut.IsVisible = !_selectingCollums && CsvFile != null;
+        l_noMoneyOut.IsVisible = !_selectingCollums && !CanReadMoneyOut();
+    }
+
+    /// <summary>true once the money out column has been asked about, so a statement without one is not asked about again and again</summary>
+    private bool _askedForMoneyOut = false;
+
+    /// <summary>
+    /// opens the money out page by itself when the statement was imported to
+    /// deal with expenses. a statement set up before money out could be read
+    /// has no money out column yet, so that gets asked for first
+    /// </summary>
+    private void TryOpenMoneyOut()
+    {
+        if (!_openMoneyOut || _selectingCollums)
+            return;
+
+        if (CanReadMoneyOut())
+        {
+            _openMoneyOut = false;
+            Navigation.PushAsync(new StatementExpenses());
+            return;
+        }
+
+        if (_askedForMoneyOut || !ColumnsAreValid())
+        {
+            _openMoneyOut = false;
+            return;
+        }
+
+        _askedForMoneyOut = true;
+        StartMoneyOutSelection();
+    }
+
+    private void bnt_moneyOut_Clicked(object sender, EventArgs e)
+    {
+        if (CanReadMoneyOut())
+        {
+            Navigation.PushAsync(new StatementExpenses());
+            return;
+        }
+
+        _askedForMoneyOut = true;
+        StartMoneyOutSelection();
+    }
+
+    /// <summary>
+    /// puts the column pickers back up for the money out column on its own,
+    /// for a statement whose other columns were set up before outgoings could
+    /// be read
+    /// </summary>
+    private void StartMoneyOutSelection()
+    {
+        _selectingCollums = true;
+        _currentThingToSelect = 3;
+
+        l_nextField.IsVisible = true;
+        l_nextField.Text = "Select the money out / paid out field";
+        bnt_noMoneyOut.IsVisible = true;
+
+        BuildGrid();
+        ShowMoneyOutState();
     }
 
     private bool ColumnsAreValid()
@@ -442,11 +599,30 @@ public partial class StatmentViewer : ContentPage
                     break;
                 }
 
+        //money going out, so outgoings can be flagged as expenses. only
+        //looked for when money in has its own column - a signed amount column
+        //already carries both
+        if (!AmountIncludesDebits && DebitColumn == -1)
+            for (int i = 0; i < CsvFile.Header.Length; i++)
+            {
+                string h = CsvFile.Header[i].ToLowerInvariant();
+                if (i == DateColumn || i == RefColumn || i == AmountColumn)
+                    continue;
+
+                if (h.Contains("paid out") || h.Contains("debit") || h.Contains("money out")
+                    || h.Contains("withdraw") || h.Contains("payment") || h.Trim() == "out")
+                {
+                    DebitColumn = i;
+                    break;
+                }
+            }
+
         if (!ColumnsAreValid()) //a partial guess is worse than none - fall back to asking
         {
             DateColumn = -1;
             RefColumn = -1;
             AmountColumn = -1;
+            DebitColumn = -1;
         }
     }
 
@@ -460,6 +636,7 @@ public partial class StatmentViewer : ContentPage
 
         _selectingCollums = true;
         _currentThingToSelect = 0;
+        bnt_noMoneyOut.IsVisible = false;
         DisplayAlert("Select Date", "Select the date field", "Ok");
         l_nextField.IsVisible = true;
         l_nextField.Text = "Select the date field";
@@ -529,9 +706,11 @@ public partial class StatmentViewer : ContentPage
         if (Skip)
         {
             Skip = false;
+            TryOpenMoneyOut();
             return;
         }
         AskForColumnsIfNeeded();
         BuildGrid();
+        ShowMoneyOutState();
     }
 }

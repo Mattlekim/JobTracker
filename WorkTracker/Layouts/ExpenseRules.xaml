@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.ExpenseRules"
+             Title="Remembered Payees">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <Label Grid.Row="0" Padding="10,8" TextColor="Grey" FontSize="13"
+               Text="Payees you have already dealt with on a bank statement. The ones marked as expenses are logged by themselves every time they turn up again; the ignored ones are left alone. Swipe or right click a payee to change or forget it."></Label>
+
+        <Label x:Name="l_noRules" Grid.Row="1" Padding="16" HorizontalTextAlignment="Center" IsVisible="false"
+               Text="Nothing remembered yet. Import a bank statement and flag an outgoing as an expense - or ignore it - and it will show up here."></Label>
+
+        <CollectionView Grid.Row="2" x:Name="lv_rules" SelectionMode="Single" SelectionChanged="lv_rules_SelectionChanged">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <SwipeView>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Change"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="#1E88E5"
+                                    Invoked="On_Rule_Change" />
+                                <SwipeItem Text="Forget"
+                                    CommandParameter="{Binding Id}"
+                                    BackgroundColor="#E53935"
+                                    Invoked="On_Rule_Forget" />
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+
+                        <VerticalStackLayout Padding="10,8" Spacing="2">
+                            <FlyoutBase.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="Change" CommandParameter="{Binding Id}" Clicked="On_Rule_Change" />
+                                    <MenuFlyoutItem Text="Forget" CommandParameter="{Binding Id}" Clicked="On_Rule_Forget" />
+                                </MenuFlyout>
+                            </FlyoutBase.ContextFlyout>
+
+                            <Label Text="{Binding FormattedMerchant}" FontAttributes="Bold"></Label>
+                            <Label Text="{Binding FormattedRule}" FontSize="13"></Label>
+                            <Label Text="{Binding FormattedNotes}" FontSize="12" TextColor="Grey" IsVisible="{Binding HaveNotes}"></Label>
+                            <Label Text="{Binding FormattedUse}" FontSize="12" TextColor="Grey"></Label>
+                        </VerticalStackLayout>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentPage>

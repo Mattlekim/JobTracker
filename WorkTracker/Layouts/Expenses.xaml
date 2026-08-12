@@ -6,6 +6,8 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Add Expense" Clicked="bnt_addExpense_Clicked"></ToolbarItem>
+        <ToolbarItem Text="Import Bank Statement" Clicked="bnt_importStatement_Clicked" Order="Secondary"></ToolbarItem>
+        <ToolbarItem Text="Remembered Payees" Clicked="bnt_expenseRules_Clicked" Order="Secondary"></ToolbarItem>
     </ContentPage.ToolbarItems>
 
     <Grid>

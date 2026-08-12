@@ -375,6 +375,73 @@ namespace Kernel
         }
     }
 
+    public struct ExpenseRuleSaveData
+    {
+        public List<ExpenseRule> Rules;
+        public int NextRuleId;
+    }
+
+    public partial class ExpenseRule
+    {
+        private static string _FilePath = "expenserules.rjt";
+
+        public static void Save(string dir = null)
+        {
+            string fileLocation = string.Empty;
+            if (dir != null && dir != string.Empty)
+            {
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                fileLocation = Path.Combine(fileLocation, _FilePath);
+            }
+            else
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+
+            ExpenseRuleSaveData ersd = new ExpenseRuleSaveData();
+            ersd.Rules = new List<ExpenseRule>();
+            ersd.Rules.AddRange(_Rules);
+            ersd.NextRuleId = _IdGenerator;
+
+            using (FileStream fs = File.Create(fileLocation))
+            {
+                XmlSerializer xs = new XmlSerializer(typeof(ExpenseRuleSaveData));
+                xs.Serialize(fs, ersd);
+            }
+            SyncNotifier.NotifySaved();
+        }
+
+        public static void Load(string dir = null)
+        {
+            string fileLocation = string.Empty;
+            if (dir != null && dir != string.Empty)
+            {
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                fileLocation = Path.Combine(fileLocation, _FilePath);
+            }
+            else
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+
+            ExpenseRuleSaveData ersd = new ExpenseRuleSaveData();
+            try
+            {
+                using (FileStream fs = File.OpenRead(fileLocation))
+                {
+                    XmlSerializer xs = new XmlSerializer(typeof(ExpenseRuleSaveData));
+#pragma warning disable CS8605 // Unboxing a possibly null value.
+                    ersd = (ExpenseRuleSaveData)xs.Deserialize(fs);
+#pragma warning restore CS8605 // Unboxing a possibly null value.
+
+                    _Rules.Clear();
+                    if (ersd.Rules != null)
+                        _Rules.AddRange(ersd.Rules);
+                    _IdGenerator = ersd.NextRuleId;
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
+
     public struct GoCardlessRequestSaveData
     {
         public List<GoCardlessRequest> Requests;

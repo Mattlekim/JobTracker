@@ -158,6 +158,35 @@ namespace Kernel
             return _Expenses.FirstOrDefault(x => x.ExternalReference == reference);
         }
 
+        /// <summary>
+        /// the id given to an expense taken off a bank statement. it is built
+        /// only from what a statement always prints the same way - the date,
+        /// the payee and the amount - so re-importing the same statement, or
+        /// a later one that overlaps it, lands on the same id and the line is
+        /// skipped instead of being recorded a second time.
+        /// <paramref name="occurrence"/> counts identical transactions on the
+        /// same day, so two £5 fuel stops on the same forecourt are still two
+        /// expenses
+        /// </summary>
+        public static string StatementReference(DateTime date, string payee, float amount, int occurrence)
+        {
+            string who = StatementText.Normalise(payee);
+            return $"stmt:{date:yyyyMMdd}:{who}:{amount.ToString("0.00", CultureInfo.InvariantCulture)}#{occurrence}";
+        }
+
+        /// <summary>true when this statement line has already been recorded</summary>
+        public static bool AlreadyImported(string statementReference)
+        {
+            return FindByReference(statementReference) != null;
+        }
+
+        /// <summary>every expense that came off a bank statement</summary>
+        public static List<Expense> QueryFromStatements()
+        {
+            return _Expenses.FindAll(x => x.ExternalReference != null
+                && x.ExternalReference.StartsWith("stmt:", StringComparison.Ordinal));
+        }
+
         public const string ReceiptFolder = "receipts";
 
         /// <summary>

@@ -22,7 +22,7 @@ namespace UiInterface
     /// </summary>
     public static class CloudSync
     {
-        static readonly string[] SyncFiles = { "customers.rjt", "jobs.rjt", "quotes.rjt", "payment.rjt", "expenses.rjt", "directdebits.rjt" };
+        static readonly string[] SyncFiles = { "customers.rjt", "jobs.rjt", "quotes.rjt", "payment.rjt", "expenses.rjt", "expenserules.rjt", "directdebits.rjt" };
 
         const string Scope = "https://www.googleapis.com/auth/drive.appdata";
         const string AuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -433,6 +433,7 @@ namespace UiInterface
                         Job.Load();
                         Payment.Load();
                         Expense.Load();
+                        ExpenseRule.Load();
                         GoCardlessRequest.Load();
                         DataRefreshNotifier.NotifyDataChanged();
                     });

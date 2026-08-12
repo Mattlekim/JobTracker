@@ -110,6 +110,20 @@
                 </Border>
             </VerticalStackLayout>
 
+            <!--  RECEIPT PHOTOS  -->
+            <Button Text="▸ Receipt Photos" ClassId="sec_receipts" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
+            <VerticalStackLayout x:Name="sec_receipts" IsVisible="false" Padding="10,0,10,10">
+                <Label Text="Receipt photos are scaled down and saved as JPEGs before they are stored, so a shoebox full of receipts does not fill the phone up, get backed up and synced at full camera size. They stay readable at every setting." TextColor="Grey"></Label>
+                <Label></Label>
+                <Label Text="Photo size"></Label>
+                <Picker x:Name="p_photoQuality" SelectedIndexChanged="p_photoQuality_Changed"></Picker>
+                <Label x:Name="l_photoQualityDetail" TextColor="Grey" FontSize="13"></Label>
+                <Label></Label>
+                <Label x:Name="l_receiptStorage" TextColor="Grey"></Label>
+                <Label></Label>
+                <Button x:Name="bnt_recompressPhotos" Text="Shrink Photos Already Saved" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_recompressPhotos_Clicked"></Button>
+            </VerticalStackLayout>
+
             <!--  DATA  -->
             <Button Text="▸ Data, Backup and Import" ClassId="sec_data" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
             <VerticalStackLayout x:Name="sec_data" IsVisible="false" Padding="10,0,10,10">
