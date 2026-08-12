@@ -260,6 +260,21 @@ public partial class NewJob : ContentPage
             int customerIndex = -1;
             if (cust.Count > 0)
             {
+                //the customer this job already belongs to.
+                //
+                //this was only ever picked up in p_customerSelected, which is
+                //deliberately suppressed while the picker is being filled in
+                //(it used to fire selection forever). so editing a job left
+                //this null: the phone, name and email boxes came up empty,
+                //and saving took the else branch below and made a whole new
+                //customer for a job that already had one - which is where the
+                //phone number, and the balance with it, was going.
+                customer = cust[0];
+
+                t_customerName.Text = customer.FName;
+                t_customerPhone.Text = customer.Phone;
+                t_customerEmail.Text = customer.Email;
+
                 //select the existing entry - adding a duplicate makes the picker
                 //bounce between the two identical items and fire selection forever
                 string entry = $"{cust[0].FormattedOverview} - {cust[0].FormattedAddress} #{cust[0].Id}";
@@ -472,6 +487,12 @@ public partial class NewJob : ContentPage
         JobToAdd.CustomerAddressDifferentToJob = cb_differentAddress.IsChecked;
 
 
+
+        //editing a job never makes a second customer for it - the job already
+        //belongs to one, and a new one would take the job with it and leave
+        //the balance and the history behind on the old one
+        if (!AddNewJob && customer == null)
+            customer = JobToAdd.GetCustomer();
 
         if (customer != null)
         {
