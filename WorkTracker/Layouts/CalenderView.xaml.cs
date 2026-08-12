@@ -702,6 +702,9 @@ public partial class CalenderView : ContentPage
         dayTapped.SelectedDayColor = Colors.White;
         dayTapped.SelectedDayBorderSize = 3;
 
+        //picking a day is asking for that day, so any filter comes off
+        _showingOwing = false;
+
         if (dayTapped.Jobs.Count > 0)
             l_noJobs.IsVisible = false;
         else
@@ -840,6 +843,9 @@ public partial class CalenderView : ContentPage
         _selectedDay = dayTapped;
         dayTapped.SelectedDayColor = Colors.White;
         dayTapped.SelectedDayBorderSize = 3;
+
+        //picking a day is asking for that day, so any filter comes off
+        _showingOwing = false;
 
         if (dayTapped.Jobs.Count > 0)
             l_noJobs.IsVisible = false;
@@ -1073,8 +1079,101 @@ public partial class CalenderView : ContentPage
         }
     }
 
+    /// <summary>the list is showing everyone who owes rather than a day's work</summary>
+    private bool _showingOwing = false;
+
+    /// <summary>
+    /// What has come in on a day begs the other question - who has not paid.
+    /// Tapping the paid total answers it: everyone with money outstanding,
+    /// wherever they are in the round and whenever they were last done.
+    /// </summary>
+    private void l_dayPaymentTotal_Tapped(object sender, EventArgs e)
+    {
+        _showingOwing = !_showingOwing;
+        RefreshPageDate();
+    }
+
+    private void bnt_clearFilter_Clicked(object sender, EventArgs e)
+    {
+        _showingOwing = false;
+        RefreshPageDate();
+    }
+
+    /// <summary>
+    /// Everyone who owes, one row each.
+    ///
+    /// A customer has a job for every visit they have ever had, so listing
+    /// the jobs of everyone who owes would show the same house over and over.
+    /// Only their latest one is shown, which is the one worth acting on.
+    /// </summary>
+    private void ShowOwingJobs()
+    {
+        Dictionary<int, Job> latest = new Dictionary<int, Job>();
+
+        foreach (Job j in Job.Query())
+        {
+            if (j.HaveCanceled || j.CustomerId == -1)
+                continue;
+
+            Customer c = j.GetCustomer();
+            if (c == null || c.Balance <= 0)
+                continue;
+
+            if (!latest.TryGetValue(j.CustomerId, out Job held) || j.Id > held.Id)
+                latest[j.CustomerId] = j;
+        }
+
+        List<Job> owing = latest.Values
+            .OrderByDescending(x => x.GetCustomer().Balance)
+            .ToList();
+
+        float total = 0;
+        foreach (Job j in owing)
+            total += j.GetCustomer().Balance;
+
+        bool dark = Application.Current.PlatformAppTheme == AppTheme.Dark;
+        bool altColor = false;
+
+        _jobsToDisplay.Clear();
+        foreach (Job j in owing)
+        {
+            if (dark)
+                j.AltColour = altColor ? WorkPlanner.altColorDark : WorkPlanner.MainColorDark;
+            else
+                j.AltColour = altColor ? WorkPlanner.altColor : WorkPlanner.MainColor;
+            altColor = !altColor;
+
+            //these are being looked at for what is owed, so they are opened up
+            j.CollapsedInList = false;
+            j.Refresh();
+            j.RefreshColors();
+            _jobsToDisplay.Add(j);
+        }
+
+        hsl_filter.IsVisible = true;
+        l_filter.Text = owing.Count == 0
+            ? "Nobody owes anything"
+            : $"{owing.Count} owing {Gloable.CurrenceSymbol}{total:0.00}";
+
+        l_noJobs.IsVisible = owing.Count == 0;
+        l_noJobs.Text = "Nobody owes anything";
+
+        //the day's own figures say nothing about this list
+        l_dayProgress.IsVisible = false;
+        l_dayTimeLeft.IsVisible = false;
+    }
+
     public void RefreshPageDate()
     {
+        hsl_filter.IsVisible = false;
+
+        if (_showingOwing)
+        {
+            l_currentDayName.Text = "Everyone Who Owes";
+            ShowOwingJobs();
+            return;
+        }
+
         //no day picked - looking at a month that is not the one today is in
         if (_selectedDay == null)
         {

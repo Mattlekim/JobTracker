@@ -42,9 +42,22 @@
                     <Label x:Name="l_currentDayName" FontSize="Default" FontAttributes="Bold" HorizontalOptions="Center" Padding="8,8,8,4"></Label>
                     <HorizontalStackLayout HorizontalOptions="Center">
                         <Label x:Name="l_dayJobTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#2E7D32" Padding="6"></Label>
-                        <Label x:Name="l_dayPaymentTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#00796B" Padding="6" Margin="8,0,0,0"></Label>
+                        <!-- tapping what has come in asks the other question:
+                             who has not paid -->
+                        <Label x:Name="l_dayPaymentTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#00796B" Padding="6" Margin="8,0,0,0">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="l_dayPaymentTotal_Tapped"/>
+                            </Label.GestureRecognizers>
+                        </Label>
                         <Label x:Name="l_dayExpenseTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#7B1FA2" Padding="6" Margin="8,0,0,0" IsVisible="false"></Label>
                     </HorizontalStackLayout>
+                    <!-- shown in place of a day's work while the list is filtered -->
+                    <HorizontalStackLayout x:Name="hsl_filter" HorizontalOptions="Center" Spacing="8" Margin="0,6,0,0" IsVisible="false">
+                        <Label x:Name="l_filter" FontAttributes="Bold" TextColor="White" BackgroundColor="#C62828" Padding="6" VerticalOptions="Center"></Label>
+                        <Button Text="Show The Day" Clicked="bnt_clearFilter_Clicked" FontSize="12" Padding="12,2"
+                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="#C62828" TextColor="#C62828" CornerRadius="8"></Button>
+                    </HorizontalStackLayout>
+
                     <!-- how the day is going, and how much of it is left -->
                     <HorizontalStackLayout HorizontalOptions="Center" Margin="0,6,0,0">
                         <Label x:Name="l_dayProgress" FontAttributes="Bold" TextColor="White" BackgroundColor="#455A64" Padding="6" IsVisible="false"></Label>
