@@ -962,6 +962,74 @@ namespace Kernel
         }
 
         /// <summary>
+        /// Does this job answer to what has been typed into a search box.
+        ///
+        /// Matched on the things you would actually go looking by: the
+        /// address, what the job is called, the customer's name, and their
+        /// phone number. Nothing typed matches everything, so an empty box
+        /// is the whole round rather than none of it.
+        /// </summary>
+        public bool MatchesSearch(string search)
+        {
+            if (string.IsNullOrWhiteSpace(search))
+                return true;
+
+            search = search.Trim().ToLowerInvariant();
+
+            if (Address != null)
+            {
+                //the whole address as one line, so "12 high" finds 12 High Street
+                string whole = $"{Address.PropertyNameNumber} {Address.Street} {Address.City} {Address.Area} {Address.Postcode}";
+                if (Has(whole, search))
+                    return true;
+            }
+
+            if (Has(Name, search))
+                return true;
+
+            MatchCustomer();
+            if (_customer != null)
+            {
+                if (Has($"{_customer.FName} {_customer.SName}", search))
+                    return true;
+
+                //a number gets written down with spaces one time and without
+                //them the next, so only the digits are compared.
+                //
+                //only when what was typed looks like a phone number though -
+                //no letters in it and a few digits long. "12 high" is a house
+                //on a street, and matching its 12 against every phone number
+                //with a 12 somewhere in it turns up half the round
+                if (!search.Any(char.IsLetter))
+                {
+                    string digits = OnlyDigits(search);
+                    if (digits.Length >= 4 && OnlyDigits(_customer.Phone).Contains(digits))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool Has(string text, string search)
+        {
+            return !string.IsNullOrEmpty(text) && text.ToLowerInvariant().Contains(search);
+        }
+
+        private static string OnlyDigits(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            StringBuilder digits = new StringBuilder();
+            foreach (char c in text)
+                if (char.IsDigit(c))
+                    digits.Append(c);
+
+            return digits.ToString();
+        }
+
+        /// <summary>
         /// Putting work in the order it would be walked or driven: street
         /// first, then up the street by house number.
         ///

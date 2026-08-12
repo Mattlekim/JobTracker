@@ -6,6 +6,7 @@
     
     <ContentPage.ToolbarItems>
        
+        <ToolbarItem Text="Search" Clicked="tbi_Search_Clicked"></ToolbarItem>
         <ToolbarItem Text="Option" Clicked="tbi_ShowOptions_Clicked" Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="New Job" Clicked="bnt_newJob_Clicked" Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="New Quote"  Clicked="bnt_newJob_Clicked" Order="Secondary"></ToolbarItem>
@@ -15,6 +16,18 @@
     </ContentPage.ToolbarItems>
     <StackLayout>
         <DatePicker x:Name="dp_DoneDate" IsVisible="false"></DatePicker>
+            <!-- filters as it is typed into, so a house can be found without
+                 scrolling the whole round -->
+            <Grid Padding="8,6" ColumnSpacing="6" x:Name="g_search" IsVisible="false">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Entry Grid.Column="0" x:Name="e_search" Placeholder="Search address, name or phone" TextChanged="e_search_Changed"/>
+                <Button Grid.Column="1" Text="Clear" Clicked="bnt_clearSearch_Clicked" FontSize="12" Padding="12,4"
+                        BackgroundColor="Transparent" BorderWidth="2" BorderColor="#6B7280" TextColor="#6B7280" CornerRadius="8"/>
+            </Grid>
+
         <Grid x:Name="g_filters" BackgroundColor="#00695C" IsVisible="false">
             <Grid.RowDefinitions>
                 <RowDefinition></RowDefinition>

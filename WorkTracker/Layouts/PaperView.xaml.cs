@@ -666,9 +666,48 @@ public partial class PaperView : ContentPage
 		return string.Equals(a ?? string.Empty, b ?? string.Empty, StringComparison.OrdinalIgnoreCase);
 	}
 
+    /// <summary>what is typed in the search box, empty for the whole round</summary>
+	private string _searchText = string.Empty;
+
+	private void tbi_Search_Clicked(object sender, EventArgs e)
+	{
+		g_search.IsVisible = !g_search.IsVisible;
+
+		if (g_search.IsVisible)
+		{
+			e_search.Focus();
+			return;
+		}
+
+		//closing the box puts the whole round back
+		if (_searchText.Length > 0)
+		{
+			_searchText = string.Empty;
+			e_search.Text = string.Empty;
+			FullPageLoad();
+		}
+	}
+
+	private void e_search_Changed(object sender, TextChangedEventArgs e)
+	{
+		_searchText = e.NewTextValue ?? string.Empty;
+		FullPageLoad();
+	}
+
+	private void bnt_clearSearch_Clicked(object sender, EventArgs e)
+	{
+		e_search.Text = string.Empty;
+	}
+
     private void FullPageLoad()
 	{
         List<Job> jobs = Job.Query();
+
+		//what is typed in the search box narrows the round down. done first,
+		//so the street headings only come out for streets with something left
+		//in them
+		if (!string.IsNullOrWhiteSpace(_searchText))
+			jobs.RemoveAll(x => !x.MatchesSearch(_searchText));
 		jobs.RemoveAll(x => x.JobNextId == -1 && x.IsCompleted && UsfulFuctions.DifferenceSigned(DateTime.Now, x.DateCompleated) > 30);
 
 		//cancelled work is out of the way unless it is asked for

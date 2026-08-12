@@ -252,8 +252,46 @@ public partial class WorkPlanner : ContentPage
                 jobs.Insert(0,b.BookingInfo);
 
       
+        //what is typed in the search box narrows whatever the filters left.
+        //the booking summary rows are not jobs, so they go while searching
+        if (!string.IsNullOrWhiteSpace(_searchText))
+            jobs = jobs.FindAll(x => x.CustomerId != -1 && x.MatchesSearch(_searchText));
+
         //_jobCatch = jobs;
         return jobs;
+    }
+
+    /// <summary>what is typed in the search box, empty for the whole round</summary>
+    private string _searchText = string.Empty;
+
+    private void tbi_Search_Clicked(object sender, EventArgs e)
+    {
+        g_search.IsVisible = !g_search.IsVisible;
+
+        if (g_search.IsVisible)
+        {
+            e_search.Focus();
+            return;
+        }
+
+        //closing the box puts the whole round back
+        if (_searchText.Length > 0)
+        {
+            _searchText = string.Empty;
+            e_search.Text = string.Empty;
+            RefreshPage();
+        }
+    }
+
+    private void e_search_Changed(object sender, TextChangedEventArgs e)
+    {
+        _searchText = e.NewTextValue ?? string.Empty;
+        RefreshPage();
+    }
+
+    private void bnt_clearSearch_Clicked(object sender, EventArgs e)
+    {
+        e_search.Text = string.Empty;
     }
 
     private void Lv_Jobs_ItemTapped(object sender, ItemTappedEventArgs e)
