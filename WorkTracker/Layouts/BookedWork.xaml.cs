@@ -26,11 +26,42 @@ public partial class BookedWork : ContentPage
         /// <summary>the jobs on this day still to do</summary>
         public int LeftCount { get; set; }
 
+        /// <summary>the day has been and gone and there is still work on it</summary>
+        public bool IsOverdue { get; set; }
+
+        public string OverdueText { get; set; } = string.Empty;
+
+        public Color HeaderColour { get; set; } = Colors.Grey;
+
         public BookingGroup(string header, DateTime date, List<Job> jobs) : base(jobs)
         {
             Header = header;
             Date = date;
             WorkOutProgress();
+            WorkOutOverdue();
+        }
+
+        /// <summary>
+        /// work planned for a day that has passed and never got done. it is
+        /// not finished, it is late, so it says so in red rather than sitting
+        /// in the list looking like everything else
+        /// </summary>
+        private void WorkOutOverdue()
+        {
+            HeaderColour = Application.Current != null && Application.Current.PlatformAppTheme == AppTheme.Dark
+                ? Colors.White
+                : Colors.Black;
+
+            int daysLate = (UsfulFuctions.DateNow.Date - Date.Date).Days;
+            IsOverdue = daysLate > 0 && LeftCount > 0;
+
+            if (!IsOverdue)
+                return;
+
+            HeaderColour = Color.FromArgb("#C62828");
+            OverdueText = daysLate == 1
+                ? $"1 day late - {LeftCount} not done"
+                : $"{daysLate} days late - {LeftCount} not done";
         }
 
         /// <summary>
@@ -98,11 +129,23 @@ public partial class BookedWork : ContentPage
         Reload();
     }
 
+    /// <summary>the one day being looked at, or MinValue for the whole lot</summary>
+    private DateTime _showingDay = DateTime.MinValue;
+
     private void Reload()
     {
+        //a day that has passed with all of its work done is a plan for a day
+        //that is over - it clears itself away
+        Booking.ClearFinishedPastDays();
+
         List<BookingGroup> groups = new List<BookingGroup>();
 
         List<Job> booked = Job.Query().FindAll(x => x.IsBookedIn && !x.HaveCanceled);
+
+        BuildDayPicker(booked);
+
+        if (_showingDay != DateTime.MinValue)
+            booked = booked.FindAll(x => x.DateJobBookinFor.Date == _showingDay);
 
         //taking a payment on this page moves the customer's balance, so the
         //owed tag has to be worked out again every time the list is built
@@ -131,6 +174,81 @@ public partial class BookedWork : ContentPage
         }
 
         cv_bookings.ItemsSource = groups;
+
+        //marking work off changes what is overdue
+        WorkTracker.AppShell.RefreshBookedBadge();
+    }
+
+    /// <summary>
+    /// A button per booked day across the top, so a week planned out can be
+    /// worked through a day at a time rather than as one long list. The day
+    /// being looked at is kept if it is still booked, otherwise it falls back
+    /// to showing everything.
+    /// </summary>
+    private void BuildDayPicker(List<Job> booked)
+    {
+        List<DateTime> days = new List<DateTime>();
+        foreach (Job j in booked)
+        {
+            DateTime day = j.DateJobBookinFor.Date;
+            if (!days.Contains(day))
+                days.Add(day);
+        }
+        days.Sort();
+
+        //the day being looked at has gone - back to showing the lot
+        if (_showingDay != DateTime.MinValue && !days.Contains(_showingDay))
+            _showingDay = DateTime.MinValue;
+
+        hsl_dayPicker.Clear();
+
+        //no point offering a choice of one
+        sv_dayPicker.IsVisible = days.Count > 1;
+        if (!sv_dayPicker.IsVisible)
+            return;
+
+        hsl_dayPicker.Add(DayButton("All Days", DateTime.MinValue, _showingDay == DateTime.MinValue, false));
+
+        DateTime today = UsfulFuctions.DateNow.Date;
+        foreach (DateTime day in days)
+        {
+            List<Job> onDay = booked.FindAll(x => x.DateJobBookinFor.Date == day);
+            int left = onDay.FindAll(x => !x.IsCompleted).Count;
+            bool late = day < today && left > 0;
+
+            string text = day == today ? "Today" : day.ToString("ddd dd MMM");
+            if (left > 0)
+                text += $" ({left})";
+
+            hsl_dayPicker.Add(DayButton(text, day, _showingDay == day, late));
+        }
+    }
+
+    private Button DayButton(string text, DateTime day, bool showing, bool late)
+    {
+        string colour = late ? "#C62828" : "#1E88E5";
+
+        Button b = new Button()
+        {
+            Text = text,
+            FontSize = 12,
+            Padding = new Thickness(12, 4),
+            CornerRadius = 8,
+            BorderWidth = 2,
+            BorderColor = Color.FromArgb(colour),
+            BackgroundColor = showing ? Color.FromArgb(colour) : Colors.Transparent,
+            TextColor = showing ? Colors.White : Color.FromArgb(colour),
+            FontAttributes = showing ? FontAttributes.Bold : FontAttributes.None,
+        };
+
+        b.Clicked += (s, e) =>
+        {
+            _showingDay = day;
+            CloseMoveDay();
+            Reload();
+        };
+
+        return b;
     }
 
     //the day whose work is being moved, while the date bar is up

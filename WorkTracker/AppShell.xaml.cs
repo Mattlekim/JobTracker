@@ -20,6 +20,10 @@ namespace WorkTracker
             //loose in the receipts folder - put them where they belong
             Expense.FileLooseReceipts();
 
+            //a booked day that has passed with all of its work done is a plan
+            //for a day that is over - it clears itself away
+            Booking.ClearFinishedPastDays();
+
             //pulls newer cloud data in the background and pushes future saves
             UiInterface.CloudSync.Start();
 
@@ -33,6 +37,35 @@ namespace WorkTracker
             if (Preferences.Get("WorkTabView", "overview") == "list")
                 tab_work.CurrentItem = sc_workList;
             Navigated += AppShell_Navigated;
+
+            _instance = this;
+            UiInterface.DataRefreshNotifier.DataChanged += () =>
+                MainThread.BeginInvokeOnMainThread(RefreshBookedBadge);
+            RefreshBookedBadge();
+        }
+
+        private static AppShell _instance;
+
+        /// <summary>
+        /// Puts the number of overdue days on the Booked tab, so work left
+        /// behind on a day that has passed is noticed without having to go
+        /// looking for it. Shell has no badge of its own, so the count rides
+        /// on the tab's name - which works the same on every platform.
+        /// </summary>
+        public static void RefreshBookedBadge()
+        {
+            if (_instance == null || _instance.tab_booked == null)
+                return;
+
+            try
+            {
+                int overdue = Booking.OverdueDays().Count;
+                _instance.tab_booked.Title = overdue == 0 ? "Booked" : $"Booked ({overdue})";
+            }
+            catch
+            {
+                //a badge is not worth an exception on the way in
+            }
         }
 
         private void AppShell_Navigated(object sender, ShellNavigatedEventArgs e)

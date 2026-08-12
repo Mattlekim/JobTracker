@@ -107,6 +107,94 @@ namespace Kernel
             return true;
         }
 
+        /// <summary>
+        /// The days that have work booked on them, oldest first. There is only
+        /// ever one booking per day, so a week can be planned out by booking
+        /// each day in turn.
+        /// </summary>
+        public static List<DateTime> BookedDays()
+        {
+            List<DateTime> days = new List<DateTime>();
+
+            foreach (Job j in Job.Query())
+            {
+                if (!j.IsBookedIn || j.HaveCanceled)
+                    continue;
+
+                DateTime day = j.DateJobBookinFor.Date;
+                if (!days.Contains(day))
+                    days.Add(day);
+            }
+
+            days.Sort();
+            return days;
+        }
+
+        /// <summary>
+        /// A day that has been and gone with work still on it. Those are worth
+        /// shouting about - work that was planned for Monday and is still
+        /// sitting there on Thursday has been forgotten, not finished.
+        /// </summary>
+        public static List<DateTime> OverdueDays()
+        {
+            List<DateTime> overdue = new List<DateTime>();
+            DateTime today = UsfulFuctions.DateNow.Date;
+
+            foreach (DateTime day in BookedDays())
+            {
+                if (day >= today)
+                    continue;
+
+                if (JobsOn(day).Exists(x => !x.IsCompleted))
+                    overdue.Add(day);
+            }
+
+            return overdue;
+        }
+
+        /// <summary>the work booked on a day, cancelled jobs left out</summary>
+        public static List<Job> JobsOn(DateTime day)
+        {
+            return Job.Query().FindAll(x => x.IsBookedIn && !x.HaveCanceled
+                && x.DateJobBookinFor.Date == day.Date);
+        }
+
+        /// <summary>
+        /// Clears away the bookings that have nothing left to say: a day that
+        /// has passed with all of its work done. The jobs keep their done mark
+        /// and the day they were done on - only the booking goes, because it
+        /// is a plan for a day that is over.
+        ///
+        /// A past day with work still outstanding is left alone. That is not
+        /// finished, it is late, and it wants to stay on the board.
+        /// </summary>
+        /// <returns>how many days were cleared</returns>
+        public static int ClearFinishedPastDays()
+        {
+            int cleared = 0;
+            DateTime today = UsfulFuctions.DateNow.Date;
+
+            foreach (DateTime day in BookedDays())
+            {
+                if (day >= today)
+                    continue;
+
+                List<Job> jobs = JobsOn(day);
+                if (jobs.Count == 0 || jobs.Exists(x => !x.IsCompleted))
+                    continue;
+
+                foreach (Job j in jobs)
+                    RemoveJobFromBooking(j);
+
+                cleared++;
+            }
+
+            if (cleared > 0)
+                Job.Save();
+
+            return cleared;
+        }
+
         public List<Job> Jobs = new List<Job>();
 
         /// <summary>the summary row shown at the top of the job list</summary>

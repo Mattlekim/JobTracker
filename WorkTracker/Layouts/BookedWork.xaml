@@ -7,12 +7,19 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- one button per booked day, so a week planned out can be looked
+             at a day at a time instead of as one long list -->
+        <ScrollView Grid.Row="0" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" x:Name="sv_dayPicker">
+            <HorizontalStackLayout x:Name="hsl_dayPicker" Padding="8,6" Spacing="6"></HorizontalStackLayout>
+        </ScrollView>
+
         <!-- the day being moved and the date it is going to. stays hidden
              until a day's 'Change Date' is used -->
-        <VerticalStackLayout x:Name="vsl_moveDay" Grid.Row="0" IsVisible="False" Padding="12,8" Spacing="6"
+        <VerticalStackLayout x:Name="vsl_moveDay" Grid.Row="1" IsVisible="False" Padding="12,8" Spacing="6"
                              BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
             <Label x:Name="l_moveDay" FontAttributes="Bold"/>
             <HorizontalStackLayout Spacing="8">
@@ -22,7 +29,7 @@
             </HorizontalStackLayout>
         </VerticalStackLayout>
 
-        <CollectionView x:Name="cv_bookings" Grid.Row="1" IsGrouped="True">
+        <CollectionView x:Name="cv_bookings" Grid.Row="2" IsGrouped="True">
         <CollectionView.EmptyView>
             <Label Text="No work booked in.&#10;&#10;Select jobs in the Work list and use 'Bookin Work' to plan a day."
                    Padding="20" HorizontalTextAlignment="Center" VerticalOptions="Center" FontSize="16"
@@ -39,7 +46,8 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
-                        <Label Text="{Binding Header}" FontAttributes="Bold" FontSize="16"/>
+                        <Label Text="{Binding Header}" FontAttributes="Bold" FontSize="16" TextColor="{Binding HeaderColour}"/>
+                        <Label Text="{Binding OverdueText}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#C62828" Padding="6,2" IsVisible="{Binding IsOverdue}"/>
                         <!-- how far through the day you are, and what is left of it -->
                         <HorizontalStackLayout Spacing="8">
                             <Label Text="{Binding Progress}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#455A64" Padding="6,2"/>
