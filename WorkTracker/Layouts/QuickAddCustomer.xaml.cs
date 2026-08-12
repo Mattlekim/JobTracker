@@ -35,6 +35,8 @@ public partial class QuickAddCustomer : ContentPage
 	{
 		InitializeComponent();
 		vsl_main.BindingContext = TheAddress;
+
+		WireAddressSuggestions();
         if (IsQuote)
         {
             this.Title = "Add New Quote";
@@ -208,4 +210,30 @@ public partial class QuickAddCustomer : ContentPage
 
         Navigation.PopAsync();
     }
+    /// <summary>
+    /// offers the streets, towns and areas already on the round as the
+    /// address is typed. picking a street fills the town and area in with
+    /// wherever that street is, because a street only sits in one town
+    /// </summary>
+    private void WireAddressSuggestions()
+    {
+        Controles.SuggestionBox.Attach(e_street, hsl_streetSuggestions, Customer.KnownStreets, picked =>
+        {
+            Location where = Customer.AddressForStreet(picked);
+            if (where == null)
+                return;
+
+            //only fills in what has been left empty - never types over
+            //something already put in by hand
+            if (string.IsNullOrWhiteSpace(e_city.Text) && !string.IsNullOrWhiteSpace(where.City))
+                e_city.Text = where.City;
+
+            if (string.IsNullOrWhiteSpace(e_area.Text) && !string.IsNullOrWhiteSpace(where.Area))
+                e_area.Text = where.Area;
+        });
+
+        Controles.SuggestionBox.Attach(e_city, hsl_citySuggestions, Customer.KnownCities);
+        Controles.SuggestionBox.Attach(e_area, hsl_areaSuggestions, Customer.KnownAreas);
+    }
+
 }

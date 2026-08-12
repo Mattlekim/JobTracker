@@ -104,6 +104,90 @@ namespace Kernel
             _Customers.Clear();
         }
 
+        /// <summary>
+        /// The streets, towns and areas already on the round, for suggesting
+        /// as an address is typed. A round is a few streets done over and
+        /// over, so what has been typed before is nearly always what is
+        /// wanted - and it stops the same street going in three different
+        /// ways and splitting itself up in the lists.
+        /// </summary>
+        public static List<string> KnownStreets()
+        {
+            return Known(x => x.Address == null ? null : x.Address.Street);
+        }
+
+        public static List<string> KnownCities()
+        {
+            return Known(x => x.Address == null ? null : x.Address.City);
+        }
+
+        public static List<string> KnownAreas()
+        {
+            return Known(x => x.Address == null ? null : x.Address.Area);
+        }
+
+        private static List<string> Known(Func<Customer, string> part)
+        {
+            List<string> known = new List<string>();
+
+            foreach (Customer c in _Customers)
+            {
+                string value = part(c);
+                if (string.IsNullOrWhiteSpace(value))
+                    continue;
+
+                value = value.Trim();
+                if (!known.Exists(x => string.Equals(x, value, StringComparison.OrdinalIgnoreCase)))
+                    known.Add(value);
+            }
+
+            known.Sort(StringComparer.CurrentCultureIgnoreCase);
+            return known;
+        }
+
+        /// <summary>
+        /// The town and area a street is in, going by the customers already
+        /// on it. A street sits in one town, so once the street is known the
+        /// rest of the address usually is too and does not need typing.
+        /// Returns null when the street is new.
+        /// </summary>
+        public static Location AddressForStreet(string street)
+        {
+            if (string.IsNullOrWhiteSpace(street))
+                return null;
+
+            street = street.Trim();
+
+            //the commonest answer rather than the first, in case one was put
+            //in wrong at some point
+            Dictionary<string, int> counts = new Dictionary<string, int>();
+            Dictionary<string, Location> seen = new Dictionary<string, Location>();
+
+            foreach (Customer c in _Customers)
+            {
+                if (c.Address == null || c.Address.Street == null)
+                    continue;
+
+                if (!string.Equals(c.Address.Street.Trim(), street, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                string key = $"{c.Address.City}|{c.Address.Area}".ToLowerInvariant();
+                counts[key] = counts.TryGetValue(key, out int n) ? n + 1 : 1;
+                seen[key] = c.Address;
+            }
+
+            string best = null;
+            int bestCount = 0;
+            foreach (KeyValuePair<string, int> pair in counts)
+                if (pair.Value > bestCount)
+                {
+                    best = pair.Key;
+                    bestCount = pair.Value;
+                }
+
+            return best == null ? null : seen[best];
+        }
+
         /// <summary>just the numbers, so 07700 900123 and 07700900123 are the same number</summary>
         private static string DigitsOf(string text)
         {

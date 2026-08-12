@@ -11,7 +11,38 @@ public partial class NewCustomer : ContentPage
 	{
 		InitializeComponent();
         NavigatedTo += NewCustomer_NavigatedTo;
+
+        WireAddressSuggestions(t_street, hsl_streetSuggestions,
+            t_city, hsl_citySuggestions, t_area, hsl_areaSuggestions);
 	}
+
+    /// <summary>
+    /// offers the streets, towns and areas already on the round as the
+    /// address is typed. picking a street fills the town and area in with
+    /// wherever that street is, because a street only sits in one town
+    /// </summary>
+    private void WireAddressSuggestions(Entry street, Layout streetRow,
+        Entry city, Layout cityRow, Entry area, Layout areaRow)
+    {
+        Controles.SuggestionBox.Attach(street, streetRow, Customer.KnownStreets, picked =>
+        {
+            Location where = Customer.AddressForStreet(picked);
+            if (where == null)
+                return;
+
+            //only fills in what has been left empty - never types over
+            //something already put in by hand
+            if (string.IsNullOrWhiteSpace(city.Text) && !string.IsNullOrWhiteSpace(where.City))
+                city.Text = where.City;
+
+            if (string.IsNullOrWhiteSpace(area.Text) && !string.IsNullOrWhiteSpace(where.Area))
+                area.Text = where.Area;
+        });
+
+        Controles.SuggestionBox.Attach(city, cityRow, Customer.KnownCities);
+        Controles.SuggestionBox.Attach(area, areaRow, Customer.KnownAreas);
+    }
+
 
     /// <summary>
     /// The customer as the rest of the app holds it, looked up by id rather

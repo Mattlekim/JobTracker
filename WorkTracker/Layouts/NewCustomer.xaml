@@ -49,12 +49,21 @@
 
             <Label Text="Street"/>
             <Entry x:Name="t_street"></Entry>
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout x:Name="hsl_streetSuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>
+            </ScrollView>
 
             <Label Text="City / Town"/>
             <Entry x:Name="t_city"></Entry>
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout x:Name="hsl_citySuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>
+            </ScrollView>
 
             <Label Text="Area"/>
             <Entry x:Name="t_area"></Entry>
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout x:Name="hsl_areaSuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>
+            </ScrollView>
 
             <Label Text="Postcode"/>
             <Entry x:Name="t_postcode"></Entry>

@@ -8,8 +8,17 @@
         
         <Entry x:Name="e_number" Placeholder="Property Name / Number"></Entry>
         <Entry x:Name="e_street" Placeholder="Street" Text="{Binding Street}"></Entry>
+        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout x:Name="hsl_streetSuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>
+        </ScrollView>
         <Entry x:Name="e_city" Placeholder="City / Town" Text="{Binding City}"></Entry>
+        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout x:Name="hsl_citySuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>
+        </ScrollView>
         <Entry x:Name="e_area" Placeholder="Area" Text="{Binding Area}"></Entry>
+        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+            <HorizontalStackLayout x:Name="hsl_areaSuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>
+        </ScrollView>
         <Entry x:Name="e_postcode" Placeholder="PostCode" Text="{Binding Postcode}"></Entry>
         <Entry x:Name="e_notes" Placeholder="Notes"></Entry>
        
