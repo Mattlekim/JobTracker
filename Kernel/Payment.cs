@@ -111,6 +111,24 @@ namespace Kernel
             _Payments.Clear();
         }
 
+        /// <summary>
+        /// hands every payment taken off one customer to another, for putting
+        /// two records of the same person back into one
+        /// </summary>
+        /// <returns>how many were moved</returns>
+        public static int MoveToCustomer(int fromCustomerId, int intoCustomerId)
+        {
+            int moved = 0;
+            foreach (Payment p in _Payments)
+                if (p.CustomerId == fromCustomerId)
+                {
+                    p.CustomerId = intoCustomerId;
+                    moved++;
+                }
+
+            return moved;
+        }
+
         public static Payment Add(int customerId, float amount, PaymentMethod method, string reference, DateTime date)
         {
 

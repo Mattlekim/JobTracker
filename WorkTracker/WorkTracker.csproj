@@ -115,6 +115,7 @@
 	<ItemGroup>
 	  <Compile Include="..\Kernel\CResult.cs" Link="Kernal\CResult.cs" />
 	  <Compile Include="..\Kernel\Customer.cs" Link="Kernal\Customer.cs" />
+	  <Compile Include="..\Kernel\CustomerMerge.cs" Link="Kernal\CustomerMerge.cs" />
 	  <Compile Include="..\Kernel\Expense.cs" Link="Kernal\Expense.cs" />
 	  <Compile Include="..\Kernel\ExpenseRule.cs" Link="Kernal\ExpenseRule.cs" />
 	  <Compile Include="..\Kernel\StatementRecord.cs" Link="Kernal\StatementRecord.cs" />
@@ -204,6 +205,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\JobStatus.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Layouts\TidyCustomers.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TaxView.xaml">

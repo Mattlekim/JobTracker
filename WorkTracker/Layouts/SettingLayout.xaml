@@ -137,6 +137,11 @@
                 <Label></Label>
                 <Button Text="Reset Banking Import Settings"  BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_resetImportBanking"></Button>
                 <Label></Label>
+                <!-- puts duplicate customer records back into one. see
+                     Layouts/TidyCustomers for why there are any -->
+                <Button x:Name="bnt_tidyCustomers" Text="Tidy Customers" BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_tidyCustomers_Clicked"></Button>
+                <Label x:Name="l_tidyCustomers" FontSize="12" TextColor="#EF6C00" IsVisible="false"></Label>
+                <Label></Label>
                 <Button Text="Delete All Data" BackgroundColor="Transparent" TextColor="Red" BorderColor="Red" BorderWidth="2" Clicked="bnt_deleteData_Clicked"></Button>
             </VerticalStackLayout>
 

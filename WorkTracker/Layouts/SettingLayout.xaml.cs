@@ -453,6 +453,7 @@ public partial class SettingLayout : ContentPage
 
     private void SettingLayout_NavigatedTo(object sender, NavigatedToEventArgs e)
     {
+        ShowTidyCustomers();
 
         List<JobNamesSettingData> jnsd
             = new List<JobNamesSettingData>();
@@ -653,6 +654,26 @@ public partial class SettingLayout : ContentPage
     private void bnt_previewNotComming(object sender, EventArgs e)
     {
         Preview(e_DefaultNotComming.Text);
+    }
+
+    /// <summary>
+    /// says how many customer records have no work against them, so the
+    /// button is worth pressing rather than a page you have to go and look at
+    /// </summary>
+    private void ShowTidyCustomers()
+    {
+        int spare = Customer.WithoutWork().Count;
+
+        l_tidyCustomers.IsVisible = spare > 0;
+        l_tidyCustomers.Text = spare == 1
+            ? "1 customer has no work against them."
+            : $"{spare} customers have no work against them.";
+    }
+
+    private async void bnt_tidyCustomers_Clicked(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new TidyCustomers());
+        ShowTidyCustomers();
     }
 
     private void bnt_resetImportBanking(object sender, EventArgs e)

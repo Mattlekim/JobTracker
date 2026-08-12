@@ -102,6 +102,24 @@ namespace Kernel
             _Requests.RemoveAll(x => x.Id == id);
         }
 
+        /// <summary>
+        /// hands every request made against one customer to another, for
+        /// putting two records of the same person back into one
+        /// </summary>
+        /// <returns>how many were moved</returns>
+        public static int MoveToCustomer(int fromCustomerId, int intoCustomerId)
+        {
+            int moved = 0;
+            foreach (GoCardlessRequest r in _Requests)
+                if (r.CustomerId == fromCustomerId)
+                {
+                    r.CustomerId = intoCustomerId;
+                    moved++;
+                }
+
+            return moved;
+        }
+
         public static void DeleteData()
         {
             _Requests.Clear();

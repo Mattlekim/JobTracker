@@ -115,6 +115,20 @@ written instead — a receipt is never lost to save space.
 The size and quality are on the settings page, along with a button that goes back over photos taken before this
 existed. That one only replaces a photo when the new file really is smaller.
 
+## Duplicate customers
+
+`Layouts/TidyCustomers` and `Kernel/CustomerMerge.cs` exist to clear up after a bug rather than to add anything.
+Editing a job's details never picked up the customer the job already belonged to — the only place that read it is
+`p_customerSelected`, which is suppressed while the picker is filled in — so every save fell through to the branch
+that *adds* a customer, put the typed details on the new one and pointed the job at it. The original was left with
+the balance and the payments but no work, which still counts towards the money owed on the work list.
+
+`Customer.WithoutWork()` is what the page lists (quotes count as work, so a quoted customer is not offered up),
+`LooksLikeSameAs` ranks the candidates address first, and `Merge` moves the payments, direct debit requests, bank
+references and anything the kept record is missing before deleting the old one. The balance is the one thing it
+cannot work out for itself — the duplicate was made with a *copy* of the figure, so adding the two would charge for
+the same work twice — which is why the page asks whenever both records carry one and they differ.
+
 ## Bank statement imports
 
 A statement is read once and then looked at from two sides:

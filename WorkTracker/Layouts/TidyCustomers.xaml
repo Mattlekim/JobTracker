@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.TidyCustomers"
+             Title="Tidy Customers">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="12">
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Customers with no work" FontAttributes="Bold" FontSize="16" />
+                    <Label Style="{StaticResource Caption}"
+                           Text="Nobody here has a job or a quote against them. Most will be left over from editing a job's details, which used to make a second customer and move the job onto it - so the one you see here is usually the original, still holding the balance and the payments." />
+                    <Label Style="{StaticResource Caption}"
+                           Text="Merging puts the two back into one: the payments, the bank references and anything missing move onto the customer that has the work, and this record goes." />
+                    <Label x:Name="l_owedNote" Style="{StaticResource Caption}" TextColor="#EF6C00" IsVisible="false" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Button x:Name="bnt_mergeAll" Text="Merge All The Clear Ones" Clicked="bnt_mergeAll_Clicked" IsVisible="false"
+                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5" CornerRadius="8" Padding="14,8"></Button>
+
+            <Label x:Name="l_empty" Text="Nothing to tidy - every customer has work against them." IsVisible="false" Padding="4,10" />
+
+            <VerticalStackLayout x:Name="vsl_list" Spacing="12"></VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
