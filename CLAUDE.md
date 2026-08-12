@@ -115,6 +115,28 @@ written instead — a receipt is never lost to save space.
 The size and quality are on the settings page, along with a button that goes back over photos taken before this
 existed. That one only replaces a photo when the new file really is smaller.
 
+## Filling an address in from where the phone is
+
+The location button on `Layouts/NewJob`, `Layouts/NewCustomer` and `Layouts/QuickAddCustomer` all go through
+`WorkTracker/AddressFromLocation.cs`. It fills in the street, town, area and postcode and deliberately leaves the
+house number alone — a phone is only accurate to a few doors.
+
+It used to work once per run of the app and then do nothing at all until the app was restarted. Nothing about the
+button was wrong: `_asking` is one flag for the whole app, held from the first press until the work finishes, and
+the work could stop without finishing — asking Android for a fix a second time can leave it listening for one that
+never arrives. So the flag stayed set and every later press returned immediately.
+
+Three things keep that from coming back, and all three are needed:
+
+- `GetLocationAsync` is given a `CancellationToken` as well as the request timeout. The token is what actually
+  gets control back; the last known fix is then used instead of nothing.
+- The geocoder lookup is raced against `Task.Delay`, because nothing in it promises to come back either.
+- `_asking` records *when* it was set and goes stale on its own, so no future hang can wedge the button for a
+  session. A press while it is genuinely busy now says so rather than looking broken.
+
+Alerts go through `Say`/`Confirm`, which do nothing when the page has gone. An alert put up on a page that has been
+navigated away from never returns, and that would hang the caller — the very thing being fixed.
+
 ## Quotes
 
 A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never
