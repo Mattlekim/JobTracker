@@ -3,54 +3,53 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.CalenderView"
              Title="Calendar">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"></RowDefinition>
-            <RowDefinition Height="Auto"></RowDefinition>
-            <RowDefinition Height="Auto"></RowDefinition>
-            <RowDefinition Height="Auto"></RowDefinition>
-            <RowDefinition Height="*"></RowDefinition>
-        </Grid.RowDefinitions>
-        <HorizontalStackLayout Grid.Row="0" HorizontalOptions="Center" x:Name="hsl_monthSelector">
-            <Button Text="&lt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" VerticalOptions="Center" Clicked="bnt_previousMonthClicked"
-                    BorderWidth="2" Padding="0" WidthRequest="44" HeightRequest="38"></Button>
-            <Label x:Name="l_date" Text="May 2022" HorizontalOptions="Center" FontSize="Default" FontAttributes="Bold" VerticalOptions="Center" Padding="8"></Label>
-            <Button Text="&gt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" VerticalOptions="Center" Clicked="bnt_nextMonthClicked"
-                     BorderWidth="2" Padding="0" WidthRequest="44" HeightRequest="38"></Button>
-        </HorizontalStackLayout>
-        <!--                         THIS IS THE CALENDER GRID      ALL LABLES ARE ADDED IN THE CS FILE             -->
-        <Grid x:Name="g_calender" Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="20"></RowDefinition>
-                <RowDefinition Height="Auto"></RowDefinition>
-                <RowDefinition Height="Auto"></RowDefinition>
-                <RowDefinition Height="Auto"></RowDefinition>
-                <RowDefinition Height="Auto"></RowDefinition>
-                <RowDefinition Height="Auto"></RowDefinition>
-                <RowDefinition Height="Auto"></RowDefinition>
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition></ColumnDefinition>
-                <ColumnDefinition></ColumnDefinition>
-                <ColumnDefinition></ColumnDefinition>
-                <ColumnDefinition></ColumnDefinition>
-                <ColumnDefinition></ColumnDefinition>
-                <ColumnDefinition></ColumnDefinition>
-                <ColumnDefinition></ColumnDefinition>
-            </Grid.ColumnDefinitions>
-        </Grid>
-        <VerticalStackLayout Grid.Row="2" HorizontalOptions="Center" Margin="0,0,0,12">
-            <Label x:Name="l_currentDayName" FontSize="Default" FontAttributes="Bold" HorizontalOptions="Center" Padding="8,8,8,4"></Label>
-            <HorizontalStackLayout HorizontalOptions="Center">
-                <Label x:Name="l_dayJobTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#2E7D32" Padding="6"></Label>
-                <Label x:Name="l_dayPaymentTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#00796B" Padding="6" Margin="8,0,0,0"></Label>
-                <Label x:Name="l_dayExpenseTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#7B1FA2" Padding="6" Margin="8,0,0,0" IsVisible="false"></Label>
-            </HorizontalStackLayout>
-        </VerticalStackLayout>
-        <!--                       THIS IS THE LIST OF JOBS TO DISPLAY!!!!                       -->
-        <Label x:Name="l_noJobs" Grid.Row="3" FontSize="Title" HorizontalOptions="Center" Text="No Jobs To Do" Padding="16"></Label>
-        <CollectionView Grid.Row="4"
-                    x:Name="lv_Jobs" SelectionMode="None" RemainingItemsThreshold="0">
+    <!-- The calendar, the day totals and the job list scroll as one page.
+         They ride along as the list's header rather than sitting above it,
+         because a ScrollView around the lot would put one scroll inside
+         another and cost the list its virtualisation. -->
+    <CollectionView x:Name="lv_Jobs" SelectionMode="None" RemainingItemsThreshold="0">
+        <CollectionView.Header>
+            <VerticalStackLayout>
+                <HorizontalStackLayout HorizontalOptions="Center" x:Name="hsl_monthSelector">
+                    <Button Text="&lt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" VerticalOptions="Center" Clicked="bnt_previousMonthClicked"
+                            BorderWidth="2" Padding="0" WidthRequest="44" HeightRequest="38"></Button>
+                    <Label x:Name="l_date" Text="May 2022" HorizontalOptions="Center" FontSize="Default" FontAttributes="Bold" VerticalOptions="Center" Padding="8"></Label>
+                    <Button Text="&gt;" BorderColor="Orange" BackgroundColor="Transparent" TextColor="Orange" FontAttributes="Bold" VerticalOptions="Center" Clicked="bnt_nextMonthClicked"
+                             BorderWidth="2" Padding="0" WidthRequest="44" HeightRequest="38"></Button>
+                </HorizontalStackLayout>
+                <!--                         THIS IS THE CALENDER GRID      ALL LABLES ARE ADDED IN THE CS FILE             -->
+                <Grid x:Name="g_calender">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="20"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                </Grid>
+                <VerticalStackLayout HorizontalOptions="Center" Margin="0,0,0,12">
+                    <Label x:Name="l_currentDayName" FontSize="Default" FontAttributes="Bold" HorizontalOptions="Center" Padding="8,8,8,4"></Label>
+                    <HorizontalStackLayout HorizontalOptions="Center">
+                        <Label x:Name="l_dayJobTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#2E7D32" Padding="6"></Label>
+                        <Label x:Name="l_dayPaymentTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#00796B" Padding="6" Margin="8,0,0,0"></Label>
+                        <Label x:Name="l_dayExpenseTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#7B1FA2" Padding="6" Margin="8,0,0,0" IsVisible="false"></Label>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+                <!--                       THIS IS THE LIST OF JOBS TO DISPLAY!!!!                       -->
+                <Label x:Name="l_noJobs" FontSize="Title" HorizontalOptions="Center" Text="No Jobs To Do" Padding="16"></Label>
+            </VerticalStackLayout>
+        </CollectionView.Header>
             <CollectionView.ItemTemplate>
                 <DataTemplate >
 
@@ -206,6 +205,5 @@
                     </SwipeView>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
-        </CollectionView>
-    </Grid>
+    </CollectionView>
 </ContentPage>
