@@ -532,32 +532,7 @@ public partial class CalenderView : ContentPage
 
         if (_selectedDay.Jobs.Count > 0)
         {
-            bool altColor = false;
-            foreach (Job j in _selectedDay.Jobs)
-            {
-
-                if (Application.Current.PlatformAppTheme == AppTheme.Dark)
-                {
-                    if (altColor)
-                        j.AltColour = WorkPlanner.altColorDark;
-                    else
-                        j.AltColour = WorkPlanner.MainColorDark;
-                }
-                else
-                {
-                    if (altColor)
-                        j.AltColour = WorkPlanner.altColor;
-                    else
-                        j.AltColour = WorkPlanner.MainColor;
-                }
-
-                altColor = !altColor;
-            }
-
-            _jobsToDisplay.Clear();
-            foreach (Job j in _selectedDay.Jobs)
-                _jobsToDisplay.Add(j);
-            
+            ShowDaysWork();
             l_noJobs.IsVisible = false;
         }
         else
@@ -1067,6 +1042,37 @@ public partial class CalenderView : ContentPage
                     _selectedDay = cd;
         }
     }
+    /// <summary>
+    /// The day's work as it is shown: what is still to do at the top, the
+    /// jobs already done pushed to the bottom, and the row striping worked
+    /// out over that order rather than the day's own - otherwise the shading
+    /// stops alternating as soon as anything is moved.
+    /// </summary>
+    private void ShowDaysWork()
+    {
+        List<Job> ordered = WorkPlanner.DoneAtTheBottom(_selectedDay.Jobs);
+
+        bool dark = Application.Current.PlatformAppTheme == AppTheme.Dark;
+        bool altColor = false;
+
+        foreach (Job j in ordered)
+        {
+            if (dark)
+                j.AltColour = altColor ? WorkPlanner.altColorDark : WorkPlanner.MainColorDark;
+            else
+                j.AltColour = altColor ? WorkPlanner.altColor : WorkPlanner.MainColor;
+
+            altColor = !altColor;
+        }
+
+        _jobsToDisplay.Clear();
+        foreach (Job j in ordered)
+        {
+            j.CollapsedInList = j.IsCompleted;
+            _jobsToDisplay.Add(j);
+        }
+    }
+
     public void RefreshPageDate()
     {
         //no day picked - looking at a month that is not the one today is in
@@ -1085,12 +1091,7 @@ public partial class CalenderView : ContentPage
         l_noJobs.Text = "No Jobs To Do";
         l_currentDayName.Text = $"{_selectedDay.Date.DayOfWeek} {_selectedDay.Day}/{_selectedDay.Date.Month}/{_selectedDay.Date.Year}";
 
-        _jobsToDisplay.Clear();
-        foreach (Job j in _selectedDay.Jobs)
-        {
-            j.CollapsedInList = j.IsCompleted;
-            _jobsToDisplay.Add(j);
-        }
+        ShowDaysWork();
         l_noJobs.IsVisible = _selectedDay.Jobs.Count == 0;
 
         float jobTotal = 0;

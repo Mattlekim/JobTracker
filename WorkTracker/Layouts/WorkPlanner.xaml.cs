@@ -423,6 +423,20 @@ public partial class WorkPlanner : ContentPage
     }
 
     /// <summary>
+    /// A day's work with what is still to do at the top and the jobs already
+    /// done pushed to the bottom, so the list stays about the work left
+    /// rather than what has been finished with.
+    ///
+    /// OrderBy is a stable sort, so within each of the two groups the jobs
+    /// keep whatever order they arrived in - street order on the booked tab,
+    /// the day's own order on the calendar.
+    /// </summary>
+    public static List<Job> DoneAtTheBottom(IEnumerable<Job> jobs)
+    {
+        return jobs.OrderBy(x => x.IsCompleted).ToList();
+    }
+
+    /// <summary>
     /// Puts a job back to not done and not paid.
     ///
     /// The payment only comes off for cash taken at the door. Money that came

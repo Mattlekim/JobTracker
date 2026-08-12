@@ -50,12 +50,13 @@ public partial class BookedWork : ContentPage
         {
             float total = day.Sum(x => x.Price);
             string header = $"{day.Key:ddd dd MMM yyyy} - {day.Count()} jobs {Gloable.CurrenceSymbol}{total}";
-            //street order, then up the street by house number - the order the
-            //day is actually worked. sorting on the formatted address sorted
-            //by house number as text, which put 10 before 2 and split streets
-            //up all over the list
+            //what is still to do first, then street order and up the street by
+            //house number - the order the day is actually worked. sorting on
+            //the formatted address sorted by house number as text, which put
+            //10 before 2 and split streets up all over the list
             List<Job> dayInStreetOrder = day
-                .OrderBy(x => x.SortStreet, StringComparer.CurrentCultureIgnoreCase)
+                .OrderBy(x => x.IsCompleted)
+                .ThenBy(x => x.SortStreet, StringComparer.CurrentCultureIgnoreCase)
                 .ThenBy(x => x.SortHouseNumber)
                 .ThenBy(x => x.SortHouseSuffix, StringComparer.CurrentCultureIgnoreCase)
                 .ToList();
