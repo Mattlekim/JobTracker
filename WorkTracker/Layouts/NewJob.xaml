@@ -43,7 +43,11 @@
                 <!--  JOB  -->
                 <Border Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="10">
-                        <Label Text="Job" Style="{StaticResource SectionTitle}" />
+                        <Label x:Name="l_jobSection" Text="Job" Style="{StaticResource SectionTitle}" />
+                        <!-- a quote is only priced up work, so the form drops
+                             to what pricing it needs -->
+                        <Label x:Name="l_quoteHint" IsVisible="false" Style="{StaticResource Caption}"
+                               Text="Where it is, what it is and what it comes to. When it starts and everything else is asked if the quote is taken up." />
 
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Job type" Style="{StaticResource Caption}" />
@@ -83,7 +87,7 @@
                             </VerticalStackLayout>
                         </Grid>
 
-                        <Grid ColumnSpacing="12">
+                        <Grid x:Name="g_durationAndStart" ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"></ColumnDefinition>
                                 <ColumnDefinition Width="*"></ColumnDefinition>
@@ -103,7 +107,7 @@
                             <Entry x:Name="t_notes" Placeholder="Job notes (optional)"></Entry>
                         </VerticalStackLayout>
 
-                        <VerticalStackLayout Spacing="2">
+                        <VerticalStackLayout x:Name="vsl_startingBalance" Spacing="2">
                             <Label x:Name="l_ballence" Text="Starting Balance" Style="{StaticResource Caption}" />
                             <HorizontalStackLayout Spacing="6">
                                 <Entry x:Name="e_startingBallence" Keyboard="Numeric" WidthRequest="100"></Entry>
@@ -116,7 +120,7 @@
                             </HorizontalStackLayout>
                         </VerticalStackLayout>
 
-                        <Grid>
+                        <Grid x:Name="g_alternativePriceToggle">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"></ColumnDefinition>
                                 <ColumnDefinition Width="Auto"></ColumnDefinition>
@@ -249,7 +253,7 @@
                             </VerticalStackLayout>
                         </Grid>
 
-                        <Grid>
+                        <Grid x:Name="g_differentAddress">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"></ColumnDefinition>
                                 <ColumnDefinition Width="Auto"></ColumnDefinition>
@@ -276,7 +280,7 @@
                 </Border>
 
                 <!--  MESSAGING  -->
-                <Border Style="{StaticResource Card}">
+                <Border x:Name="bd_messaging" Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="4">
                         <Label Text="Messaging" Style="{StaticResource SectionTitle}" />
 

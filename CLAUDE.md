@@ -129,6 +129,13 @@ its id, price and frequency, and sets the day it starts. `Job.DeleteQuote` throw
 which left the previous file on disk, so the last quote accepted or deleted came back on the next start.
 `Job.DeleteData` clears both lists for the same reason.
 
+Quotes are added through `Layouts/NewJob` with `AddAsQuote` set, and `NewJob.SimplifyForQuote` cuts that form down
+to what pricing work up actually needs: where it is, what it is, what it comes to, how often, notes and who to go
+back to. The start date, estimated duration, starting balance, alternative price, separate customer address and the
+whole messaging card are hidden — none of them have an answer until the quote is accepted, and each is already left
+at the default the form sets, so a quote saves exactly as it did before. The link to an existing customer stays
+put: quoting somebody already on the round is how a duplicate customer record gets made.
+
 ## Round figures
 
 `Kernel/RoundStats.cs` works out everything `Layouts/Stats` (the fourth page under Work) shows, so the sums can be

@@ -19,6 +19,16 @@ public partial class NewJob : ContentPage
 
     private readonly bool _asQuote;
 
+    /// <summary>
+    /// what a refused save is headed. somebody adding a quote is not adding a
+    /// job, and being told a job cannot be saved reads as though the wrong
+    /// thing is being made
+    /// </summary>
+    private string CannotSaveTitle
+    {
+        get { return _asQuote ? "Cannot Save Quote" : "Cannot Save Job"; }
+    }
+
     public Action<Job> OnJobAdded;
 
     public Action<Job> OnJobUpdated;
@@ -93,6 +103,48 @@ public partial class NewJob : ContentPage
                 
             
         }
+    }
+
+    /// <summary>
+    /// A quote is priced up work that has not been taken on, so most of what
+    /// this form asks has nothing to answer yet: it is not due, nobody is
+    /// booked in to be texted about it, and there is no balance because no
+    /// work has been done. All of that is settled if and when the quote is
+    /// accepted, so the form is cut down to where it is, what it is, what it
+    /// comes to and who to go back to.
+    ///
+    /// The fields are hidden rather than removed, and every one of them is
+    /// already set to its default further up, so what gets saved is exactly
+    /// what was saved before with nothing filled in.
+    ///
+    /// The link to an existing customer stays: quoting somebody already on
+    /// the round is how a second customer record gets made for the same
+    /// house, which is the whole reason the Tidy Customers page exists.
+    /// </summary>
+    private void SimplifyForQuote()
+    {
+        if (!_asQuote)
+            return;
+
+        l_jobSection.Text = "Quote";
+        l_quoteHint.IsVisible = true;
+
+        //not due until it is accepted, and the time it takes is a detail of
+        //working it, not of pricing it
+        g_durationAndStart.IsVisible = false;
+
+        //no work has been done, so there is nothing owed either way
+        vsl_startingBalance.IsVisible = false;
+
+        //a second price for part of the job is for work being run, not for a
+        //price being quoted
+        g_alternativePriceToggle.IsVisible = false;
+        g_alterativePrice.IsVisible = false;
+
+        //nothing is booked in, so there is nothing to tell anybody the night
+        //before
+        g_differentAddress.IsVisible = false;
+        bd_messaging.IsVisible = false;
     }
 
     private void Cb_differentAddress_CheckedChanged(object sender, CheckedChangedEventArgs e)
@@ -233,6 +285,7 @@ public partial class NewJob : ContentPage
                 l_hide5.IsEnabled = false;
                 l_hide5.IsVisible = false;
 
+                SimplifyForQuote();
 
                 return;
 
@@ -439,7 +492,7 @@ public partial class NewJob : ContentPage
         {
             //nothing here should get this far, but a save that fails must say
             //so rather than leaving the form sitting there looking ignored
-            await DisplayAlert("Cannot Save Job", ex.Message, "Ok");
+            await DisplayAlert(CannotSaveTitle, ex.Message, "Ok");
         }
     }
 
@@ -447,27 +500,27 @@ public partial class NewJob : ContentPage
     {
         if (t_houseNumberName.Text == null || t_houseNumberName.Text == String.Empty)
         {
-            await DisplayAlert("Cannot Save Job", "You can not add a job withouth an address", "Ok");
+            await DisplayAlert(CannotSaveTitle, "There is no address. A house number and a street are the least of it.", "Ok");
             return;
         }
 
         if (t_street.Text == null || t_street.Text == String.Empty)
         {
-            await DisplayAlert("Cannot Save Job", "You can not add a job withouth an address", "Ok");
+            await DisplayAlert(CannotSaveTitle, "There is no address. A house number and a street are the least of it.", "Ok");
             return;
         }
 
         if (cb_tnb.IsChecked || cb_tfc.IsChecked)
             if (t_customerPhone.Text == null || t_customerPhone.Text == String.Empty)
             {
-                await DisplayAlert("Cannot Save Job", "No phone number added. You can not have texting option enabled without a phone number.", "Ok");
+                await DisplayAlert(CannotSaveTitle, "No phone number added. You can not have texting option enabled without a phone number.", "Ok");
                 return;
             }
 
         if (cb_enb.IsChecked || cb_eac.IsChecked)
             if (t_customerEmail.Text == null || t_customerEmail.Text == String.Empty)
             {
-                await DisplayAlert("Cannot Save Job", "No email added. You can not have email option enabled without a email address.", "Ok");
+                await DisplayAlert(CannotSaveTitle, "No email added. You can not have email option enabled without a email address.", "Ok");
                 return;
             }
 
@@ -476,14 +529,14 @@ public partial class NewJob : ContentPage
             if (e_alterativeName.Text == null || e_alterativeName.Text == string.Empty)
 
             {
-                await DisplayAlert("Cannot Save Job", "You must set a name for the alterative price", "Ok");
+                await DisplayAlert(CannotSaveTitle, "You must set a name for the alterative price", "Ok");
                 return;
             }
 
             if (e_alterativePrice.Text == null || e_alterativePrice.Text == string.Empty)
 
             {
-                await DisplayAlert("Cannot Save Job", "You must set a price for the alterative price", "Ok");
+                await DisplayAlert(CannotSaveTitle, "You must set a price for the alterative price", "Ok");
                 return;
             }
 
@@ -515,7 +568,7 @@ public partial class NewJob : ContentPage
             }
             catch
             {
-                await DisplayAlert("Cannot Save Job", "Invalid price on alternative price", "Ok");
+                await DisplayAlert(CannotSaveTitle, "Invalid price on alternative price", "Ok");
                 return;
             }
         }
@@ -533,21 +586,21 @@ public partial class NewJob : ContentPage
         float price;
         if (!TryRead(t_price, out price))
         {
-            await DisplayAlert("Cannot Save Job", "The price is not a number.", "Ok");
+            await DisplayAlert(CannotSaveTitle, "The price is not a number.", "Ok");
             return;
         }
 
         float duration;
         if (!TryRead(e_estimatedDruation, out duration))
         {
-            await DisplayAlert("Cannot Save Job", "The estimated duration is not a number.", "Ok");
+            await DisplayAlert(CannotSaveTitle, "The estimated duration is not a number.", "Ok");
             return;
         }
 
         float balance;
         if (!TryRead(e_startingBallence, out balance))
         {
-            await DisplayAlert("Cannot Save Job", "The balance is not a number.", "Ok");
+            await DisplayAlert(CannotSaveTitle, "The balance is not a number.", "Ok");
             return;
         }
         balance = Math.Abs(balance);
@@ -668,7 +721,7 @@ public partial class NewJob : ContentPage
             //looking for it among the work is looking in the wrong place
             if (await DisplayAlert(_asQuote ? "Quote Created" : "Job Created",
                     _asQuote
-                        ? "The quote is in the Quotes section at the bottom of Work > List.\n\nWould you like to add another quote?"
+                        ? "The quote is on the Quotes page under Work.\n\nWould you like to add another quote?"
                         : "Would you like to add another job", "Yes", "No"))
             {
                 t_customerEmail.Text = String.Empty;
