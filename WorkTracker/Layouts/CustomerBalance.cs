@@ -32,28 +32,64 @@ public static class CustomerBalance
                 ? $"is {Gloable.CurrenceSymbol}{Math.Abs(c.Balance):0.00} in credit"
                 : "owes nothing";
 
-        //the plain keyboard rather than the numeric one, because a customer in
-        //credit is a minus and the numeric pad has no minus on it
+        //the amount on its own, then whether it is owed or credit - the same
+        //way round as the Credit / Debt picker on the new job page, so there
+        //is never a minus sign to find on a numeric keypad
         string typed = await page.DisplayPromptAsync("Change Balance",
-            $"{who} {now}.\n\nWhat should it be? A minus figure is credit.",
-            "Save", "Cancel", initialValue: c.Balance.ToString("0.00"));
+            $"{who} {now}.\n\nHow much?",
+            "Next", "Cancel",
+            initialValue: Math.Abs(c.Balance).ToString("0.00"),
+            keyboard: Keyboard.Numeric);
 
         if (typed == null)
             return false;
 
-        typed = typed.Trim();
-
-        //typed on this device, or pasted from something set to another country
-        float balance;
-        if (!float.TryParse(typed, NumberStyles.Float, CultureInfo.CurrentCulture, out balance)
-            && !float.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out balance))
+        float amount;
+        if (!TryReadAmount(typed, out amount))
         {
-            await page.DisplayAlert("Change Balance", $"'{typed}' is not an amount.", "Ok");
+            await page.DisplayAlert("Change Balance", $"'{typed.Trim()}' is not an amount.", "Ok");
             return false;
         }
 
-        Apply(c, balance);
+        amount = Math.Abs(amount);
+
+        //nothing owed is nothing owed - no point asking which way round
+        if (amount == 0)
+        {
+            Apply(c, 0);
+            return true;
+        }
+
+        string kind = await page.DisplayActionSheet(
+            $"Is {Gloable.CurrenceSymbol}{amount:0.00} owed to you, or are they in credit?",
+            "Cancel", null,
+            DebtOption, CreditOption);
+
+        if (kind == null || kind == "Cancel")
+            return false;
+
+        //debt is a balance owed, credit is the other way about
+        Apply(c, kind == DebtOption ? amount : -amount);
         return true;
+    }
+
+    private const string DebtOption = "Debt - they owe you";
+    private const string CreditOption = "Credit - they have paid ahead";
+
+    /// <summary>
+    /// reads an amount typed on this device, or pasted from something set to
+    /// another country
+    /// </summary>
+    private static bool TryReadAmount(string typed, out float amount)
+    {
+        amount = 0;
+        if (string.IsNullOrWhiteSpace(typed))
+            return false;
+
+        typed = typed.Trim();
+
+        return float.TryParse(typed, NumberStyles.Float, CultureInfo.CurrentCulture, out amount)
+            || float.TryParse(typed, NumberStyles.Float, CultureInfo.InvariantCulture, out amount);
     }
 
     /// <summary>
