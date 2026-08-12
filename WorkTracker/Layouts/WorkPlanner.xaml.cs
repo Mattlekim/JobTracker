@@ -257,8 +257,79 @@ public partial class WorkPlanner : ContentPage
         if (!string.IsNullOrWhiteSpace(_searchText))
             jobs = jobs.FindAll(x => x.CustomerId != -1 && x.MatchesSearch(_searchText));
 
+        AddQuotesToBottom(jobs);
+
         //_jobCatch = jobs;
         return jobs;
+    }
+
+    /// <summary>
+    /// the row that heads the quotes off from the round above them. built
+    /// the same way the booking summary rows are: a job with no customer,
+    /// which is what marks a row out as a heading rather than work
+    /// </summary>
+    private static int _quoteHeaderId = -100000;
+
+    /// <summary>
+    /// the rows in the list that are quotes rather than work. nothing that
+    /// acts on a job should act on one of these
+    /// </summary>
+    private HashSet<int> _quoteRowIds = new HashSet<int>();
+
+    /// <summary>
+    /// Puts the quotes at the bottom of the list, under a heading of their
+    /// own.
+    ///
+    /// A quote is not work - it is not due, it cannot be done and it is kept
+    /// in its own list rather than with the round - so it has no place among
+    /// the jobs. It still wants to be somewhere you will see it though, or a
+    /// quote given out is a quote forgotten.
+    /// </summary>
+    private void AddQuotesToBottom(List<Job> jobs)
+    {
+        _quoteRowIds.Clear();
+
+        List<Job> quotes = Job.QueryQuotes();
+
+        //a search is a search of the whole page, quotes included
+        if (!string.IsNullOrWhiteSpace(_searchText))
+            quotes = quotes.FindAll(x => x.MatchesSearch(_searchText));
+
+        if (quotes.Count == 0)
+            return;
+
+        float total = 0;
+        foreach (Job q in quotes)
+        {
+            total += q.EffectivePrice;
+
+            //nothing on the swipe applies to a quote: it cannot be done,
+            //paid, skipped or booked in
+            q.DisableSwipe = true;
+            _quoteRowIds.Add(q.Id);
+        }
+
+        _quoteRowIds.Add(_quoteHeaderId);
+
+        Job header = new Job()
+        {
+            Name = "Quotes",
+            DueColorCode = Colors.MediumPurple,
+            Id = _quoteHeaderId,
+            DisableSwipe = true,
+            CustomerId = -1,
+            Price = total,
+        };
+        header.Address = new Location()
+        {
+            Street = quotes.Count == 1 ? "1 Quote" : $"{quotes.Count} Quotes",
+        };
+
+        jobs.Add(header);
+        jobs.AddRange(quotes
+            .OrderBy(x => x.SortStreet, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(x => x.SortHouseNumber)
+            .ThenBy(x => x.SortHouseSuffix, StringComparer.CurrentCultureIgnoreCase));
     }
 
     /// <summary>what is typed in the search box, empty for the whole round</summary>
@@ -323,6 +394,13 @@ public partial class WorkPlanner : ContentPage
         Job j = _sourceJobs.FirstOrDefault(x => x.Id == Convert.ToInt32(((MenuItem)sender).CommandParameter?.ToString()));
         if (j != null && j.CustomerId == -1) //booking summary rows are not real jobs
             return null;
+
+        //a quote is not work: it cannot be done, paid, skipped or booked in.
+        //the swipe is switched off on those rows, but the right click menu
+        //does not go through the swipe, so they are turned away here as well
+        if (j != null && _quoteRowIds.Contains(j.Id))
+            return null;
+
         return j;
     }
     private async void On_Job_Compleated(object sender, EventArgs e)
@@ -390,6 +468,10 @@ public partial class WorkPlanner : ContentPage
             bookedInJobs++;
 
             if (j.IsCompleted || j.HaveCanceled)
+                continue;
+
+            //a quote is not work waiting to be done
+            if (_quoteRowIds.Contains(j.Id))
                 continue;
 
             if ((UsfulFuctions.DateNow - j.DueDate).Days >= 0 || ViewBooking)
