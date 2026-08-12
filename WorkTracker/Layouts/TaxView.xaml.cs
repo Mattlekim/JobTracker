@@ -274,22 +274,55 @@ public partial class TaxView : ContentPage
         }
     }
 
+    /// <summary>what a spreadsheet is called, so the device opens it properly</summary>
+    private const string XlsxType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
     private async void bnt_export_Clicked(object sender, EventArgs e)
     {
+        int taxYear = SelectedTaxYear;
+        string fileName = $"Tax {TaxCalendar.YearName(taxYear).Replace('/', '-')}.xlsx";
+        string path = Path.Combine(FileSystem.CacheDirectory, fileName);
+
         try
         {
-            int taxYear = SelectedTaxYear;
-            string fileName = $"Tax {TaxCalendar.YearName(taxYear).Replace('/', '-')}.xlsx";
-            string path = Path.Combine(FileSystem.CacheDirectory, fileName);
-
             using (FileStream fs = File.Create(path))
                 TaxReportWriter.Write(fs, taxYear, SelectedBasis, sw_calendarQuarters.IsToggled);
-
-            await Share.RequestAsync(new ShareFileRequest($"Tax {TaxCalendar.YearName(taxYear)}", new ShareFile(path)));
         }
         catch (Exception ex)
         {
             await DisplayAlert("Export Failed", ex.Message, "Ok");
+            return;
+        }
+
+        //the spreadsheet is written either way. what is left is whether it
+        //goes off to another app or onto this device, where it can be found
+        //again without sending it anywhere
+        string title = $"Tax {TaxCalendar.YearName(taxYear)}";
+
+        if (!DeviceFileSaver.CanSave)
+        {
+            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(path)));
+            return;
+        }
+
+        string choice = await DisplayActionSheet(title, "Cancel", null, "Save To This Device", "Share");
+        if (choice == "Share")
+        {
+            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(path)));
+            return;
+        }
+
+        if (choice != "Save To This Device")
+            return;
+
+        try
+        {
+            string saved = await DeviceFileSaver.SaveAsync(path, fileName, XlsxType);
+            await DisplayAlert("Saved", $"Saved to {saved}", "Ok");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Save Failed", ex.Message, "Ok");
         }
     }
 }

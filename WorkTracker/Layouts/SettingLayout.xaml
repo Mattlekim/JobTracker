@@ -146,8 +146,14 @@
             </VerticalStackLayout>
 
             <!--  CLOUD SYNC  -->
-            <Button Text="▸ Cloud Sync" ClassId="sec_cloud" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
-            <VerticalStackLayout x:Name="sec_cloud" IsVisible="false" Padding="10,0,10,10">
+            <!-- not finished yet, so the whole section is shown greyed out and
+                 nothing in it can be pressed. taking it out altogether would
+                 only have people looking for it -->
+            <Button Text="▸ Cloud Sync (Coming Soon)" ClassId="sec_cloud" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked" TextColor="Grey"></Button>
+            <VerticalStackLayout x:Name="sec_cloud" IsVisible="false" IsEnabled="false" Opacity="0.5" Padding="10,0,10,10">
+                <Label Text="COMING SOON" FontAttributes="Bold" FontSize="12" TextColor="Grey" HorizontalOptions="Start"></Label>
+                <Label Text="Cloud sync is not ready yet - it is coming in a later update. Until then use Create Backup under Data, Backup and Import to move your round between devices." TextColor="Grey"></Label>
+                <Label></Label>
                 <Label Text="Sync your data with Google Drive so your phone and PC share the same round. Sign in once on each device." TextColor="Grey"></Label>
                 <Label></Label>
 
@@ -180,8 +186,11 @@
             </VerticalStackLayout>
 
             <!--  GOCARDLESS  -->
-            <Button Text="▸ GoCardless" ClassId="sec_gocardless" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
+            <Button Text="▸ GoCardless (Experimental)" ClassId="sec_gocardless" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
             <VerticalStackLayout x:Name="sec_gocardless" IsVisible="false" Padding="10,0,10,10">
+                <Label Text="EXPERIMENTAL" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#EF6C00" Padding="8,2" HorizontalOptions="Start"></Label>
+                <Label Text="Direct debits are still being worked on. Check anything you collect against your GoCardless dashboard before relying on it." TextColor="#EF6C00" FontSize="13"></Label>
+                <Label></Label>
                 <Label Text="Collect payments by direct debit with GoCardless. Link each customer to their direct debit from the customer details page, then take payments with one tap." TextColor="Grey"></Label>
                 <Label></Label>
 
