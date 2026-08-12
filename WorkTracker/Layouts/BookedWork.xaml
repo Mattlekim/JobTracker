@@ -102,6 +102,7 @@
                                 <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding .}" Clicked="On_Job_Compleated"/>
                                 <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding .}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}"/>
                                 <MenuFlyoutItem Text="More" CommandParameter="{Binding .}" Clicked="On_Job_More"/>
+                                <MenuFlyoutItem Text="Do It Again" CommandParameter="{Binding .}" Clicked="On_Job_DoAgain" IsEnabled="{Binding CanDoAgain}"/>
                                 <MenuFlyoutSeparator/>
                                 <MenuFlyoutItem Text="Unbook" CommandParameter="{Binding .}" Clicked="On_Job_Unbook"/>
                                 <MenuFlyoutItem Text="Skip" CommandParameter="{Binding .}" Clicked="On_Job_Skipped"/>
@@ -119,6 +120,7 @@
                                 <HorizontalStackLayout Spacing="8">
                                     <Label Text="{Binding Name}" TextColor="White" BackgroundColor="#EF6C00" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding HaveJobName}"/>
                                     <Label Text="Done" TextColor="White" BackgroundColor="#4CAF50" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding IsCompleted}"/>
+                                    <Label Text="One off" TextColor="White" BackgroundColor="#546E7A" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding ShowOneOff}"/>
                                     <!-- what the customer is behind or in credit by, only
                                          when there is something to settle -->
                                     <Label Text="{Binding JobFormattedOwed}" TextColor="White" BackgroundColor="{Binding OwedColorCode}" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding ShowOwed}" LineBreakMode="TailTruncation"/>

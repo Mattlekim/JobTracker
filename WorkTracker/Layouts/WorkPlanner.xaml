@@ -299,6 +299,7 @@
                                     <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding Id}" Clicked="On_Job_Compleated" />
                                     <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding Id}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}" />
                                     <MenuFlyoutItem Text="More" CommandParameter="{Binding Id}" Clicked="On_Job_More" />
+                                    <MenuFlyoutItem Text="Do It Again" CommandParameter="{Binding Id}" Clicked="On_Job_DoAgain" IsEnabled="{Binding CanDoAgain}" />
                                     <MenuFlyoutSeparator />
                                     <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
                                     <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding Id}" Clicked="On_Job_Canceled" />
@@ -399,6 +400,7 @@
                                 <!-- the flags get a line of their own so a long one
                                      cannot push the others off the screen -->
                                 <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Spacing="4" Margin="0,2,0,0">
+                                    <Label Text="One off" TextColor="White" BackgroundColor="#546E7A" IsVisible="{Binding ShowOneOff}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <Label Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <!-- direct debit requested, waiting for the money to come through -->

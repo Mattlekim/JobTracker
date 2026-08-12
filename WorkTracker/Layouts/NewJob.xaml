@@ -60,8 +60,11 @@
                                 <Entry x:Name="t_price" Keyboard="Numeric"></Entry>
                             </VerticalStackLayout>
                             <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                <Label Text="Repeats every" Style="{StaticResource Caption}" />
-                                <HorizontalStackLayout Spacing="6">
+                                <Label x:Name="l_repeats" Text="Repeats every" Style="{StaticResource Caption}" />
+                                <!-- a one off has nothing to repeat, so the how
+                                     often boxes go away rather than sit there
+                                     showing a figure that is not used -->
+                                <HorizontalStackLayout x:Name="hsl_frequency" Spacing="6">
                                     <Entry x:Name="e_frequence" Keyboard="Numeric" MinimumWidthRequest="60"></Entry>
                                     <Picker x:Name="p_frequencyType" SelectedIndex="0" VerticalOptions="Center">
                                         <Picker.Items>
@@ -72,6 +75,11 @@
                                         </Picker.Items>
                                     </Picker>
                                 </HorizontalStackLayout>
+                                <HorizontalStackLayout Spacing="4">
+                                    <CheckBox x:Name="cb_oneOff" CheckedChanged="cb_oneOff_Changed" VerticalOptions="Center"></CheckBox>
+                                    <Label Text="One off" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Label x:Name="l_oneOffNote" Text="Done once, then it is finished. You can put it on again afterwards." Style="{StaticResource Caption}" IsVisible="false" />
                             </VerticalStackLayout>
                         </Grid>
 

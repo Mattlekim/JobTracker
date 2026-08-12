@@ -125,6 +125,18 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!--  ONE OFF  -->
+                <!-- only there for a job with nothing to repeat. a job that
+                     comes round on its own has nothing to say here -->
+                <Border x:Name="brd_oneOff" Style="{StaticResource Card}" IsVisible="false">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="One off" Style="{StaticResource SectionTitle}" />
+                        <Label x:Name="l_oneOff" Style="{StaticResource Caption}"></Label>
+                        <Button x:Name="bnt_doAgain" Text="Do It Again" Clicked="bnt_doAgain_Clicked" IsVisible="false"
+                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5" CornerRadius="8" Padding="14,6" FontSize="13" HorizontalOptions="Start"></Button>
+                    </VerticalStackLayout>
+                </Border>
+
             </VerticalStackLayout>
         </ScrollView>
 

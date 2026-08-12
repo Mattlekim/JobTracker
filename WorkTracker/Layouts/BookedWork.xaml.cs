@@ -632,6 +632,16 @@ public partial class BookedWork : ContentPage
         WorkPlanner.ShowJobStatus(JobFrom(sender), this, Reload);
     }
 
+    private async void On_Job_DoAgain(object sender, EventArgs e)
+    {
+        Job j = JobFrom(sender);
+        if (j == null)
+            return;
+
+        if (await WorkPlanner.DoJobAgain(j, this))
+            Reload();
+    }
+
     private void On_Job_Details(object sender, EventArgs e)
     {
         Job j = JobFrom(sender);

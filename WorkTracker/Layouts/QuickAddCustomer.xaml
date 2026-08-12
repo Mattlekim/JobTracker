@@ -22,7 +22,7 @@
         <Entry x:Name="e_postcode" Placeholder="PostCode" Text="{Binding Postcode}"></Entry>
         <Entry x:Name="e_notes" Placeholder="Notes"></Entry>
        
-        <HorizontalStackLayout>
+        <HorizontalStackLayout x:Name="hsl_frequency">
             <Entry x:Name="e_frequcney" MinimumWidthRequest="200" Placeholder="Job Frequency" Keyboard="Numeric"></Entry>
             <Picker x:Name="p_frequencyType" SelectedIndex="0">
                 <Picker.Items>
@@ -33,6 +33,13 @@
 
                 </Picker.Items>
             </Picker>
+        </HorizontalStackLayout>
+
+        <!-- a one off is done once and finished. it can be put on again later
+             from the job's own window -->
+        <HorizontalStackLayout Spacing="4">
+            <CheckBox x:Name="cb_oneOff" CheckedChanged="cb_oneOff_Changed" VerticalOptions="Center"></CheckBox>
+            <Label Text="One off - does not repeat" VerticalOptions="Center"></Label>
         </HorizontalStackLayout>
         
         <HorizontalStackLayout>

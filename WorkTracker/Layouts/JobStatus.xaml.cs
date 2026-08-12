@@ -92,6 +92,53 @@ public partial class JobStatus : ContentPage
         ShowAmounts();
         ShowPaidSection();
         ShowDoneSection();
+        ShowOneOffSection();
+    }
+
+    //  -------------------------------------------------------------  one off
+
+    /// <summary>
+    /// what a one off has left to say for itself. a job that repeats brings
+    /// itself back the moment it is marked done, so this section is only
+    /// there for the ones that do not
+    /// </summary>
+    private void ShowOneOffSection()
+    {
+        brd_oneOff.IsVisible = _job.IsOneOff;
+        if (!_job.IsOneOff)
+            return;
+
+        bnt_doAgain.IsVisible = _job.CanDoAgain;
+
+        if (_job.CanDoAgain)
+        {
+            l_oneOff.Text = "Done, and that is the end of it. Put it back on the round for another go.";
+            return;
+        }
+
+        if (!_job.IsCompleted)
+        {
+            l_oneOff.Text = "This job does not repeat. Once it is done it comes off the round, and you can put it back on from here afterwards.";
+            return;
+        }
+
+        List<Job> next = Job.Query(QueryType.JobId, _job.JobNextId);
+        l_oneOff.Text = next.Count > 0
+            ? $"Back on the round, due {next[0].DueDate.ToShortDateString()}."
+            : "Done, and that is the end of it.";
+    }
+
+    private async void bnt_doAgain_Clicked(object sender, EventArgs e)
+    {
+        if (!await WorkPlanner.DoJobAgain(_job, this))
+            return;
+
+        ShowOneOffSection();
+
+        //the list behind is now a visit short of what is actually on the
+        //round, so it gets rebuilt without waiting for Save
+        if (_onSaved != null)
+            _onSaved();
     }
 
     //  ---------------------------------------------------------------  price

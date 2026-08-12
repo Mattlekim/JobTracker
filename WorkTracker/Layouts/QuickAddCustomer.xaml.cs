@@ -55,6 +55,13 @@ public partial class QuickAddCustomer : ContentPage
         p_frequencyType.SelectedItem = Settings.DefaultFrequenceType.ToString();
     }
 
+    private void cb_oneOff_Changed(object sender, CheckedChangedEventArgs e)
+    {
+        //how often it comes round is only worth asking about when it comes
+        //round at all
+        hsl_frequency.IsVisible = !cb_oneOff.IsChecked;
+    }
+
 	private void bnt_SaveJob_Clicked(object sender, EventArgs e)
 	{
 		//so we do validation
@@ -112,20 +119,26 @@ public partial class QuickAddCustomer : ContentPage
             }
         }
 
-        if (e_frequcney.Text == null || e_frequcney.Text == string.Empty)
+        //a one off has nothing to repeat, so how often is not asked for and
+        //the frequency stays at nothing - which is what stops it coming back
+        //round once it is marked done
+        if (!cb_oneOff.IsChecked)
         {
-            DisplayAlert("Error", "Frequency must be 0 or bigger.'", "Ok");
-            return;
-        }
+            if (e_frequcney.Text == null || e_frequcney.Text == string.Empty)
+            {
+                DisplayAlert("Error", "Frequency must be 0 or bigger.'", "Ok");
+                return;
+            }
 
-        try
-        {
-            freq = Convert.ToInt32(e_frequcney.Text);
-        }
-        catch
-        {
-            DisplayAlert("Error", "Frequency not valid. Please Enter a number 0 or bigger.", "Ok");
-            return;
+            try
+            {
+                freq = Convert.ToInt32(e_frequcney.Text);
+            }
+            catch
+            {
+                DisplayAlert("Error", "Frequency not valid. Please Enter a number 0 or bigger.", "Ok");
+                return;
+            }
         }
 
         if (cb_tnb.IsChecked || cb_tac.IsChecked)

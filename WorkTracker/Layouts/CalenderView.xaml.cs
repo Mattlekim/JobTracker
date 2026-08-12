@@ -1279,6 +1279,16 @@ public partial class CalenderView : ContentPage
         WorkPlanner.ShowJobStatus(GetJobForSwipe(sender), this, RefreshPageDate);
     }
 
+    private async void On_Job_DoAgain(object sender, EventArgs e)
+    {
+        Job j = GetJobForSwipe(sender);
+        if (j == null)
+            return;
+
+        if (await WorkPlanner.DoJobAgain(j, this))
+            RefreshPageDate();
+    }
+
     private void On_Job_Skipped(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);

@@ -135,6 +135,8 @@ public partial class NewJob : ContentPage
                 p_customer.ItemsSource = customerItems;
                 e_frequence.Text = $"{Settings.DefaultFrequence}";
                 p_frequencyType.SelectedItem = Settings.DefaultFrequenceType.ToString();
+                cb_oneOff.IsChecked = false;
+                ShowFrequency();
 
                 t_price.Text = "0.00";
                 e_startingBallence.Text = "0.00";
@@ -205,8 +207,12 @@ public partial class NewJob : ContentPage
             dp_startDate.Date = JobToAdd.DueDate;
 
             e_estimatedDruation.Text = JobToAdd.EstimatedTime.ToString();
-            e_frequence.Text = $"{JobToAdd.Frequence}";
+            //a one off is a frequency of nothing, so the box would read 0 -
+            //the tick says what that means
+            cb_oneOff.IsChecked = JobToAdd.IsOneOff;
+            e_frequence.Text = JobToAdd.IsOneOff ? $"{Settings.DefaultFrequence}" : $"{JobToAdd.Frequence}";
             p_frequencyType.SelectedIndex = (int)JobToAdd.Frequence_Type;
+            ShowFrequency();
 
             p_JobType.SelectedItem = JobToAdd.Name;
             t_description.Text = JobToAdd.Description;
@@ -428,7 +434,7 @@ public partial class NewJob : ContentPage
 
         JobToAdd.Name = p_JobType.SelectedItem as string;
 
-        JobToAdd.SetFrequence(Convert.ToInt32(e_frequence.Text), (FrequenceType)p_frequencyType.SelectedIndex);
+        JobToAdd.SetFrequence(ChosenFrequence(), (FrequenceType)p_frequencyType.SelectedIndex);
         JobToAdd.EstimatedTime = Convert.ToInt32(e_estimatedDruation.Text);
         JobToAdd.Description = t_description.Text;
         JobToAdd.Notes = t_notes.Text;
@@ -638,6 +644,41 @@ public partial class NewJob : ContentPage
         }
 
       
+    }
+
+    private void cb_oneOff_Changed(object sender, CheckedChangedEventArgs e)
+    {
+        ShowFrequency();
+    }
+
+    /// <summary>
+    /// how often it comes round is only worth asking about when it comes
+    /// round at all
+    /// </summary>
+    private void ShowFrequency()
+    {
+        bool repeats = !cb_oneOff.IsChecked;
+
+        l_repeats.IsVisible = repeats;
+        hsl_frequency.IsVisible = repeats;
+        l_oneOffNote.IsVisible = !repeats;
+    }
+
+    /// <summary>
+    /// the frequency to save. nothing at all for a one off, which is what
+    /// stops it generating the next visit when it is marked done
+    /// </summary>
+    private int ChosenFrequence()
+    {
+        if (cb_oneOff.IsChecked)
+            return 0;
+
+        //an empty box used to throw on the way to saving and lost the lot
+        int frequence;
+        if (!int.TryParse(e_frequence.Text, out frequence) || frequence < 0)
+            return Settings.DefaultFrequence;
+
+        return frequence;
     }
 
     private void cb_alterativePrice_Checked(object sender, CheckedChangedEventArgs e)

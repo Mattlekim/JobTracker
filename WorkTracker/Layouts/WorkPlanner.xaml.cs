@@ -690,6 +690,98 @@ public partial class WorkPlanner : ContentPage
      
     }
 
+    /// <summary>
+    /// put a finished one off back on the round.
+    ///
+    /// a job that repeats brings itself back the moment it is marked done. A
+    /// one off has no frequency to work that date out from, so when it is
+    /// wanted next has to be asked - and it is asked in the stretches work
+    /// actually comes back round in rather than as a date to type, because
+    /// this gets used standing at the door with one hand.
+    ///
+    /// the finished visit is left exactly as it was: what was charged and
+    /// when it was done is the record of that job, so the repeat is a new
+    /// one alongside it rather than the same one moved on.
+    /// </summary>
+    /// <returns>true when the job was put back on</returns>
+    public static async Task<bool> DoJobAgain(Job j, Page page)
+    {
+        if (j == null)
+            return false;
+
+        //the menu greys the entry out rather than hiding it, so say why
+        //instead of doing nothing when it is tapped anyway
+        if (!j.CanDoAgain)
+        {
+            if (!j.IsOneOff)
+                await page.DisplayAlert("Already Repeats", "This job comes round on its own, so there is nothing to put back on.", "Ok");
+            else if (!j.IsCompleted)
+                await page.DisplayAlert("Not Done Yet", "This job is still on the round. Mark it done first and it can be put back on afterwards.", "Ok");
+            else
+                await page.DisplayAlert("Already Back On", "This job has already been put back on the round.", "Ok");
+            return false;
+        }
+
+        string[] choices = { "Today", "In a week", "In 2 weeks", "In a month", "In 3 months", "In 6 months", "In a year" };
+        string chosen = await page.DisplayActionSheet("Do it again when?", "Cancel", null, choices);
+
+        DateTime due = UsfulFuctions.DateNow;
+        switch (chosen)
+        {
+            case "Today":
+                break;
+
+            case "In a week":
+                due = due.AddDays(7);
+                break;
+
+            case "In 2 weeks":
+                due = due.AddDays(14);
+                break;
+
+            case "In a month":
+                due = due.AddMonths(1);
+                break;
+
+            case "In 3 months":
+                due = due.AddMonths(3);
+                break;
+
+            case "In 6 months":
+                due = due.AddMonths(6);
+                break;
+
+            case "In a year":
+                due = due.AddYears(1);
+                break;
+
+            //Cancel, or the sheet was dismissed
+            default:
+                return false;
+        }
+
+        Job again = j.DoAgain(due);
+        if (again == null)
+            return false;
+
+        again.Refresh();
+        again.RefreshColors();
+        DataRefreshNotifier.NotifyDataChanged();
+
+        await page.DisplayAlert("Back On The Round", $"{again.JobFormattedStreet} is due again on {due.ToShortDateString()}.", "Ok");
+        return true;
+    }
+
+    private async void On_Job_DoAgain(object sender, EventArgs e)
+    {
+        Job j = GetJobForSwipe(sender);
+        if (j == null)
+            return;
+
+        if (await DoJobAgain(j, this))
+            RefreshPage();
+    }
+
     /// <returns>true when the job was cancelled (not un-cancelled or aborted)</returns>
     public static async Task<bool> MarkJobCancled(Job j,Page page)
     {

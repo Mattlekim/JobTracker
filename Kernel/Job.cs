@@ -468,37 +468,108 @@ namespace Kernel
 
         private int GenerateNextDueDate()
         {
+            DateTime due = DateCompleated;
+
+            switch (Frequence_Type)
+            {
+                case FrequenceType.Day:
+                    due = DateCompleated.AddDays(Frequence);
+                    break;
+
+                case FrequenceType.Week:
+                    due = DateCompleated.AddDays(7 * Frequence);
+                    break;
+
+                case FrequenceType.Month:
+                    due = DateCompleated.AddMonths(Frequence);
+                    break;
+
+                case FrequenceType.Year:
+                    due = DateCompleated.AddYears(Frequence);
+                    break;
+            }
+
+            return NextVisit(due).Id;
+        }
+
+        /// <summary>
+        /// this job again, due on the given day, put on the round.
+        ///
+        /// the finished visit is left exactly as it is - its date, its price
+        /// and its payment are the record of what was done and charged, so
+        /// the next visit is a fresh copy rather than the same row moved on.
+        /// </summary>
+        private Job NextVisit(DateTime due)
+        {
             Job j = this.DeepCopy();
             j.JobNextId = -1; //reset next id
             j.IsCompleted = false;
             j.DateCompleated = new DateTime(2000, 1, 1);
             j.PaymentId = -1;
             j.IsPaidFor = false;
-            j.PreviousJobId = Id;
+            j.DueDate = due;
 
-            switch (Frequence_Type)
-            {
-                case FrequenceType.Day:
-                    j.DueDate = DateCompleated.AddDays(Frequence);
-                    break;
-
-                case FrequenceType.Week:
-                    j.DueDate = DateCompleated.AddDays(7 * Frequence);
-                    break;
-
-                case FrequenceType.Month:
-                    j.DueDate = DateCompleated.AddMonths(Frequence);
-                    break;
-
-                case FrequenceType.Year:
-                    j.DueDate = DateCompleated.AddYears(Frequence);
-                    break;
-            }
-            
             j.GenerateId();
             j.PreviousJobId = this.Id; //set the id
             _Jobs.Add(j);
-            return j.Id;
+            return j;
+        }
+
+        /// <summary>
+        /// a job with nothing to repeat - a gutter clear, a conservatory, a
+        /// first clean for someone who is not going on the round. it is done
+        /// once and that is the end of it.
+        ///
+        /// nothing else has to know about it: MarkJobDone only brings a job
+        /// back round when Frequence is above zero, so a one off simply never
+        /// generates a next visit.
+        /// </summary>
+        [XmlIgnore]
+        public bool IsOneOff
+        {
+            get { return Frequence <= 0; }
+        }
+
+        /// <summary>
+        /// the one off tag in the lists. the section headings are jobs with
+        /// no customer behind them, and a job that has been done is already
+        /// saying so - the tag is there to warn that it will not come back
+        /// </summary>
+        [XmlIgnore]
+        public bool ShowOneOff
+        {
+            get { return IsOneOff && CustomerId >= 0 && !IsCompleted && !HaveCanceled; }
+        }
+
+        /// <summary>
+        /// a finished one off can be put back on for another go - the same
+        /// customer wants their gutters doing again a year later. only while
+        /// it has not already been: JobNextId holds the go it was given, and
+        /// a job that repeats brings itself back without being asked
+        /// </summary>
+        [XmlIgnore]
+        public bool CanDoAgain
+        {
+            get { return IsOneOff && IsCompleted && !HaveCanceled && JobNextId == -1; }
+        }
+
+        /// <summary>
+        /// put a finished one off back on the round, due on the given day.
+        /// a one off has no frequency to work the day out from, so it is
+        /// asked for rather than calculated.
+        /// </summary>
+        /// <returns>the new visit, or null if this job cannot have one</returns>
+        public Job DoAgain(DateTime due)
+        {
+            if (!CanDoAgain)
+                return null;
+
+            Job j = NextVisit(due);
+            JobNextId = j.Id;
+
+            Job.Save();
+            Refresh();
+            return j;
         }
 
         private static string tmp;
@@ -516,6 +587,9 @@ namespace Kernel
             RaisePropertyChanged("IsMarked");
             RaisePropertyChanged("DoneActionText");
             RaisePropertyChanged("ShowPaidAction");
+            RaisePropertyChanged("IsOneOff");
+            RaisePropertyChanged("ShowOneOff");
+            RaisePropertyChanged("CanDoAgain");
         }
 
         /// <summary>
@@ -807,7 +881,7 @@ namespace Kernel
         /// </param>
         public void SkipJob(DateTime dateSkipped)
         {
-            DueDate = DueDate.AddDays(7 * Frequence);
+            DueDate = DueDate.AddDays(SkipDays);
             HaveSkipped = true;
             //kept so the skip stays on the day it happened, alongside the
             //work done that day, rather than moving with the new due date
@@ -815,11 +889,22 @@ namespace Kernel
             Job.Save();
         }
 
+        /// <summary>
+        /// how far a skipped job is pushed out. a one off has no frequency to
+        /// go by, and multiplying by nothing left it sitting on the same day
+        /// still reading as due - so it goes to next week like anything else
+        /// that was passed over
+        /// </summary>
+        private int SkipDays
+        {
+            get { return Frequence > 0 ? 7 * Frequence : 7; }
+        }
+
         public void UnSkipJob()
         {
             if (!HaveSkipped)
                 return;
-            DueDate = DueDate.AddDays(-7 * Frequence);
+            DueDate = DueDate.AddDays(-SkipDays);
             HaveSkipped = false;
             DateSkipped = UsfulFuctions.DateBase;
             Job.Save();
@@ -1548,6 +1633,10 @@ namespace Kernel
             job.Description = Description;
             job.DueDate = DueDate;
             job.Frequence = Frequence;
+            //without this the copy fell back to the default of weeks, so the
+            //second visit of a monthly job came round the next week
+            job.Frequence_Type = Frequence_Type;
+            job.EstimatedTime = EstimatedTime;
             job.Id = Id;
             job.IsCompleted = IsCompleted;
             job.IsPaidFor = IsPaidFor;
