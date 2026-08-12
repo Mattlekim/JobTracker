@@ -50,7 +50,17 @@ public partial class BookedWork : ContentPage
         {
             float total = day.Sum(x => x.Price);
             string header = $"{day.Key:ddd dd MMM yyyy} - {day.Count()} jobs {Gloable.CurrenceSymbol}{total}";
-            groups.Add(new BookingGroup(header, day.Key, day.OrderBy(x => x.JobFormattedStreet).ToList()));
+            //street order, then up the street by house number - the order the
+            //day is actually worked. sorting on the formatted address sorted
+            //by house number as text, which put 10 before 2 and split streets
+            //up all over the list
+            List<Job> dayInStreetOrder = day
+                .OrderBy(x => x.SortStreet, StringComparer.CurrentCultureIgnoreCase)
+                .ThenBy(x => x.SortHouseNumber)
+                .ThenBy(x => x.SortHouseSuffix, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+            groups.Add(new BookingGroup(header, day.Key, dayInStreetOrder));
         }
 
         cv_bookings.ItemsSource = groups;

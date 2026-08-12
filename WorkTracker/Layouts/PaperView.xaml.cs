@@ -977,7 +977,10 @@ public partial class PaperView : ContentPage
 					TitlePadding = new Thickness(14, 4, 4, 2),
 				});
 
-				foreach (Job j in street.OrderBy(x => x.Address == null ? string.Empty : x.Address.PropertyNameNumber))
+				//by house number as a number, so 2 comes before 10
+				foreach (Job j in street
+					.OrderBy(x => x.SortHouseNumber)
+					.ThenBy(x => x.SortHouseSuffix, StringComparer.CurrentCultureIgnoreCase))
 					PaperItems.Insert(insertAt++, BookedRow(j));
 			}
 		}

@@ -891,6 +891,74 @@ namespace Kernel
             }
         }
 
+        /// <summary>
+        /// Putting work in the order it would be walked or driven: street
+        /// first, then up the street by house number.
+        ///
+        /// Sorting on the formatted address does not do this - it reads
+        /// "12 High Street", so the house number is what gets sorted and it
+        /// gets sorted as text, which puts 10 before 2 and scatters a street
+        /// across the list. These three are the sort key instead:
+        /// <see cref="SortStreet"/>, then <see cref="SortHouseNumber"/>, then
+        /// <see cref="SortHouseSuffix"/>.
+        /// </summary>
+        [XmlIgnore]
+        public string SortStreet
+        {
+            get { return Address == null || Address.Street == null ? string.Empty : Address.Street.Trim(); }
+        }
+
+        /// <summary>
+        /// the house number as a number, so 2 comes before 10. a house with a
+        /// name rather than a number sorts after the numbered ones
+        /// </summary>
+        [XmlIgnore]
+        public int SortHouseNumber
+        {
+            get
+            {
+                string digits = string.Empty;
+                foreach (char c in HouseNumberText())
+                {
+                    if (!char.IsDigit(c))
+                        break;
+                    digits += c;
+                }
+
+                if (digits.Length == 0 || !int.TryParse(digits, out int number))
+                    return int.MaxValue;
+
+                return number;
+            }
+        }
+
+        /// <summary>
+        /// whatever is left of the house number once the digits are off the
+        /// front, so 12a comes before 12b - and the whole name for a house
+        /// that has one instead of a number
+        /// </summary>
+        [XmlIgnore]
+        public string SortHouseSuffix
+        {
+            get
+            {
+                string text = HouseNumberText();
+
+                int digits = 0;
+                while (digits < text.Length && char.IsDigit(text[digits]))
+                    digits++;
+
+                return text.Substring(digits).Trim();
+            }
+        }
+
+        private string HouseNumberText()
+        {
+            if (Address == null || Address.PropertyNameNumber == null)
+                return string.Empty;
+            return Address.PropertyNameNumber.Trim();
+        }
+
         public string JobFormattedCity
         {
             get
