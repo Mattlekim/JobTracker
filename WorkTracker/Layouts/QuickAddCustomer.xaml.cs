@@ -31,6 +31,31 @@ public partial class QuickAddCustomer : ContentPage
 			e_email.Text = picked.Email;
 	}
 
+	/// <summary>
+	/// fills the address in from where the phone is standing. the property
+	/// number is left alone - a phone is not accurate enough to be trusted
+	/// with which house it is outside
+	/// </summary>
+	private async void bnt_useLocation_Clicked(object sender, EventArgs e)
+	{
+		AddressFromLocation.Found found = await AddressFromLocation.AskAsync(this);
+		if (found == null)
+			return;
+
+		//a part that came back empty leaves what is already typed alone
+		if (!string.IsNullOrWhiteSpace(found.Street))
+			e_street.Text = found.Street;
+
+		if (!string.IsNullOrWhiteSpace(found.City))
+			e_city.Text = found.City;
+
+		if (!string.IsNullOrWhiteSpace(found.Area))
+			e_area.Text = found.Area;
+
+		if (!string.IsNullOrWhiteSpace(found.Postcode))
+			e_postcode.Text = found.Postcode;
+	}
+
 	public QuickAddCustomer()
 	{
 		InitializeComponent();

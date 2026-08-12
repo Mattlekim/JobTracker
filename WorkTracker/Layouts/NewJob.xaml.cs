@@ -686,6 +686,31 @@ public partial class NewJob : ContentPage
       
     }
 
+    /// <summary>
+    /// fills the job address in from where the phone is standing. the house
+    /// number is left alone - a phone is not accurate enough to be trusted
+    /// with which house it is outside
+    /// </summary>
+    private async void bnt_useLocation_Clicked(object sender, EventArgs e)
+    {
+        AddressFromLocation.Found found = await AddressFromLocation.AskAsync(this);
+        if (found == null)
+            return;
+
+        //a part that came back empty leaves what is already typed alone
+        if (!string.IsNullOrWhiteSpace(found.Street))
+            t_street.Text = found.Street;
+
+        if (!string.IsNullOrWhiteSpace(found.City))
+            t_city.Text = found.City;
+
+        if (!string.IsNullOrWhiteSpace(found.Area))
+            t_area.Text = found.Area;
+
+        if (!string.IsNullOrWhiteSpace(found.Postcode))
+            t_postcode.Text = found.Postcode;
+    }
+
     private void cb_oneOff_Changed(object sender, CheckedChangedEventArgs e)
     {
         ShowFrequency();

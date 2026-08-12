@@ -6,7 +6,17 @@
     <VerticalStackLayout x:Name="vsl_main">
 
         
-        <Entry x:Name="e_number" Placeholder="Property Name / Number"></Entry>
+        <!-- fills the street, town, area and postcode in from where the phone
+             is standing. the property number is left alone on purpose -->
+        <Grid ColumnSpacing="6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Entry Grid.Column="0" x:Name="e_number" Placeholder="Property Name / Number"></Entry>
+            <ImageButton Grid.Column="1" x:Name="bnt_useLocation" Source="location.png" Clicked="bnt_useLocation_Clicked"
+                         HeightRequest="40" WidthRequest="40" Padding="8" CornerRadius="20" BackgroundColor="#1E88E5" VerticalOptions="Center"></ImageButton>
+        </Grid>
         <Entry x:Name="e_street" Placeholder="Street" Text="{Binding Street}"></Entry>
         <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
             <HorizontalStackLayout x:Name="hsl_streetSuggestions" Spacing="6" Padding="0,2" IsVisible="false"></HorizontalStackLayout>

@@ -42,7 +42,18 @@
 
 
             <Label Text=""/>
-            <Label Text="Address"/>
+            <!-- the icon fills the street, town, area and postcode in from
+                 where the phone is standing. the house number is left alone
+                 on purpose -->
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="Auto"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Label Grid.Column="0" Text="Address" VerticalOptions="Center"/>
+                <ImageButton Grid.Column="1" x:Name="bnt_useLocation" Source="location.png" Clicked="bnt_useLocation_Clicked"
+                             HeightRequest="38" WidthRequest="38" Padding="8" CornerRadius="19" BackgroundColor="#1E88E5" VerticalOptions="Center"></ImageButton>
+            </Grid>
 
             <Label Text="House Name / Number"/>
             <Entry x:Name="t_houseNumberName"></Entry>

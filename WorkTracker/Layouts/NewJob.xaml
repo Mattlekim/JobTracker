@@ -147,7 +147,18 @@
                 <!--  JOB ADDRESS  -->
                 <Border Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="10">
-                        <Label Text="Job Address" Style="{StaticResource SectionTitle}" />
+                        <!-- the icon fills the street, town, area and postcode
+                             in from where the phone is standing. the house
+                             number is left alone on purpose -->
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Column="0" Text="Job Address" Style="{StaticResource SectionTitle}" VerticalOptions="Center" />
+                            <ImageButton Grid.Column="1" x:Name="bnt_useLocation" Source="location.png" Clicked="bnt_useLocation_Clicked"
+                                         HeightRequest="38" WidthRequest="38" Padding="8" CornerRadius="19" BackgroundColor="#1E88E5" VerticalOptions="Center"></ImageButton>
+                        </Grid>
 
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>

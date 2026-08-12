@@ -11,6 +11,11 @@
 	<uses-permission android:name="android.permission.SEND_SMS" />
 	<!-- filling a customer's name and number in from the phone's contacts -->
 	<uses-permission android:name="android.permission.READ_CONTACTS" />
+	<!-- filling a new customer's street, town and postcode in from where the
+	     phone is standing. coarse is enough to name a street, but fine is
+	     asked for as well because coarse on its own can be a street or two out -->
+	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 	<!-- taking receipt photos with MediaPicker -->
 	<uses-permission android:name="android.permission.CAMERA" />
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
