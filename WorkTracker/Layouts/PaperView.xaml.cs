@@ -1317,6 +1317,14 @@ public partial class PaperView : ContentPage
 		string result = await DisplayActionSheet($"Balance {bal}", "Cancel", null, options.ToArray());
 		if (result == null)
 			return;
+
+		if (result.Contains("Change"))
+		{
+			if (await CustomerBalance.ChangeAsync(c, this))
+				RefreshRowsForJob(j);
+			return;
+		}
+
 		if (result.Contains("Clear"))
 		{
 			string msg = string.Empty;

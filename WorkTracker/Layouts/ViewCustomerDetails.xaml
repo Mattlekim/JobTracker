@@ -39,11 +39,15 @@
                         </Label>
                         
                     </VerticalStackLayout>
-                    <HorizontalStackLayout Padding="8" HorizontalOptions="Center">
-                        <Label Text="Current Balance "></Label>
-                        <Label x:Name="l_owing" Text="{Binding Owing}" TextColor="{Binding OwingColour}"></Label>
-                        <Label x:Name="l_creditDebit" Text="{Binding CreditDebit}"></Label>
-                       
+                    <HorizontalStackLayout Padding="8" HorizontalOptions="Center" Spacing="8">
+                        <Label Text="Current Balance " VerticalOptions="Center"></Label>
+                        <Label x:Name="l_owing" Text="{Binding Owing}" TextColor="{Binding OwingColour}" VerticalOptions="Center"></Label>
+                        <Label x:Name="l_creditDebit" Text="{Binding CreditDebit}" VerticalOptions="Center"></Label>
+                        <!-- a round taken over from somebody else starts with
+                             whatever was owed written down somewhere else -->
+                        <Button Text="Change" Clicked="bnt_changeBalance_Clicked" FontSize="12" Padding="12,2"
+                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5"
+                                CornerRadius="8" VerticalOptions="Center"></Button>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Border>

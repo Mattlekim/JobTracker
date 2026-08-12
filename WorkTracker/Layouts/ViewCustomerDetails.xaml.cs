@@ -360,5 +360,29 @@ public partial class ViewCustomerDetails : ContentPage
         else
             tbi_cancelJob.Text = "Cancel Job";
     }
+    /// <summary>
+    /// types in what the customer owes. the balance normally looks after
+    /// itself, but a round taken over from somebody else starts with whatever
+    /// was written down before
+    /// </summary>
+    private async void bnt_changeBalance_Clicked(object sender, EventArgs e)
+    {
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null)
+            return;
+
+        if (!await CustomerBalance.ChangeAsync(c, this))
+            return;
+
+        //the balance labels read off a History built when the page opened, so
+        //a fresh one is what makes them say the new figure
+        History h = new History(CurrentJob);
+        l_owing.BindingContext = h;
+        l_creditDebit.BindingContext = h;
+
+        if (OnJobDetialsUpdated != null)
+            OnJobDetialsUpdated(CurrentJob);
+    }
+
 }
 
