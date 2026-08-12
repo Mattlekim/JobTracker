@@ -1089,6 +1089,10 @@ public partial class CalenderView : ContentPage
     /// </summary>
     private void l_dayPaymentTotal_Tapped(object sender, EventArgs e)
     {
+        //nothing to narrow down until a day has been picked
+        if (_selectedDay == null)
+            return;
+
         _showingOwing = !_showingOwing;
         RefreshPageDate();
     }
@@ -1100,17 +1104,17 @@ public partial class CalenderView : ContentPage
     }
 
     /// <summary>
-    /// Everyone who owes, one row each.
+    /// The houses on this day that still owe something.
     ///
-    /// A customer has a job for every visit they have ever had, so listing
-    /// the jobs of everyone who owes would show the same house over and over.
-    /// Only their latest one is shown, which is the one worth acting on.
+    /// This narrows the day down rather than going off across the round: you
+    /// are looking at a day, the paid total says what came in on it, and this
+    /// is the other half of that - who on this day has not paid.
     /// </summary>
     private void ShowOwingJobs()
     {
-        Dictionary<int, Job> latest = new Dictionary<int, Job>();
+        List<Job> owing = new List<Job>();
 
-        foreach (Job j in Job.Query())
+        foreach (Job j in _selectedDay.Jobs)
         {
             if (j.HaveCanceled || j.CustomerId == -1)
                 continue;
@@ -1119,11 +1123,10 @@ public partial class CalenderView : ContentPage
             if (c == null || c.Balance <= 0)
                 continue;
 
-            if (!latest.TryGetValue(j.CustomerId, out Job held) || j.Id > held.Id)
-                latest[j.CustomerId] = j;
+            owing.Add(j);
         }
 
-        List<Job> owing = latest.Values
+        owing = owing
             .OrderByDescending(x => x.GetCustomer().Balance)
             .ToList();
 
@@ -1152,13 +1155,13 @@ public partial class CalenderView : ContentPage
 
         hsl_filter.IsVisible = true;
         l_filter.Text = owing.Count == 0
-            ? "Nobody owes anything"
+            ? "Nobody owes on this day"
             : $"{owing.Count} owing {Gloable.CurrenceSymbol}{total:0.00}";
 
         l_noJobs.IsVisible = owing.Count == 0;
-        l_noJobs.Text = "Nobody owes anything";
+        l_noJobs.Text = "Nobody owes on this day";
 
-        //the day's own figures say nothing about this list
+        //the day's own figures are about the whole day, not this part of it
         l_dayProgress.IsVisible = false;
         l_dayTimeLeft.IsVisible = false;
     }
@@ -1167,12 +1170,15 @@ public partial class CalenderView : ContentPage
     {
         hsl_filter.IsVisible = false;
 
-        if (_showingOwing)
+        if (_showingOwing && _selectedDay != null)
         {
-            l_currentDayName.Text = "Everyone Who Owes";
+            l_currentDayName.Text = $"Owing on {_selectedDay.Date:ddd dd MMM yyyy}";
             ShowOwingJobs();
             return;
         }
+
+        //a day that is no longer picked cannot be narrowed down
+        _showingOwing = false;
 
         //no day picked - looking at a month that is not the one today is in
         if (_selectedDay == null)
