@@ -28,8 +28,22 @@ namespace Kernel
             "Solar Pannels",
             "PVC Whiting",
             "Grass Cutting",
-            
+
         };
+
+        /// <summary>
+        /// the job type to fall back on when none has been picked: the first
+        /// one on the list, which is what the new job form starts on anyway.
+        /// a job saved with no type at all shows as a blank wherever the type
+        /// is listed, and there is nothing to group or filter it by.
+        ///
+        /// empty only if every job type has been deleted on the settings page,
+        /// which is why this is asked for rather than JobNames[0]
+        /// </summary>
+        public static string DefaultJobName
+        {
+            get { return JobNames.Count > 0 ? JobNames[0] : string.Empty; }
+        }
 
         public GridLength Gr { get; set; } = new GridLength(0.3, GridUnitType.Star);
 

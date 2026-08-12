@@ -230,6 +230,11 @@ public partial class QuickAddCustomer : ContentPage
             Address = address,
             Price = price,
             EstimatedTime = duration,
+
+            //this form never asks what the work is, so it gets the first job
+            //type rather than none at all - a job with no type is a blank in
+            //every list that shows one, and nothing to filter by
+            Name = Job.DefaultJobName,
         };
 
         if (e_notes.Text != null && e_notes.Text != string.Empty)

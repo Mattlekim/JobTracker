@@ -147,6 +147,37 @@ public partial class NewJob : ContentPage
         bd_messaging.IsVisible = false;
     }
 
+    /// <summary>
+    /// puts the picker on a job's type, falling back to the first job type
+    /// there is.
+    ///
+    /// a type that is not one of the job types any more - renamed or deleted
+    /// on the settings page - left the picker showing nothing, and a picker
+    /// showing nothing saved the job with no type at all. the same goes for
+    /// work added through Quick Add, which never asked for a type.
+    /// </summary>
+    private void SelectJobType(string name)
+    {
+        if (!string.IsNullOrWhiteSpace(name) && Job.JobNames.Contains(name))
+        {
+            p_JobType.SelectedItem = name;
+            return;
+        }
+
+        if (Job.JobNames.Count > 0)
+            p_JobType.SelectedItem = Job.DefaultJobName;
+    }
+
+    /// <summary>
+    /// the type picked, or the first job type when nothing is picked, so a
+    /// job is never saved without one
+    /// </summary>
+    private string ChosenJobType()
+    {
+        string picked = p_JobType.SelectedItem as string;
+        return string.IsNullOrWhiteSpace(picked) ? Job.DefaultJobName : picked;
+    }
+
     private void Cb_differentAddress_CheckedChanged(object sender, CheckedChangedEventArgs e)
     {
         
@@ -239,7 +270,7 @@ public partial class NewJob : ContentPage
                 e_startingBallence.Text = "0.00";
                 p_ballenceType.SelectedItem = "Credit";
                 t_description.Text = string.Empty;
-                p_JobType.SelectedItem = Job.JobNames[0];
+                SelectJobType(null);
                 t_notes.Text = string.Empty;
 
                 e_estimatedDruation.Text = $"{Settings.DefaultJobDuration}";
@@ -312,7 +343,7 @@ public partial class NewJob : ContentPage
             p_frequencyType.SelectedIndex = (int)JobToAdd.Frequence_Type;
             ShowFrequency();
 
-            p_JobType.SelectedItem = JobToAdd.Name;
+            SelectJobType(JobToAdd.Name);
             t_description.Text = JobToAdd.Description;
             t_notes.Text = JobToAdd.Notes;
             t_price.Text = JobToAdd.Price.ToString();
@@ -581,7 +612,7 @@ public partial class NewJob : ContentPage
         }
 
 
-        JobToAdd.Name = p_JobType.SelectedItem as string;
+        JobToAdd.Name = ChosenJobType();
 
         float price;
         if (!TryRead(t_price, out price))
