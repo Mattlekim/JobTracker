@@ -641,6 +641,8 @@ public partial class CalenderView : ContentPage
         {
             BookJobFormcs.jobs = day.Jobs.ToList();
             BookJobFormcs.jobs.RemoveAll(x => x.IsBookedIn);
+            //the day is already picked, so the form opens on it
+            BookJobFormcs.BookForDate = day.Date;
             await Navigation.PushAsync(new BookJobFormcs());
             RefreshCalenderData();
             RefreshPageDate();
@@ -649,6 +651,7 @@ public partial class CalenderView : ContentPage
             if (result == "Bookin All Jobs")
         {
             BookJobFormcs.jobs = day.Jobs.ToList();
+            BookJobFormcs.BookForDate = day.Date;
             await Navigation.PushAsync(new BookJobFormcs());
             RefreshCalenderData();
             RefreshPageDate();
@@ -1166,9 +1169,79 @@ public partial class CalenderView : ContentPage
         l_dayTimeLeft.IsVisible = false;
     }
 
+    /// <summary>
+    /// the work on the picked day that could still be booked in: not done,
+    /// not cancelled, and not booked in already
+    /// </summary>
+    private List<Job> JobsToBookIn()
+    {
+        List<Job> jobs = new List<Job>();
+
+        if (_selectedDay == null)
+            return jobs;
+
+        foreach (Job j in _selectedDay.Jobs)
+            if (!j.IsCompleted && !j.HaveCanceled && !j.IsBookedIn)
+                jobs.Add(j);
+
+        return jobs;
+    }
+
+    /// <summary>
+    /// Work due on a day that has not come round yet is exactly what wants
+    /// booking in, and tapping the day is how somebody asks about it. Finding
+    /// that took a double tap on the day, which nobody does on a phone, so a
+    /// day still to come now offers it as a button as soon as it is tapped.
+    ///
+    /// Today is left out on purpose: today's work is being done, not arranged.
+    /// A day already gone cannot be booked in at all.
+    /// </summary>
+    private void ShowBookInOption()
+    {
+        bnt_bookDayIn.IsVisible = false;
+
+        if (_selectedDay == null)
+            return;
+
+        if (UsfulFuctions.DifferenceSigned(_selectedDay.Date, CalenderDay.DateNow) <= 0)
+            return;
+
+        int toBook = JobsToBookIn().Count;
+        if (toBook == 0)
+            return;
+
+        //some of the day may already be booked in, and saying so is the
+        //difference between the button looking wrong and looking right
+        int alreadyBooked = 0;
+        foreach (Job j in _selectedDay.Jobs)
+            if (!j.IsCompleted && !j.HaveCanceled && j.IsBookedIn)
+                alreadyBooked++;
+
+        if (alreadyBooked == 0)
+            bnt_bookDayIn.Text = toBook == 1 ? "Book It In" : $"Book All {toBook} In";
+        else
+            bnt_bookDayIn.Text = toBook == 1 ? "Book The Other One In" : $"Book The Other {toBook} In";
+
+        bnt_bookDayIn.IsVisible = true;
+    }
+
+    private async void bnt_bookDayIn_Clicked(object sender, EventArgs e)
+    {
+        List<Job> jobs = JobsToBookIn();
+        if (jobs.Count == 0)
+            return;
+
+        //the day is already picked, so the form opens on it rather than on
+        //today with the date to put in again
+        BookJobFormcs.jobs = jobs;
+        BookJobFormcs.BookForDate = _selectedDay.Date;
+        await Navigation.PushAsync(new BookJobFormcs());
+    }
+
     public void RefreshPageDate()
     {
         hsl_filter.IsVisible = false;
+        bnt_bookDayIn.IsVisible = false;
 
         if (_showingOwing && _selectedDay != null)
         {
@@ -1218,6 +1291,7 @@ public partial class CalenderView : ContentPage
         l_dayExpenseTotal.IsVisible = expensesTotal != 0;
 
         ShowDayProgress();
+        ShowBookInOption();
     }
 
     /// <summary>

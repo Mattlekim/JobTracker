@@ -63,6 +63,13 @@
                         <Label x:Name="l_dayProgress" FontAttributes="Bold" TextColor="White" BackgroundColor="#455A64" Padding="6" IsVisible="false"></Label>
                         <Label x:Name="l_dayTimeLeft" FontAttributes="Bold" TextColor="White" BackgroundColor="#EF6C00" Padding="6" Margin="8,0,0,0" IsVisible="false"></Label>
                     </HorizontalStackLayout>
+
+                    <!-- work due on a day still to come can be booked in for
+                         it right here, so it is one tap on the day and one on
+                         the button -->
+                    <Button x:Name="bnt_bookDayIn" Text="Book All In" Clicked="bnt_bookDayIn_Clicked" IsVisible="false"
+                            FontSize="12" Padding="14,4" Margin="0,8,0,0" HorizontalOptions="Center"
+                            BackgroundColor="Transparent" BorderWidth="2" BorderColor="#EF6C00" TextColor="#EF6C00" CornerRadius="8"></Button>
                 </VerticalStackLayout>
                 <!--                       THIS IS THE LIST OF JOBS TO DISPLAY!!!!                       -->
                 <Label x:Name="l_noJobs" FontSize="Title" HorizontalOptions="Center" Text="No Jobs To Do" Padding="16"></Label>

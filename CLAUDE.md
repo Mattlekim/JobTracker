@@ -115,6 +115,28 @@ written instead — a receipt is never lost to save space.
 The size and quality are on the settings page, along with a button that goes back over photos taken before this
 existed. That one only replaces a photo when the new file really is smaller.
 
+## Filling an address in from where the phone is
+
+The location button on `Layouts/NewJob`, `Layouts/NewCustomer` and `Layouts/QuickAddCustomer` all go through
+`WorkTracker/AddressFromLocation.cs`. It fills in the street, town, area and postcode and deliberately leaves the
+house number alone — a phone is only accurate to a few doors.
+
+It used to work once per run of the app and then do nothing at all until the app was restarted. Nothing about the
+button was wrong: `_asking` is one flag for the whole app, held from the first press until the work finishes, and
+the work could stop without finishing — asking Android for a fix a second time can leave it listening for one that
+never arrives. So the flag stayed set and every later press returned immediately.
+
+Three things keep that from coming back, and all three are needed:
+
+- `GetLocationAsync` is given a `CancellationToken` as well as the request timeout. The token is what actually
+  gets control back; the last known fix is then used instead of nothing.
+- The geocoder lookup is raced against `Task.Delay`, because nothing in it promises to come back either.
+- `_asking` records *when* it was set and goes stale on its own, so no future hang can wedge the button for a
+  session. A press while it is genuinely busy now says so rather than looking broken.
+
+Alerts go through `Say`/`Confirm`, which do nothing when the page has gone. An alert put up on a page that has been
+navigated away from never returns, and that would hang the caller — the very thing being fixed.
+
 ## Quotes
 
 A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never
@@ -129,6 +151,13 @@ its id, price and frequency, and sets the day it starts. `Job.DeleteQuote` throw
 which left the previous file on disk, so the last quote accepted or deleted came back on the next start.
 `Job.DeleteData` clears both lists for the same reason.
 
+Quotes are added through `Layouts/NewJob` with `AddAsQuote` set, and `NewJob.SimplifyForQuote` cuts that form down
+to what pricing work up actually needs: where it is, what it is, what it comes to, how often, notes and who to go
+back to. The start date, estimated duration, starting balance, alternative price, separate customer address and the
+whole messaging card are hidden — none of them have an answer until the quote is accepted, and each is already left
+at the default the form sets, so a quote saves exactly as it did before. The link to an existing customer stays
+put: quoting somebody already on the round is how a duplicate customer record gets made.
+
 ## Round figures
 
 `Kernel/RoundStats.cs` works out everything `Layouts/Stats` (the fourth page under Work) shows, so the sums can be
@@ -142,6 +171,18 @@ four-weekly visits happen in a year and not twelve. One offs contribute nothing 
 The month by month figures come off `DateCompleated`, not `DueDate`: they are what was *done* in a month. Completed
 jobs stay in `_Jobs` alongside the next visit they generated, so anything counting the round itself must skip
 `IsCompleted` or it counts the same house twice.
+
+## Booking a day in from the calendar
+
+Tapping a day on `Layouts/CalenderView` picks it; double tapping opens the day's action sheet. Nobody double taps a
+phone, so a day **still to come** that has work not booked in yet also puts a *Book All … In* button under the day
+totals — one tap on the day, one on the button. Today is deliberately left out: today's work is being done, not
+arranged, and a day already gone cannot be booked at all. The button counts only work that is not done, not
+cancelled and not already booked, which is what `JobsToBookIn` returns.
+
+`BookJobFormcs.BookForDate` is how a caller says which day the form should open on — it is used once and resets to
+today, so a caller with no day in mind cannot pick up somebody else's. Without it the form opened on today and the
+date had to be typed in again, which is wrong every time the day is already known.
 
 ## Duplicate customers
 
@@ -205,6 +246,40 @@ needed — `HasBuiltInClient` then flips to true and the settings page collapses
 Until then, sign-in cannot complete: the values are not registered with Google, so pressing Connect shows the
 setup instructions instead. To test the real flow before the app has its own credentials, create a Desktop-app
 OAuth client and paste the Client ID and Secret into the settings fields.
+
+Because of that the whole Cloud Sync section on the settings page reads *Coming Soon* and is greyed out
+(`IsEnabled="false"` on `sec_cloud`), rather than being hidden — hiding it only has people hunting for it. Take the
+greying off in `Layouts/SettingLayout.xaml` when the real credentials go in.
+
+## Experimental features
+
+GoCardless is marked **Experimental** where a user meets it — the settings section heading, an orange badge inside
+it, the toolbar item on `Layouts/ViewCustomerDetails` and the title of the action sheet that page puts up. The
+`GoCardless` entry in the preferred-payment picker on `Layouts/NewCustomer` is deliberately *not* labelled: that
+string is saved on the customer as the payment method, so changing the wording changes stored data.
+
+## Saving exports to the device
+
+Sharing hands a file to another app; `WorkTracker/DeviceFileSaver.cs` puts a copy where the device keeps downloads
+so it can be found again without sending it anywhere. Android 10 and up goes through the MediaStore Downloads
+collection (older phones write the file directly, after asking for the storage permission); Windows copies into the
+user's Downloads folder without overwriting a file already there. iOS keeps each app's files to itself, so `CanSave`
+is false there and sharing stays the only way out — anything calling this must cope with that.
+
+The tax page's Export asks *Save To This Device* or *Share* when the platform can do both.
+
+## Job types
+
+`Job.JobNames` is the list of job types, edited on the settings page and saved with the settings. `DefaultJobName`
+is the first of them and is what anything without a type falls back to: `Job.Load` fills a blank type in as the
+file is read, the new job form picks it when a job's own type is not on the list any more, and Quick Add — which
+never asks what the work is — gives it to everything it creates. A type that is on the job but no longer on the
+list is left alone; it still says what the work is, and retyping it because somebody renamed an entry would lose
+that.
+
+**`Settings.Load()` must run before `Job.Load()`** (`AppShell`), because the job types come out of the settings
+file. The other way round, work with no type gets the first *built in* type rather than the first of this round's
+own. Only what is in memory is changed — the file catches up on the next save, like the other tidy ups done on load.
 
 ## Versioning
 

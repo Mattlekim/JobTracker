@@ -28,8 +28,43 @@ namespace Kernel
             "Solar Pannels",
             "PVC Whiting",
             "Grass Cutting",
-            
+
         };
+
+        /// <summary>
+        /// the job type to fall back on when none has been picked: the first
+        /// one on the list, which is what the new job form starts on anyway.
+        /// a job saved with no type at all shows as a blank wherever the type
+        /// is listed, and there is nothing to group or filter it by.
+        ///
+        /// empty only if every job type has been deleted on the settings page,
+        /// which is why this is asked for rather than JobNames[0]
+        /// </summary>
+        public static string DefaultJobName
+        {
+            get { return JobNames.Count > 0 ? JobNames[0] : string.Empty; }
+        }
+
+        /// <summary>
+        /// gives a job the first job type when it has none at all. work added
+        /// through Quick Add never had one - that form does not ask - so it is
+        /// put right as the file is read rather than leaving every one of them
+        /// blank until somebody opens it.
+        ///
+        /// a type that is simply not on the list any anymore is left alone: it
+        /// says what the work is, and a job typed Gutter Clear must not turn
+        /// into Windows because that entry was edited on the settings page.
+        ///
+        /// only what is in memory is changed. the file is written the next
+        /// time something is saved, like every other tidy up done on load.
+        /// </summary>
+        public static void FillInJobType(Job job)
+        {
+            if (job == null || !string.IsNullOrWhiteSpace(job.Name))
+                return;
+
+            job.Name = DefaultJobName;
+        }
 
         public GridLength Gr { get; set; } = new GridLength(0.3, GridUnitType.Star);
 

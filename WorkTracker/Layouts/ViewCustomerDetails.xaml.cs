@@ -166,7 +166,7 @@ public partial class ViewCustomerDetails : ContentPage
         }
 
         float suggested = c.Balance > 0 ? c.Balance : CurrentJob.Price;
-        string action = await DisplayActionSheet($"GoCardless - {c.FName} {c.SName}", "Cancel", null,
+        string action = await DisplayActionSheet($"GoCardless (Experimental) - {c.FName} {c.SName}", "Cancel", null,
             $"Request Payment ({Gloable.CurrenceSymbol}{suggested:0.00})",
             "Check Pending Payments",
             "Unlink Direct Debit");

@@ -7,6 +7,12 @@ namespace WorkTracker
     {
         public AppShell()
         {
+            //settings first: the job types live in there, and work read off
+            //the file with no type on it is given the first of them. loaded
+            //after the jobs, that would be the first of the built in types
+            //rather than the first of this round's own
+            Settings.Load();
+
             Customer.Load();
             Job.Load();
             Payment.Load();
@@ -14,7 +20,6 @@ namespace WorkTracker
             ExpenseRule.Load();
             StatementRecord.Load();
             GoCardlessRequest.Load();
-            Settings.Load();
 
             //photos taken before receipts were filed by tax year are still
             //loose in the receipts folder - put them where they belong

@@ -239,7 +239,10 @@ namespace Kernel
                         else
                             j.Address.Area = j.Address.Area.Trim();
 
-
+                        //work saved without a type shows as a blank wherever
+                        //the type is listed, and there is nothing to group or
+                        //filter it by
+                        FillInJobType(j);
                     }
 
                     _Jobs.Clear();
@@ -291,7 +294,7 @@ namespace Kernel
                         else
                             j.Address.Area = j.Address.Area.Trim();
 
-
+                        FillInJobType(j);
                     }
 
                     _Quotes.Clear();
