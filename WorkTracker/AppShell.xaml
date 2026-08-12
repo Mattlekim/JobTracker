@@ -24,6 +24,7 @@
             <!-- priced up but not taken on. kept off the round and off the
                  work list, because a quote is not due and cannot be done -->
             <ShellContent Title="Quotes" Route="work_quotes" x:Name="sc_workQuotes" ContentTemplate="{DataTemplate local:Quotes}"/>
+            <ShellContent Title="Stats" Route="work_stats" x:Name="sc_workStats" ContentTemplate="{DataTemplate local:Stats}"/>
         </Tab>
         <Tab Title="Booked" x:Name="tab_booked"
             Icon="booked.png">

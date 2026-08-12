@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.Stats"
+             Title="Stats">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Figure" TargetType="Label">
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="FontSize" Value="26" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="Label">
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="12">
+
+            <!--  STILL TO DO  -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Still to do" Style="{StaticResource SectionTitle}" />
+
+                    <Grid ColumnSpacing="12" RowSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"></RowDefinition>
+                            <RowDefinition Height="Auto"></RowDefinition>
+                        </Grid.RowDefinitions>
+
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="0">
+                            <Label x:Name="l_housesLeft" Style="{StaticResource Figure}"></Label>
+                            <Label Text="Houses left" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="0" Grid.Column="1">
+                            <Label x:Name="l_valueLeft" Style="{StaticResource Figure}" TextColor="#2E7D32"></Label>
+                            <Label Text="Value left" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="0">
+                            <Label x:Name="l_timeLeft" Style="{StaticResource Figure}"></Label>
+                            <Label Text="Time to do it" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="1">
+                            <Label x:Name="l_owed" Style="{StaticResource Figure}" TextColor="#C62828"></Label>
+                            <Label Text="Money owed" Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Label x:Name="l_leftNote" Style="{StaticResource Caption}"></Label>
+                    <Label x:Name="l_owedNote" Style="{StaticResource Caption}"></Label>
+                </VerticalStackLayout>
+            </Border>
+
+            <!--  WHAT THE ROUND IS WORTH  -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="The round" Style="{StaticResource SectionTitle}" />
+                    <Label x:Name="l_perMonth" Style="{StaticResource Figure}"></Label>
+                    <Label Text="A month, if every house is done when it falls due" Style="{StaticResource Caption}" />
+                    <Label x:Name="l_roundNote" Style="{StaticResource Caption}" Margin="0,6,0,0"></Label>
+                </VerticalStackLayout>
+            </Border>
+
+            <!--  MONTH BY MONTH  -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Work done" Style="{StaticResource SectionTitle}" />
+                    <Label x:Name="l_monthsNote" Style="{StaticResource Caption}"></Label>
+                    <VerticalStackLayout x:Name="vsl_months" Spacing="8"></VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

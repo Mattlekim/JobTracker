@@ -129,6 +129,20 @@ its id, price and frequency, and sets the day it starts. `Job.DeleteQuote` throw
 which left the previous file on disk, so the last quote accepted or deleted came back on the next start.
 `Job.DeleteData` clears both lists for the same reason.
 
+## Round figures
+
+`Kernel/RoundStats.cs` works out everything `Layouts/Stats` (the fourth page under Work) shows, so the sums can be
+checked with `KernelDebugger` and so one definition of *left to do* is used everywhere: not done, not cancelled, and
+due today or before. Work booked in for a day still counts as left, because it is.
+
+`ValuePerMonth` is what the round earns in a month with everything done on time. It is worked out per job from the
+frequency against an average month (52.1775/12 weeks, 365.25/12 days) rather than four weeks, because thirteen
+four-weekly visits happen in a year and not twelve. One offs contribute nothing — they are not coming round again.
+
+The month by month figures come off `DateCompleated`, not `DueDate`: they are what was *done* in a month. Completed
+jobs stay in `_Jobs` alongside the next visit they generated, so anything counting the round itself must skip
+`IsCompleted` or it counts the same house twice.
+
 ## Duplicate customers
 
 `Layouts/TidyCustomers` and `Kernel/CustomerMerge.cs` exist to clear up after a bug rather than to add anything.

@@ -128,6 +128,7 @@
 	  <Compile Include="..\Kernel\Payment.cs" Link="Kernal\Payment.cs" />
 	  <Compile Include="..\Kernel\PaymentMethod.cs" Link="Kernal\PaymentMethod.cs" />
 	  <Compile Include="..\Kernel\QueryType.cs" Link="Kernal\QueryType.cs" />
+	  <Compile Include="..\Kernel\RoundStats.cs" Link="Kernal\RoundStats.cs" />
 	  <Compile Include="..\Kernel\SaveLoad.cs" Link="Kernal\SaveLoad.cs" />
 	  <Compile Include="..\Kernel\TaxReporting.cs" Link="Kernal\TaxReporting.cs" />
 	  <Compile Include="..\Kernel\UsefulFuctions.cs" Link="Kernal\UsefulFuctions.cs" />
@@ -211,6 +212,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\Quotes.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Layouts\Stats.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TaxView.xaml">
