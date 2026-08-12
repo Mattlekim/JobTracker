@@ -513,6 +513,76 @@ namespace Kernel
             RaisePropertyChanged("ShowOwed");
             RaisePropertyChanged("PaymentPending");
             RaisePropertyChanged("PaymentPendingText");
+            RaisePropertyChanged("IsMarked");
+            RaisePropertyChanged("DoneActionText");
+            RaisePropertyChanged("ShowPaidAction");
+        }
+
+        /// <summary>
+        /// the job has already been marked done or paid, so the swipe offers
+        /// Clear and More rather than Done and Done &amp; Paid again
+        /// </summary>
+        [XmlIgnore]
+        public bool IsMarked
+        {
+            get { return IsCompleted || IsPaidFor; }
+        }
+
+        /// <summary>what the first swipe action does to this job as it stands</summary>
+        [XmlIgnore]
+        public string DoneActionText
+        {
+            get { return IsMarked ? "Clear" : "Done"; }
+        }
+
+        /// <summary>
+        /// Done &amp; Paid is only worth offering on a job that is neither yet
+        /// </summary>
+        [XmlIgnore]
+        public bool ShowPaidAction
+        {
+            get { return !IsMarked; }
+        }
+
+        /// <summary>the payment this job was marked paid with, or null</summary>
+        [XmlIgnore]
+        public Payment JobPayment
+        {
+            get
+            {
+                if (!IsPaidFor)
+                    return null;
+
+                Payment p = Payment.Get(PaymentId);
+                return p == null || p.Id == -1 ? null : p;
+            }
+        }
+
+        /// <summary>
+        /// Clearing a job takes its payment back off the customer's balance,
+        /// which is only right for cash taken at the door. Money that came in
+        /// through the bank was read off a statement and has to be dealt with
+        /// there, or the books stop matching the bank.
+        /// </summary>
+        [XmlIgnore]
+        public bool CanClearPayment
+        {
+            get
+            {
+                Payment p = JobPayment;
+                return p == null || p.PaymentMethod == PaymentMethod.Cash;
+            }
+        }
+
+        /// <summary>everything this customer owes, as it stands right now</summary>
+        [XmlIgnore]
+        public float CustomerOwes
+        {
+            get
+            {
+                MatchCustomer();
+                return _customer == null ? 0 : _customer.Balance;
+            }
         }
         public void MarkJobPaid()
         {

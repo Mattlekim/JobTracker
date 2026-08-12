@@ -55,8 +55,8 @@
                 <SwipeView>
                     <SwipeView.LeftItems>
                         <SwipeItems>
-                            <SwipeItem Text="Done" IconImageSource="tick.png" CommandParameter="{Binding .}" BackgroundColor="#4CAF50" Invoked="On_Job_Compleated"/>
-                            <SwipeItem Text="Done &amp; Paid" IconImageSource="donepaid.png" CommandParameter="{Binding .}" BackgroundColor="#2E7D32" Invoked="On_Job_Paid"/>
+                            <SwipeItem Text="{Binding DoneActionText}" IconImageSource="tick.png" CommandParameter="{Binding .}" BackgroundColor="#4CAF50" Invoked="On_Job_Compleated"/>
+                            <SwipeItem Text="Done &amp; Paid" IconImageSource="donepaid.png" CommandParameter="{Binding .}" BackgroundColor="#2E7D32" Invoked="On_Job_Paid" IsVisible="{Binding ShowPaidAction}"/>
                             <SwipeItem Text="More" IconImageSource="more.png" CommandParameter="{Binding .}" BackgroundColor="#546E7A" Invoked="On_Job_More"/>
                         </SwipeItems>
                     </SwipeView.LeftItems>
@@ -84,8 +84,8 @@
                              (right click) gets the same actions as a menu -->
                         <FlyoutBase.ContextFlyout>
                             <MenuFlyout>
-                                <MenuFlyoutItem Text="Done" CommandParameter="{Binding .}" Clicked="On_Job_Compleated"/>
-                                <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding .}" Clicked="On_Job_Paid"/>
+                                <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding .}" Clicked="On_Job_Compleated"/>
+                                <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding .}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}"/>
                                 <MenuFlyoutItem Text="More" CommandParameter="{Binding .}" Clicked="On_Job_More"/>
                                 <MenuFlyoutSeparator/>
                                 <MenuFlyoutItem Text="Unbook" CommandParameter="{Binding .}" Clicked="On_Job_Unbook"/>

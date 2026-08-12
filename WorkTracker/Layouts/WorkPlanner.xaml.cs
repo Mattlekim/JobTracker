@@ -287,15 +287,17 @@ public partial class WorkPlanner : ContentPage
             return null;
         return j;
     }
-    private void On_Job_Compleated(object sender, EventArgs e)
+    private async void On_Job_Compleated(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
         if (j == null)
             return;
-        MarkJobDone(j,this);
 
-       // RefreshPage();
-        
+        //this slot says Clear once the job has been marked
+        if (j.IsMarked)
+            await ClearJob(j, this);
+        else
+            MarkJobDone(j, this);
     }
 
     private ObservableCollection<Job> _sourceJobs = new ObservableCollection<Job>();
@@ -418,6 +420,45 @@ public partial class WorkPlanner : ContentPage
 
         j.Refresh();
         j.RefreshColors();
+    }
+
+    /// <summary>
+    /// Puts a job back to not done and not paid.
+    ///
+    /// The payment only comes off for cash taken at the door. Money that came
+    /// in through the bank was read off a statement, so taking it back here
+    /// would leave the books disagreeing with the bank - that has to be
+    /// sorted out on the payments page instead.
+    /// </summary>
+    public static async Task ClearJob(Job j, Page page)
+    {
+        if (j == null)
+            return;
+
+        if (j.IsPaidFor && !j.CanClearPayment)
+        {
+            Payment p = j.JobPayment;
+            await page.DisplayAlert("Paid By Bank",
+                $"This job was paid by {p.PaymentMethod}, not cash, so clearing it here would take money off the books that really did come in.\n\n" +
+                "Remove the payment from the payments page if it is wrong, and the job can be cleared afterwards.", "Ok");
+            return;
+        }
+
+        if (j.IsPaidFor)
+            j.UnMarkJobPaid();
+
+        if (j.IsCompleted && !j.UnMarkJobDone())
+            await page.DisplayAlert("Cannot Clear",
+                "This job cannot be put back to not done, because the next one after it has been done since.", "Ok");
+        else
+            j.UseAlterativePrice = -1;
+
+        j.Refresh();
+        j.RefreshColors();
+
+        Job.Save();
+        Payment.Save();
+        Customer.Save();
     }
 
     public static async Task MarkJobPaid(Job j, Page page)
@@ -627,23 +668,14 @@ public partial class WorkPlanner : ContentPage
         if (j == null)
             j = GetJobForSwipe(sv.RightItems[0]);
 
+        //a job already marked has nothing to gain from Done or Done & Paid
+        //again - what is wanted then is to clear it, or open it up
         SwipeItem si = sv.LeftItems[0] as SwipeItem;
-        if (j.IsCompleted)
-        {
-            
-            si.Text = "Not Done";
-        }
-        else
-            si.Text = "Done";
-
+        si.Text = j.DoneActionText;
 
         si = sv.LeftItems[1] as SwipeItem;
-        if (j.IsPaidFor)
-        {
-            si.Text = "Rest";
-        }
-        else
-            si.Text = "Done & Paid";
+        si.Text = "Done & Paid";
+        si.IsVisible = j.ShowPaidAction;
 
         si = sv.RightItems[1] as SwipeItem;
         if (j.HaveCanceled)
@@ -921,7 +953,16 @@ public partial class WorkPlanner : ContentPage
 
     private void On_Job_More(object sender, EventArgs e)
     {
-        _currentJob = GetJobForSwipe(sender);
+        ShowJobStatus(GetJobForSwipe(sender), this, RefreshPage);
+    }
+
+    /// <summary>
+    /// the old inline more panel. no longer opened from the list - More goes
+    /// to the job's own window now - and due to come out once that has been
+    /// used in anger
+    /// </summary>
+    private void ShowMorePanel()
+    {
         if (_currentJob == null)
             return;
         g_more.IsVisible = true;
@@ -2008,6 +2049,20 @@ public partial class WorkPlanner : ContentPage
     {
         ViewCustomerDetails.CurrentJob = j;
         page.Navigation.PushAsync(new ViewCustomerDetails());
+    }
+
+    /// <summary>
+    /// the job's own window: done, paid, how much of what is owed the money
+    /// covers, and which price this visit is charged at
+    /// </summary>
+    public static void ShowJobStatus(Job j, Page page, Action onSaved = null)
+    {
+        if (j == null)
+            return;
+
+        JobStatus.JobToShow = j;
+        JobStatus.OnSaved = onSaved;
+        page.Navigation.PushAsync(new JobStatus());
     }
 
     private void bnt_info_Clicked(object sender, EventArgs e)

@@ -928,23 +928,14 @@ public partial class CalenderView : ContentPage
         if (j == null)
             j = GetJobForSwipe(sv.RightItems[0]);
 
+        //a job already marked has nothing to gain from Done or Done & Paid
+        //again - what is wanted then is to clear it, or open it up
         SwipeItem si = sv.LeftItems[0] as SwipeItem;
-        if (j.IsCompleted)
-        {
-
-            si.Text = "Not Done";
-        }
-        else
-            si.Text = "Done";
-
+        si.Text = j.DoneActionText;
 
         si = sv.LeftItems[1] as SwipeItem;
-        if (j.IsPaidFor)
-        {
-            si.Text = "Rest";
-        }
-        else
-            si.Text = "Done & Paid";
+        si.Text = "Done & Paid";
+        si.IsVisible = j.ShowPaidAction;
 
         si = sv.RightItems[1] as SwipeItem;
         if (j.HaveCanceled)
@@ -964,10 +955,18 @@ public partial class CalenderView : ContentPage
 
     }
 
-    private void On_Job_Compleated(object sender, EventArgs e)
+    private async void On_Job_Compleated(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
-        WorkPlanner.MarkJobDone(j,this);
+        if (j == null)
+            return;
+
+        //this slot says Clear once the job has been marked
+        if (j.IsMarked)
+            await WorkPlanner.ClearJob(j, this);
+        else
+            WorkPlanner.MarkJobDone(j, this);
+
         RefreshPageDate();
     }
 
@@ -1113,10 +1112,7 @@ public partial class CalenderView : ContentPage
 
     private void On_Job_More(object sender, EventArgs e)
     {
-        Job j = GetJobForSwipe(sender);
-        if (j == null)
-            return;
-        WorkPlanner.ShowJobInfo(j, this);
+        WorkPlanner.ShowJobStatus(GetJobForSwipe(sender), this, RefreshPageDate);
     }
 
     private void On_Job_Skipped(object sender, EventArgs e)

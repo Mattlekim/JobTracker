@@ -265,8 +265,12 @@ public partial class BookedWork : ContentPage
 
         _optionsShownAt = DateTime.Now;
 
-        string result = await DisplayActionSheet(j.JobFormattedStreet, "Close", null,
-            "Done", "Done & Paid", "More", "Skip", "Cancel Job", "Unbook", "Edit Details");
+        //a job already marked wants clearing or opening up, not marking again
+        string[] options = j.IsMarked
+            ? new[] { "Clear", "More", "Skip", "Cancel Job", "Unbook", "Edit Details" }
+            : new[] { "Done", "Done & Paid", "More", "Skip", "Cancel Job", "Unbook", "Edit Details" };
+
+        string result = await DisplayActionSheet(j.JobFormattedStreet, "Close", null, options);
 
         //the finger comes off the row while the sheet is up, so the guard has
         //to still be running when it closes
@@ -281,13 +285,17 @@ public partial class BookedWork : ContentPage
                 WorkPlanner.MarkJobDone(j, this);
                 Reload();
                 break;
+            case "Clear":
+                await WorkPlanner.ClearJob(j, this);
+                Reload();
+                break;
             case "Done & Paid":
                 //marking it paid writes it up as done as well
                 await WorkPlanner.MarkJobPaid(j, this);
                 Reload();
                 break;
             case "More":
-                WorkPlanner.ShowJobInfo(j, this);
+                WorkPlanner.ShowJobStatus(j, this, Reload);
                 break;
             case "Skip":
                 WorkPlanner.MarkJobSkipped(j);
@@ -310,12 +318,18 @@ public partial class BookedWork : ContentPage
     private static Job JobFrom(object sender)
         => (sender as MenuItem)?.CommandParameter as Job;
 
-    private void On_Job_Compleated(object sender, EventArgs e)
+    private async void On_Job_Compleated(object sender, EventArgs e)
     {
         Job j = JobFrom(sender);
         if (j == null)
             return;
-        WorkPlanner.MarkJobDone(j, this);
+
+        //this slot says Clear once the job has been marked
+        if (j.IsMarked)
+            await WorkPlanner.ClearJob(j, this);
+        else
+            WorkPlanner.MarkJobDone(j, this);
+
         Reload();
     }
 
@@ -377,10 +391,7 @@ public partial class BookedWork : ContentPage
 
     private void On_Job_More(object sender, EventArgs e)
     {
-        Job j = JobFrom(sender);
-        if (j == null)
-            return;
-        WorkPlanner.ShowJobInfo(j, this);
+        WorkPlanner.ShowJobStatus(JobFrom(sender), this, Reload);
     }
 
     private void On_Job_Details(object sender, EventArgs e)

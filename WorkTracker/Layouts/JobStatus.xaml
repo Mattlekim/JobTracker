@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.JobStatus"
+             Title="Job">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="Label">
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="Auto"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="12" Spacing="12">
+
+                <!--  WHICH JOB  -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label x:Name="l_address" FontAttributes="Bold" FontSize="16"></Label>
+                        <Label x:Name="l_jobType" Style="{StaticResource Caption}"></Label>
+                        <Label x:Name="l_owed" FontAttributes="Bold"></Label>
+                        <Label x:Name="l_pending" TextColor="#EF6C00" FontSize="12" IsVisible="false"></Label>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!--  PRICE  -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Price for this visit" Style="{StaticResource SectionTitle}" />
+
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Picker Grid.Column="0" x:Name="p_priceToUse" SelectedIndexChanged="p_priceToUse_Changed"></Picker>
+                            <Button Grid.Column="1" x:Name="bnt_addPrice" Text="Add" Clicked="bnt_addPrice_Clicked"
+                                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5" CornerRadius="8" Padding="12,4" FontSize="13"></Button>
+                            <Button Grid.Column="2" x:Name="bnt_removePrice" Text="Remove" Clicked="bnt_removePrice_Clicked"
+                                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="#E53935" TextColor="#E53935" CornerRadius="8" Padding="12,4" FontSize="13" IsVisible="false"></Button>
+                        </Grid>
+
+                        <!-- adding another price this job can be charged at -->
+                        <VerticalStackLayout x:Name="vsl_newPrice" IsVisible="false" Spacing="6">
+                            <Entry x:Name="e_priceName" Placeholder="What it is for (e.g. Conservatory)"></Entry>
+                            <Entry x:Name="e_priceAmount" Placeholder="Price" Keyboard="Numeric"></Entry>
+                            <HorizontalStackLayout Spacing="8">
+                                <Button Text="Save Price" Clicked="bnt_savePrice_Clicked" BackgroundColor="#2E7D32" TextColor="White" CornerRadius="8" Padding="14,6" FontSize="13"></Button>
+                                <Button Text="Cancel" Clicked="bnt_cancelPrice_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#6B7280" TextColor="#6B7280" CornerRadius="8" Padding="14,6" FontSize="13"></Button>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!--  DONE  -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <HorizontalStackLayout Spacing="8">
+                            <CheckBox x:Name="cb_done" CheckedChanged="cb_done_Changed" VerticalOptions="Center"></CheckBox>
+                            <Label Text="Done" Style="{StaticResource SectionTitle}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+
+                        <HorizontalStackLayout x:Name="hsl_doneDate" Spacing="8">
+                            <Label Text="on" VerticalOptions="Center" Style="{StaticResource Caption}" />
+                            <DatePicker x:Name="dp_done"></DatePicker>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!--  PAID  -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="10">
+                        <HorizontalStackLayout Spacing="8">
+                            <CheckBox x:Name="cb_paid" CheckedChanged="cb_paid_Changed" VerticalOptions="Center"></CheckBox>
+                            <Label Text="Paid" Style="{StaticResource SectionTitle}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+
+                        <VerticalStackLayout x:Name="vsl_paid" Spacing="10" IsVisible="false">
+
+                            <Label Text="How much" Style="{StaticResource Caption}" />
+
+                            <HorizontalStackLayout Spacing="8">
+                                <RadioButton x:Name="rb_thisJob" GroupName="amount" CheckedChanged="AmountMode_Changed" VerticalOptions="Center"></RadioButton>
+                                <Label x:Name="l_thisJob" VerticalOptions="Center"></Label>
+                            </HorizontalStackLayout>
+
+                            <HorizontalStackLayout Spacing="8">
+                                <RadioButton x:Name="rb_everything" GroupName="amount" CheckedChanged="AmountMode_Changed" VerticalOptions="Center"></RadioButton>
+                                <Label x:Name="l_everything" VerticalOptions="Center"></Label>
+                            </HorizontalStackLayout>
+                            <Label x:Name="l_everythingNote" Style="{StaticResource Caption}" Margin="34,-6,0,0" IsVisible="false"></Label>
+
+                            <HorizontalStackLayout Spacing="8">
+                                <RadioButton x:Name="rb_custom" GroupName="amount" CheckedChanged="AmountMode_Changed" VerticalOptions="Center"></RadioButton>
+                                <Label Text="Some of it" VerticalOptions="Center"></Label>
+                                <Label x:Name="l_currency" VerticalOptions="Center" FontAttributes="Bold"></Label>
+                                <Entry x:Name="e_amount" Keyboard="Numeric" WidthRequest="110" TextChanged="e_amount_Changed"></Entry>
+                            </HorizontalStackLayout>
+
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Paid by" Style="{StaticResource Caption}" />
+                                <Picker x:Name="p_paymentType"></Picker>
+                            </VerticalStackLayout>
+
+                            <Label x:Name="l_paidLocked" Style="{StaticResource Caption}" TextColor="#EF6C00" IsVisible="false"></Label>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid Grid.Row="1" Padding="12" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Text="Cancel" Clicked="bnt_cancel_Clicked"
+                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="#6B7280" TextColor="#6B7280" CornerRadius="8" Padding="16,8"></Button>
+            <Button Grid.Column="1" Text="Save" Clicked="bnt_save_Clicked"
+                    BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="16,8"></Button>
+        </Grid>
+    </Grid>
+
+</ContentPage>
