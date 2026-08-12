@@ -1449,14 +1449,29 @@ public partial class PaperView : ContentPage
 	private bool _fullRefresh = false;
 	private void bnt_newJob_Clicked(object sender, EventArgs e)
 	{
+		NewJobForm(false);
+    }
+
+	/// <summary>
+	/// New Quote used to be wired to the new job handler, so anything put in
+	/// through it went straight on to the round as work and never reached the
+	/// quote list - which is why the quotes section had nothing in it
+	/// </summary>
+	private void bnt_newQuote_Clicked(object sender, EventArgs e)
+	{
+		NewJobForm(true);
+	}
+
+	private void NewJobForm(bool asQuote)
+	{
 		NewJob.AddNewJob = true;
+		NewJob.AddAsQuote = asQuote;
 		NewJob.JobToAdd = null;
 		NewJob nj = new NewJob();
 		nj.OnJobAdded+=	(Job j) => {
 			_fullRefresh = true;
 		};
         Navigation.PushAsync(nj);
-
     }
 
 	private async void grid_street_Tapped(object sender, EventArgs e)

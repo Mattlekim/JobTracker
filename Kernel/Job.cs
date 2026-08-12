@@ -165,9 +165,10 @@ namespace Kernel
         /// <returns>returns all jobs</returns>
         public static List<Job> QueryQuotes()
         {
-            _tmpJobs.Clear();
-            _tmpJobs.AddRange(_Quotes);
-            return _tmpJobs;
+            //a list of its own rather than the buffer Query hands out. the
+            //work list asks for the round and then the quotes, and sharing
+            //one buffer left the round holding the quotes instead
+            return new List<Job>(_Quotes);
         }
 
         /// <summary>

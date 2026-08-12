@@ -9,7 +9,7 @@
         <ToolbarItem Text="Search" Clicked="tbi_Search_Clicked"></ToolbarItem>
         <ToolbarItem Text="Option" Clicked="tbi_ShowOptions_Clicked" Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="New Job" Clicked="bnt_newJob_Clicked" Order="Secondary"></ToolbarItem>
-        <ToolbarItem Text="New Quote"  Clicked="bnt_newJob_Clicked" Order="Secondary"></ToolbarItem>
+        <ToolbarItem Text="New Quote"  Clicked="bnt_newQuote_Clicked" Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="__________"  Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="View"  Clicked="bnt_View_Clicked" Order="Secondary"></ToolbarItem>
         

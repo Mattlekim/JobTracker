@@ -7,12 +7,26 @@ public partial class NewJob : ContentPage
 
     public static bool AddNewJob = false;
 
+    /// <summary>
+    /// set before the page is pushed to make this a quote rather than a job.
+    /// a quote is priced work that has not been taken on yet, so it is kept
+    /// in its own list and never goes on the round.
+    ///
+    /// it is read once, in the constructor, and put back to false: a static
+    /// left set would turn the next ordinary job into a quote as well.
+    /// </summary>
+    public static bool AddAsQuote = false;
+
+    private readonly bool _asQuote;
+
     public Action<Job> OnJobAdded;
 
     public Action<Job> OnJobUpdated;
 	public NewJob()
 	{
-        
+        _asQuote = AddAsQuote;
+        AddAsQuote = false;
+
         InitializeComponent();
 
        
@@ -154,9 +168,9 @@ public partial class NewJob : ContentPage
                 cb_alternativePrice.IsChecked = false;
                 l_ballence.Text = "Starting Balance";
 
-                _bnt_Add.Text = "Create Customer";
+                _bnt_Add.Text = _asQuote ? "Create Quote" : "Create Customer";
 
-                cp_title.Title = "Add New Job";
+                cp_title.Title = _asQuote ? "Add New Quote" : "Add New Job";
 
                 t_d_area.IsVisible = false;
                 t_d_area.IsEnabled = false;
@@ -524,7 +538,11 @@ public partial class NewJob : ContentPage
 
         if (AddNewJob)
         {
-            Job.Add(JobToAdd);
+            //a quote is not work: it goes in the quote list, not on the round
+            if (_asQuote)
+                Job.AddQuote(JobToAdd);
+            else
+                Job.Add(JobToAdd);
 
             if (OnJobAdded != null)
                 OnJobAdded(JobToAdd);
@@ -537,7 +555,8 @@ public partial class NewJob : ContentPage
 
         if (AddNewJob)
         {
-            if (await DisplayAlert("Job Created", "Would you like to add another job", "Yes", "No"))
+            if (await DisplayAlert(_asQuote ? "Quote Created" : "Job Created",
+                    _asQuote ? "Would you like to add another quote" : "Would you like to add another job", "Yes", "No"))
             {
                 t_customerEmail.Text = String.Empty;
                 t_customerName.Text = String.Empty;
