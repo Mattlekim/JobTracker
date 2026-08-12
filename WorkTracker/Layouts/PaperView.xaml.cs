@@ -1007,11 +1007,18 @@ public partial class PaperView : ContentPage
 				.GroupBy(x => x.Address == null ? string.Empty : x.Address.Street ?? string.Empty)
 				.OrderBy(x => x.Key))
 			{
+				//the address is carried on the heading so a house can be
+				//added to this street from here, the same as further down
+				Job first = street.FirstOrDefault();
+
 				PaperItems.Insert(insertAt++, new PaperItem()
 				{
 					ShowJobInformation = false,
 					IsBookedRow = true,
 					Title = string.IsNullOrWhiteSpace(street.Key) ? "- - - - -" : street.Key,
+					PropertyStreet = first == null || first.Address == null ? string.Empty : first.Address.Street,
+					PropertyCity = first == null || first.Address == null ? string.Empty : first.Address.City,
+					PropertyArea = first == null || first.Address == null ? string.Empty : first.Address.Area,
 					FontAttri = FontAttributes.Italic,
 					TitlePadding = new Thickness(14, 4, 4, 2),
 				});
@@ -1460,11 +1467,6 @@ public partial class PaperView : ContentPage
 		if (pi.Title == " ")
 			return;
 
-		//the headings over the booked work are a summary of the round, not a
-		//street to add houses to
-		if (pi.IsBookedRow)
-			return;
-
 		List<string> options = new List<string>();
 		options.Add("Quick Add");
 		options.Add("Add Range");
@@ -1472,34 +1474,46 @@ public partial class PaperView : ContentPage
         options.Add("Quick Quote");
 
 		int count = 0;
-		foreach(PaperItem paperi in PaperItems)
-			if (paperi.GroupId == pi.GroupId)
-			{
-				if (paperi.JobI3 != null)
-					if (!paperi.JobI3.IsCompleted)
-						count++;
-			}
+		List<Job> streetJobs = new List<Job>();
+		List<Job> runJobs = new List<Job>();
 
-		//what could be booked in for a day from here: the whole street, or
-		//just the run of houses under this heading
-		List<Job> streetJobs = BookableJobs(pi, !pi.IsDateBreak);
-		List<Job> runJobs = pi.IsDateBreak ? streetJobs : BookableJobs(pi, false);
+		//The headings over the booked work are a copy of the round further
+		//down the list, so booking that work again or marking it off from up
+		//here would be acting on the copy rather than the round. Adding a
+		//house to the street still makes sense though, and that is what this
+		//heading is most useful for - so those are offered and the rest are
+		//left to the street's own heading below.
+		if (!pi.IsBookedRow)
+		{
+			foreach(PaperItem paperi in PaperItems)
+				if (paperi.GroupId == pi.GroupId)
+				{
+					if (paperi.JobI3 != null)
+						if (!paperi.JobI3.IsCompleted)
+							count++;
+				}
 
-		if (streetJobs.Count > 0 || count > 1)
-			options.Add("-----------");
+			//what could be booked in for a day from here: the whole street, or
+			//just the run of houses under this heading
+			streetJobs = BookableJobs(pi, !pi.IsDateBreak);
+			runJobs = pi.IsDateBreak ? streetJobs : BookableJobs(pi, false);
 
-		if (streetJobs.Count > 0)
-			options.Add(pi.IsDateBreak
-				? $"Book In {runJobs.Count} From Here"
-				: $"Book In {streetJobs.Count} On This Street");
+			if (streetJobs.Count > 0 || count > 1)
+				options.Add("-----------");
 
-		//only worth offering when the street is split by a break, otherwise
-		//it would be the same jobs twice
-		if (!pi.IsDateBreak && runJobs.Count > 0 && runJobs.Count != streetJobs.Count)
-			options.Add($"Book In {runJobs.Count} To The First Break");
+			if (streetJobs.Count > 0)
+				options.Add(pi.IsDateBreak
+					? $"Book In {runJobs.Count} From Here"
+					: $"Book In {streetJobs.Count} On This Street");
 
-		if (count > 1)
-			options.Add($"Mark {count} below as compleated");
+			//only worth offering when the street is split by a break, otherwise
+			//it would be the same jobs twice
+			if (!pi.IsDateBreak && runJobs.Count > 0 && runJobs.Count != streetJobs.Count)
+				options.Add($"Book In {runJobs.Count} To The First Break");
+
+			if (count > 1)
+				options.Add($"Mark {count} below as compleated");
+		}
         string result = await DisplayActionSheet($"{pi.Title}", "Cancel", null, options.ToArray());
         if (result == null)
             return;
