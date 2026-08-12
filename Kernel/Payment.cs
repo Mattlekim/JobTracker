@@ -29,27 +29,46 @@ namespace Kernel
         /// </summary>
         private static List<Payment> _Payments = new List<Payment>();
 
+        /// <summary>
+        /// this exact payment has already been recorded. re-importing the same
+        /// statement - or the next one, which overlaps it - has to find it
+        /// again rather than take the money twice
+        /// </summary>
+        public static bool AlreadyRecorded(string paymentRef, float amount, DateTime date)
+        {
+            return _Payments.Exists(x => x.CustomerReference == paymentRef
+                && x.Amount == amount
+                && x.Date == date);
+        }
+
+        /// <summary>the customer a statement reference belongs to, or null</summary>
+        public static Customer CustomerForReference(string paymentRef)
+        {
+            if (paymentRef == null)
+                return null;
+
+            foreach (Customer c in Customer.Query())
+                foreach (string s in c.PaymentRefrences)
+                    if (s == paymentRef)
+                        return c;
+
+            return null;
+        }
+
         public static Payment AddToCustomer(string paymentRef, float amount, DateTime date, PaymentMethod paymentType, out bool found)
         {
-            Payment p = new Payment();
+            Customer c = CustomerForReference(paymentRef);
+            if (c == null)
+            {
+                found = false;
+                return null;
+            }
 
-            List<Customer> customers = Customer.Query();
-            foreach (Customer c in customers)
-                foreach (string s in c.PaymentRefrences)
-                {
-                    if (s == paymentRef)
-                    {
-                        List<Payment> payments = _Payments.FindAll(x => x.CustomerReference == paymentRef && x.Amount == amount && x.Date == date);
+            found = true;
+            if (AlreadyRecorded(paymentRef, amount, date))
+                return null;
 
-                        found = true;
-                        if (payments == null || payments.Count == 0)
-                            return Add(c.Id, amount, paymentType, paymentRef, date);
-                        return null;
-                    }
-                }
-
-            found = false;
-            return null;
+            return Add(c.Id, amount, paymentType, paymentRef, date);
         }
         public static Payment Add(Payment payment, bool DeductBallence)
         {

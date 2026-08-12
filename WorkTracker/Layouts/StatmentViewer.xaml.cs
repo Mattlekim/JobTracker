@@ -80,7 +80,6 @@ public partial class StatmentViewer : ContentPage
     private bool _selectingCollums = false;
     private int _currentThingToSelect = 0;
 
-    private List<int> _paymentsToProcess = new List<int>();
     public static void Reset()
     {
         Date = -1;
@@ -158,247 +157,280 @@ public partial class StatmentViewer : ContentPage
 
     private Grid _grid;
 
-    
+    /// <summary>one payment coming in off the statement, and what is known about it</summary>
+    private class IncomingLine
+    {
+        /// <summary>which row of the file it came off, for the import run</summary>
+        public int Row;
+
+        public DateTime Date;
+        public string DateText = string.Empty;
+
+        /// <summary>the reference exactly as the bank printed it</summary>
+        public string Reference = string.Empty;
+
+        public float Amount;
+
+        /// <summary>the customer whose reference this is, when it is recognised</summary>
+        public Customer Customer;
+
+        /// <summary>this payment has been brought in already, on this statement or an earlier one</summary>
+        public bool AlreadyImported;
+
+        public bool Ignored;
+    }
+
+    private List<IncomingLine> _lines = new List<IncomingLine>();
 
     private void BuildGrid()
     {
-        _paymentsToProcess.Clear();
+        if (_selectingCollums)
+        {
+            //picking the columns needs the file as the bank wrote it
+            vsl_payments.Clear();
+            _lines.Clear();
+            ShowListChrome(false);
+            BuildColumnPicker();
+            return;
+        }
 
+        ClearColumnPicker();
+        ShowListChrome(true);
+        ReadStatement();
+        BuildList();
+    }
+
+    /// <summary>the summary and buttons belong to the list, not the column picker</summary>
+    private void ShowListChrome(bool showing)
+    {
+        l_overview.IsVisible = showing;
+        l_explain.IsVisible = showing;
+        bnt_import.IsVisible = showing;
+    }
+
+    private void ClearColumnPicker()
+    {
         if (_grid != null)
             hsl_header.Remove(_grid);
+        _grid = null;
+    }
 
-        if (_selectingCollums)
-            _grid = new Grid() { WidthRequest = 1200, HeightRequest = CsvFile.data.Length * 40};
-        else
-            _grid = new Grid() { };
+    /// <summary>the whole file with a tick box over every column, to point at the ones that matter</summary>
+    private void BuildColumnPicker()
+    {
+        ClearColumnPicker();
 
-        int rows = CsvFile.data.Length;
-
-       
+        _grid = new Grid() { WidthRequest = 1200, HeightRequest = CsvFile.data.Length * 40 };
         _grid.RowDefinitions.Add(new RowDefinition());
         _grid.RowDefinitions.Add(new RowDefinition());
 
-
-        if (_selectingCollums)
+        for (int i = 0; i < CsvFile.Header.Length; i++)
         {
-            for (int i = 0; i < CsvFile.Header.Length; i++)
-            {
-                CheckBox cb = new CheckBox() { HorizontalOptions = LayoutOptions.Center, ClassId = i.ToString() };
-                cb.CheckedChanged += Cb_CheckedChanged;
-                _grid.Add(cb, i, 0);
-            }
+            CheckBox cb = new CheckBox() { HorizontalOptions = LayoutOptions.Center, ClassId = i.ToString() };
+            cb.CheckedChanged += Cb_CheckedChanged;
+            _grid.Add(cb, i, 0);
         }
-        else
-        {
-     //    _grid.Add(new Label() { Text = "Date", BackgroundColor = Colors.Orange }, Date, 0);
-      //    _grid.Add(new Label() { Text = "Reference", BackgroundColor = Colors.Orange }, Ref, 0);
-        //  _grid.Add(new Label() { Text = "Credit", BackgroundColor = Colors.Orange }, Amount, 0);
-
-
-        //  _grid.Add(new Label() { Text = "Debit", BackgroundColor = Colors.Orange }, Debit, 0);
-       
-        }
-
-        if (_selectingCollums)
-            foreach (string s in CsvFile.Header)
-            {
-                _grid.ColumnDefinitions.Add(new ColumnDefinition());
-            }
-        else
-        {
-
-            _grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(0.5,GridUnitType.Star)});
-            _grid.ColumnDefinitions.Add(new ColumnDefinition());
-            _grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(0.5, GridUnitType.Star)});
-            _grid.ColumnDefinitions.Add(new ColumnDefinition());
-       
-        }
-
-
-        int[] translator = new int[3];
-        translator[0] = DateColumn;
-        translator[1] = RefColumn;
-        translator[2] = AmountColumn;
 
         int c = 0;
-        if (_selectingCollums)
-            foreach (string s in CsvFile.Header)
-            {
-
-                _grid.Add(new Label() { Text = s }, c, 1);
-                c++;
-            }
-        else
+        foreach (string s in CsvFile.Header)
         {
-            for (int i = 0; i <3; i++)
-            {
-                if (DateColumn == translator[i])
-                    _grid.Add(new Label() { Text = "Date" }, i, 1);
-
-                if (RefColumn == translator[i])
-                    _grid.Add(new Label() { Text = "Reference" }, i, 1);
-
-                if (AmountColumn == translator[i])
-                    _grid.Add(new Label() { Text = "Amount" }, i, 1);
-            }
+            _grid.ColumnDefinitions.Add(new ColumnDefinition());
+            _grid.Add(new Label() { Text = s }, c, 1);
+            c++;
         }
 
-        bool add = false;
-        int width = 0;
-
-        int row = 0;
-        bool linked = false;
-        bool ingnore = false;
-        if (!_selectingCollums)
-
-            for (int y = 0; y < CsvFile.data.Length; y++)
-            {
-                add = false;
-                linked = false;
-                ingnore = false;
-
-                //a short row is a blank line or a page footer, not a payment
-                if (CsvFile.data[y].Length <= Math.Max(DateColumn, Math.Max(RefColumn, AmountColumn)))
-                    continue;
-
-                decimal paid;
-                if (!TryParseAmount(CsvFile.data[y][AmountColumn], out paid))
-                    continue;
-
-                if (AmountIncludesDebits)
-                    if (paid <= 0)
-                        continue;
-
-
-                ingnore = Payment.IsIgnored(CsvFile.data[y][RefColumn]);
-
-                if (!ingnore)
-                    foreach (Customer cust in Customer.Query())
-                    {
-                        foreach (string s in cust.PaymentRefrences)
-                            if (s == CsvFile.data[y][RefColumn])
-                            {
-                                linked = true;
-                                break;
-                            }
-                        if (linked)
-                            break;
-                    }
-
-              
-
-                _grid.RowDefinitions.Add(new RowDefinition());
-                for (int x = 0; x < 4; x++)
-                {
-                    if (x < 3)
-                        if (linked)
-                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]], TextColor = Colors.Green }, x, row + 2);
-                        else
-                            if (ingnore)
-                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]], TextColor = Colors.Grey }, x, row + 2);
-                        else
-                            _grid.Add(new Label() { Text = CsvFile.data[y][translator[x]] }, x, row + 2);
-                }
-                //if (add)
-                if (ingnore)
-                {
-                    //ignoring is easy to do by accident, and it sticks for
-                    //every statement from now on - so there has to be a way
-                    //straight back out of it
-                    HorizontalStackLayout ignored = new HorizontalStackLayout() { Spacing = 6 };
-                    ignored.Add(new Label()
-                    {
-                        Text = "Ignored",
-                        TextColor = Colors.Grey,
-                        VerticalOptions = LayoutOptions.Center,
-                    });
-
-                    Button undo = new Button()
-                    {
-                        Text = "Undo",
-                        VerticalOptions = LayoutOptions.Center,
-                        Padding = 4,
-                        ClassId = CsvFile.data[y][RefColumn],
-                    };
-                    undo.Clicked += bnt_unignore;
-                    ignored.Add(undo);
-
-                    _grid.Add(ignored, 3, row + 2);
-                }
-                else
-                if (linked)
-                {
-                    _grid.Add(new Label() { Text = "Already Linked"}, 3, row + 2);
-                    _paymentsToProcess.Add(y);
-                }
-                else
-                {
-                    _paymentsToProcess.Add(y);
-                    Button b = new Button()
-                    {
-                        Text = "Link",
-                        HorizontalOptions = LayoutOptions.Start,
-                        VerticalOptions = LayoutOptions.Center,
-                        Padding = 4,
-                        ClassId = CsvFile.data[y][RefColumn],
-
-                    };
-                    b.Clicked += B_Clicked;
-                    _grid.Add(b, 3, row + 2);
-
-
-                    b = new Button()
-                    {
-                        Text = "Ignore",
-                        HorizontalOptions = LayoutOptions.Center,
-                        VerticalOptions = LayoutOptions.Center,
-                        Padding = 4,
-                        ClassId = CsvFile.data[y][RefColumn],
-
-                    };
-                    b.Clicked += bnt_ignore;
-                    _grid.Add(b, 3, row + 2);
-                }
-                row++;
-            }
-        else
-            for (int y = 0; y < CsvFile.data.Length; y++)
-            {
-                _grid.RowDefinitions.Add(new RowDefinition());
-                for (int x = 0; x < CsvFile.data[y].Length && x < CsvFile.Header.Length; x++)
-                {
-                    _grid.Add(new Label() { Text = CsvFile.data[y][x] }, x, y + 2);
-                }
-            }
+        for (int y = 0; y < CsvFile.data.Length; y++)
+        {
+            _grid.RowDefinitions.Add(new RowDefinition());
+            for (int x = 0; x < CsvFile.data[y].Length && x < CsvFile.Header.Length; x++)
+                _grid.Add(new Label() { Text = CsvFile.data[y][x] }, x, y + 2);
+        }
 
         hsl_header.Add(_grid);
     }
 
-    private void bnt_ignore(object sender, EventArgs e)
+    /// <summary>pulls the money coming in out of the statement, in the order the bank printed it</summary>
+    private void ReadStatement()
     {
-        Button b = sender as Button;
+        _lines.Clear();
 
-        Payment.IgnorePaymentList.Add(b.ClassId);
-        BuildGrid();
-        Payment.Save();
+        if (CsvFile == null || CsvFile.data == null || !ColumnsAreValid())
+            return;
+
+        for (int y = 0; y < CsvFile.data.Length; y++)
+        {
+            string[] row = CsvFile.data[y];
+            if (row == null)
+                continue;
+
+            //a short row is a blank line or a page footer, not a payment
+            if (row.Length <= Math.Max(DateColumn, Math.Max(RefColumn, AmountColumn)))
+                continue;
+
+            decimal paid;
+            if (!TryParseAmount(row[AmountColumn], out paid))
+                continue;
+
+            //one signed column carries both, so money out is a negative here
+            if (AmountIncludesDebits && paid <= 0)
+                continue;
+
+            IncomingLine line = new IncomingLine()
+            {
+                Row = y,
+                DateText = row[DateColumn] ?? string.Empty,
+                Reference = row[RefColumn] == null ? string.Empty : row[RefColumn].Trim(),
+                Amount = (float)paid,
+            };
+
+            if (!StatementText.TryParseDate(line.DateText, out line.Date))
+                line.Date = UsfulFuctions.StringToDateTime(line.DateText);
+
+            line.Ignored = Payment.IsIgnored(row[RefColumn]);
+            if (!line.Ignored)
+            {
+                line.Customer = Payment.CustomerForReference(row[RefColumn]);
+                line.AlreadyImported = Payment.AlreadyRecorded(row[RefColumn], line.Amount, line.Date);
+            }
+
+            _lines.Add(line);
+        }
     }
 
-    /// <summary>puts back a reference that was ignored by mistake</summary>
-    private void bnt_unignore(object sender, EventArgs e)
+    private void BuildList()
     {
-        Button b = sender as Button;
+        vsl_payments.Clear();
 
-        Payment.StopIgnoring(b.ClassId);
-        BuildGrid();
-        Payment.Save();
+        int matched = 0, unknown = 0, ignored = 0, already = 0;
+        float total = 0;
+
+        foreach (IncomingLine line in _lines)
+        {
+            if (line.Ignored)
+                ignored++;
+            else if (line.AlreadyImported)
+                already++;
+            else if (line.Customer != null)
+            {
+                matched++;
+                total += line.Amount;
+            }
+            else
+                unknown++;
+
+            vsl_payments.Add(BuildRow(line));
+        }
+
+        l_nothing.IsVisible = _lines.Count == 0;
+
+        l_overview.Text = _lines.Count == 0
+            ? "Nothing coming in on this statement"
+            : $"{_lines.Count} payments in. {matched} ready to import ({Gloable.CurrenceSymbol}{total:0.00}), " +
+              $"{already} already in, {unknown} not recognised, {ignored} ignored.";
     }
 
-    private void B_Clicked(object sender, EventArgs e)
+    private View BuildRow(IncomingLine line)
     {
-        Button b = sender as Button;
+        VerticalStackLayout content = new VerticalStackLayout() { Spacing = 2 };
 
-        LinkCustomerLayout.Reference = b.ClassId;
+        content.Add(new Label()
+        {
+            Text = $"{line.DateText}   {Gloable.CurrenceSymbol}{line.Amount:0.00}",
+            FontAttributes = FontAttributes.Bold,
+        });
+
+        content.Add(new Label() { Text = line.Reference, FontSize = 13 });
+
+        if (line.Ignored)
+            content.Add(new Label() { Text = "Ignored - left out of every statement", FontSize = 12, TextColor = Colors.Grey });
+        else if (line.AlreadyImported)
+            content.Add(new Label()
+            {
+                Text = $"Already in - {CustomerName(line)}",
+                FontSize = 12,
+                TextColor = Colors.Grey,
+            });
+        else if (line.Customer != null)
+            content.Add(new Label()
+            {
+                Text = $"Goes to {CustomerName(line)}",
+                FontSize = 12,
+                TextColor = Colors.Green,
+            });
+        else
+            content.Add(new Label()
+            {
+                Text = "Not recognised - link it to whoever sent it",
+                FontSize = 12,
+                TextColor = Color.FromArgb("#EF6C00"),
+            });
+
+        content.Add(BuildButtons(line));
+
+        Border border = new Border() { Content = content };
+        border.Style = (Style)Resources["Card"];
+        return border;
+    }
+
+    private static string CustomerName(IncomingLine line)
+    {
+        if (line.Customer == null)
+            return "a customer";
+        return $"{line.Customer.FName} {line.Customer.FormattedAddress}".Trim();
+    }
+
+    private View BuildButtons(IncomingLine line)
+    {
+        HorizontalStackLayout buttons = new HorizontalStackLayout() { Spacing = 8, Margin = new Thickness(0, 6, 0, 0) };
+
+        if (line.Ignored)
+        {
+            //ignoring is easy to do by accident, and it sticks for every
+            //statement from now on - so there has to be a way straight back
+            buttons.Add(RowButton("Stop Ignoring", "#EF6C00", (s, e) => StopIgnoring(line)));
+            return buttons;
+        }
+
+        if (line.Customer == null)
+            buttons.Add(RowButton("Link", "#1E88E5", (s, e) => LinkToCustomer(line)));
+
+        if (!line.AlreadyImported)
+            buttons.Add(RowButton("Ignore", "#6B7280", (s, e) => Ignore(line)));
+
+        return buttons;
+    }
+
+    private Button RowButton(string text, string colour, EventHandler clicked)
+    {
+        Button button = new Button()
+        {
+            Text = text,
+            TextColor = Color.FromArgb(colour),
+            BorderColor = Color.FromArgb(colour),
+        };
+        button.Style = (Style)Resources["RowButton"];
+        button.Clicked += clicked;
+        return button;
+    }
+
+    private void LinkToCustomer(IncomingLine line)
+    {
+        LinkCustomerLayout.Reference = line.Reference;
         Navigation.PushAsync(new LinkCustomerLayout());
+    }
+
+    private void Ignore(IncomingLine line)
+    {
+        Payment.IgnorePaymentList.Add(line.Reference);
+        Payment.Save();
+        BuildGrid();
+    }
+
+    private void StopIgnoring(IncomingLine line)
+    {
+        Payment.StopIgnoring(line.Reference);
+        Payment.Save();
+        BuildGrid();
     }
 
     private async void UpdateFields()
@@ -721,58 +753,53 @@ public partial class StatmentViewer : ContentPage
     private List<Payment> payments = new List<Payment>();
     private void bnt_importPayments(object sender, EventArgs e)
     {
-        DateTime dt;
         payments.Clear();
-        Payment pay = null;
-        bool customerFound = false;
-        List<string> failed = new List<string>();
-        int unmatch = 0;
+        List<string> already = new List<string>();
+        int unmatched = 0;
 
         try
         {
-            decimal amount;
-            foreach (int i in _paymentsToProcess)
+            //the same lines the list was built from, so what comes in is
+            //exactly what it said would come in
+            foreach (IncomingLine line in _lines)
             {
-                if (!TryParseAmount(CsvFile.data[i][AmountColumn], out amount))
+                if (line.Ignored)
                     continue;
 
-                dt = UsfulFuctions.StringToDateTime(CsvFile.data[i][DateColumn]);
-                pay = Payment.AddToCustomer(CsvFile.data[i][RefColumn], (float)amount, dt, PaymentMethod.Bank, out customerFound);
+                bool customerFound;
+                Payment pay = Payment.AddToCustomer(line.Reference, line.Amount, line.Date, PaymentMethod.Bank, out customerFound);
+
                 if (pay != null)
                     payments.Add(pay);
+                else if (customerFound)
+                    already.Add($"{line.DateText} {line.Reference} {Gloable.CurrenceSymbol}{line.Amount:0.00}");
                 else
-                    if (customerFound)
-                    failed.Add($"{CsvFile.data[i][DateColumn]} {CsvFile.data[i][RefColumn]} {Gloable.CurrenceSymbol}{amount}");
-                else
-                    unmatch++;
-
-
+                    unmatched++;
             }
 
             string msg = string.Empty;
-            string text = string.Empty;
-            Customer c;
             foreach (Payment p in payments)
             {
-                c = p.GetCustomer();
-                msg += $"{c.Address.PropertyNameNumber} {c.Address.Street} {c.Address.Area} has paid\n";
+                Customer c = p.GetCustomer();
+                if (c != null)
+                    msg += $"{c.Address.PropertyNameNumber} {c.Address.Street} {c.Address.Area} has paid\n";
             }
 
-            foreach (string s in failed)
-                msg += $"{s} has already been added\n";
+            foreach (string s in already)
+                msg += $"{s} was already in\n";
 
-            if (unmatch > 0)
-                msg += $"{unmatch} payments not matched to customer";
+            if (unmatched > 0)
+                msg += $"{unmatched} payments not matched to a customer";
 
-            DisplayAlert($"Imported {payments.Count} payments. {failed.Count} not imported", msg, "Ok");
+            DisplayAlert($"Imported {payments.Count} payments. {already.Count} already in", msg, "Ok");
 
-            
+            //the badges change once the payments are in
+            BuildGrid();
         }
         catch
         {
             DisplayAlert("Error", "There was an error with import. Error Code 1001", "Ok");
         }
-        //Payment.AddToCustomer()
     }
 
     private bool Skip = false;

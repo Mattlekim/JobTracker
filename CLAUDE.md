@@ -124,7 +124,12 @@ A statement is read once and then looked at from two sides:
 
 `StatmentViewer` still owns the column setup (which column is the date, the reference, the amount, and now the
 money out column) and remembers csv and pdf layouts apart. `ImportExport/StatementFile` picks and reads the file
-for both pages.
+for both pages. Both list their side as cards saying what will happen to each line before anything is imported —
+keep the two looking and reading the same when either is changed.
+
+The money in side reads the statement into `IncomingLine` once and both the list and the import run off that, so
+what the list promises is exactly what the import does. `Payment.AlreadyRecorded` is the single definition of
+"this one is already in", used by the badge and by `Payment.AddToCustomer`.
 
 Nothing is ever imported twice. Every outgoing gets an id built from the date, the normalised payee and the
 amount (`Expense.StatementReference`), stored on `Expense.ExternalReference`, so re-importing the same statement —

@@ -1,30 +1,57 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.StatmentViewer"
-             Title="StatmentViewer">
+             Title="Money In">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 10" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="10" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+        <Style x:Key="RowButton" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="BorderWidth" Value="2" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,4" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+    </ContentPage.Resources>
+
     <ScrollView VerticalScrollBarVisibility="Always" Orientation="Both">
-        <VerticalStackLayout>
-        <Label x:Name="l_nextField" Text="Make sure that the higlighted fields are in the correct posstions" HorizontalOptions="Start" BackgroundColor="#EF6C00" IsVisible="false" FontSize="Title"></Label>
-        <HorizontalStackLayout Spacing="8">
+        <VerticalStackLayout Padding="12" Spacing="10">
 
+            <Label x:Name="l_nextField" Text="Make sure that the higlighted fields are in the correct posstions" HorizontalOptions="Start" BackgroundColor="#EF6C00" IsVisible="false" FontSize="Title"></Label>
 
-        <Button Text="Import Payments" Clicked="bnt_importPayments"></Button>
+            <HorizontalStackLayout Spacing="8">
+                <Button x:Name="bnt_import" Text="Import Payments" Clicked="bnt_importPayments" BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="16,6"></Button>
 
-        <!-- the other half of the statement: what went out, to be flagged as expenses -->
-        <Button x:Name="bnt_moneyOut" Text="Money Out / Expenses" Clicked="bnt_moneyOut_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#EF6C00" TextColor="#EF6C00" IsVisible="false"></Button>
+                <!-- the other half of the statement: what went out, to be flagged as expenses -->
+                <Button x:Name="bnt_moneyOut" Text="Money Out / Expenses" Clicked="bnt_moneyOut_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#EF6C00" TextColor="#EF6C00" CornerRadius="8" Padding="16,6" IsVisible="false"></Button>
 
-        <Button x:Name="bnt_noMoneyOut" Text="No Money Out Column" Clicked="bnt_noMoneyOut_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#EF6C00" TextColor="#EF6C00" IsVisible="false"></Button>
+                <Button x:Name="bnt_noMoneyOut" Text="No Money Out Column" Clicked="bnt_noMoneyOut_Clicked" BackgroundColor="Transparent" BorderWidth="2" BorderColor="#EF6C00" TextColor="#EF6C00" CornerRadius="8" Padding="16,6" IsVisible="false"></Button>
+            </HorizontalStackLayout>
 
-        </HorizontalStackLayout>
+            <Label x:Name="l_noMoneyOut" Text="The money out column of this statement has not been set yet. Press 'Money Out / Expenses' to point at it." TextColor="Grey" IsVisible="false"></Label>
 
-        <Label x:Name="l_noMoneyOut" Text="The money out column of this statement has not been set yet. Press 'Money Out / Expenses' to point at it." TextColor="Grey" IsVisible="false"></Label>
-        <Line HorizontalOptions="StartAndExpand"></Line>
-       
-        <AbsoluteLayout x:Name="hsl_header"></AbsoluteLayout>
+            <Label x:Name="l_overview" FontAttributes="Bold"></Label>
+            <Label x:Name="l_explain" Style="{StaticResource Caption}"
+                   Text="Everything that came into the account is listed here. Anything already matched to a customer goes in on Import Payments; the rest can be linked to whoever sent it, or ignored so it stays out of the way on every statement from now on."></Label>
+
+            <Label x:Name="l_nothing" IsVisible="false" HorizontalTextAlignment="Center" Padding="0,20"
+                   Text="No money coming in was found on this statement."></Label>
+
+            <VerticalStackLayout x:Name="vsl_payments" Spacing="8"></VerticalStackLayout>
+
+            <!-- the raw file, shown only while the columns are being pointed at -->
+            <AbsoluteLayout x:Name="hsl_header"></AbsoluteLayout>
         </VerticalStackLayout>
     </ScrollView>
-    
-
 
 </ContentPage>
