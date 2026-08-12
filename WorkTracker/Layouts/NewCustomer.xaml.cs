@@ -1,4 +1,5 @@
 namespace UiInterface.Layouts;
+using System.Globalization;
 using Kernel;
 public partial class NewCustomer : ContentPage
 {
@@ -42,7 +43,7 @@ public partial class NewCustomer : ContentPage
             _bnt_Delete.IsVisible = false;
             _bnt_Delete.IsEnabled = false;
             _bnt_Add.Text = "Add";
-            t_preferedPayment.SelectedItem = 0;
+            t_preferedPayment.SelectedIndex = 0;
             t_balance.Text = "0.00";
             return;
         }
@@ -108,66 +109,136 @@ public partial class NewCustomer : ContentPage
             t_email.Text = picked.Email;
     }
 
-    private void bnt_Add(object sender, EventArgs e)
+    /// <summary>
+    /// Reads the balance box.
+    ///
+    /// This used to be Convert.ToDouble, which throws on an empty box or on a
+    /// figure written the way another country writes it - and the throw came
+    /// out in the middle of the save, after the customer had been changed in
+    /// memory but before any of it was written down. The balance moved on
+    /// screen and never reached the disk, which is exactly what "it does not
+    /// save" looks like.
+    /// </summary>
+    private static bool TryReadBalance(string text, out float balance)
     {
-        if (AddNewCustomer)
-        {
-            Customer customer = new Customer(t_houseNumberName.Text, t_street.Text, t_city.Text);
-            customer.Address.Area = t_area.Text;
-            customer.Address.Postcode = t_postcode.Text;
-            customer.Address.Street = t_street.Text;
-            customer.Address.City = t_city.Text;
-            customer.Address.PropertyNameNumber = t_houseNumberName.Text;
-            
-            customer.DateAdded = t_date.Date;
-            customer.Balance = (float)Convert.ToDouble(t_balance.Text);
-            customer.Email = t_email.Text;
-            customer.DateBalanceLastUpdate = DateTime.Now;
-            customer.FName = t_fName.Text;
-            customer.NormalPaymentMethord = (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)t_preferedPayment.SelectedItem);
-            customer.Phone = t_phone.Text;
-            Customer.Add(customer);
-            
-        }
-        else
-        {
-            //the live record, not whatever reference this page was handed
-            Customer customer = Live();
-            if (customer == null)
-                return;
+        balance = 0;
 
-            customer.Address.Area = t_area.Text;
-            customer.Address.Postcode = t_postcode.Text;
-            customer.Address.Street = t_street.Text;
-            customer.Address.City = t_city.Text;
-            customer.Address.PropertyNameNumber = t_houseNumberName.Text;
+        //an empty box means nothing owed rather than a mistake
+        if (string.IsNullOrWhiteSpace(text))
+            return true;
 
-            customer.DateAdded = t_date.Date;
-            customer.Balance = (float)Convert.ToDouble(t_balance.Text);
-            customer.Email = t_email.Text;
-            customer.DateBalanceLastUpdate = DateTime.Now;
-            customer.FName = t_fName.Text;
-            customer.NormalPaymentMethord = (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)t_preferedPayment.SelectedItem);
-            customer.Phone = t_phone.Text;
+        text = text.Trim();
 
-            //the balance shows against every job this customer has, and those
-            //rows are only redrawn when the job says something changed
-            foreach (Job j in Job.Query(QueryType.CustomerId, customer.Id))
-            {
-                j.Refresh();
-                j.RefreshColors();
-            }
-        }
-
-        Customer.Save();
-        DataRefreshNotifier.NotifyDataChanged();
-        Navigation.PopAsync();
-
+        return float.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out balance)
+            || float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out balance);
     }
 
-    private void bnt_Delete(object sender, EventArgs e)
+    /// <summary>
+    /// the payment method picked, or the one the customer already had when
+    /// nothing is picked. parsing whatever the picker happens to be holding
+    /// threw when it was holding nothing, which took the save down with it
+    /// </summary>
+    private PaymentMethod PickedPaymentMethod(PaymentMethod current)
     {
-        Customer.Delete(CurrentCustomer.Id);
-        Navigation.PopAsync();
+        string picked = t_preferedPayment.SelectedItem as string;
+        if (string.IsNullOrEmpty(picked))
+            return current;
+
+        PaymentMethod method;
+        return Enum.TryParse(picked, out method) ? method : current;
+    }
+
+    private async void bnt_Add(object sender, EventArgs e)
+    {
+        float balance;
+        if (!TryReadBalance(t_balance.Text, out balance))
+        {
+            await DisplayAlert("Balance",
+                $"'{t_balance.Text}' is not an amount. Put in a figure like 6 or 6.50.", "Ok");
+            return;
+        }
+
+        try
+        {
+            if (AddNewCustomer)
+            {
+                Customer customer = new Customer(t_houseNumberName.Text, t_street.Text, t_city.Text);
+                customer.Address.Area = t_area.Text;
+                customer.Address.Postcode = t_postcode.Text;
+                customer.Address.Street = t_street.Text;
+                customer.Address.City = t_city.Text;
+                customer.Address.PropertyNameNumber = t_houseNumberName.Text;
+
+                customer.DateAdded = t_date.Date;
+                customer.Balance = balance;
+                customer.Email = t_email.Text;
+                customer.DateBalanceLastUpdate = DateTime.Now;
+                customer.FName = t_fName.Text;
+                customer.NormalPaymentMethord = PickedPaymentMethod(PaymentMethod.Cash);
+                customer.Phone = t_phone.Text;
+                Customer.Add(customer);
+            }
+            else
+            {
+                //the live record, not whatever reference this page was handed
+                Customer customer = Live();
+                if (customer == null)
+                    return;
+
+                customer.Address.Area = t_area.Text;
+                customer.Address.Postcode = t_postcode.Text;
+                customer.Address.Street = t_street.Text;
+                customer.Address.City = t_city.Text;
+                customer.Address.PropertyNameNumber = t_houseNumberName.Text;
+
+                customer.DateAdded = t_date.Date;
+                customer.Balance = balance;
+                customer.Email = t_email.Text;
+                customer.DateBalanceLastUpdate = DateTime.Now;
+                customer.FName = t_fName.Text;
+                customer.NormalPaymentMethord = PickedPaymentMethod(customer.NormalPaymentMethord);
+                customer.Phone = t_phone.Text;
+
+                //the balance shows against every job this customer has, and
+                //those rows are only redrawn when the job says something changed
+                foreach (Job j in Job.Query(QueryType.CustomerId, customer.Id))
+                {
+                    j.Refresh();
+                    j.RefreshColors();
+                }
+            }
+
+            Customer.Save();
+            DataRefreshNotifier.NotifyDataChanged();
+        }
+        catch (Exception ex)
+        {
+            //stay on the page: whatever was typed is still here to be put right
+            await DisplayAlert("Not Saved", $"The customer could not be saved: {ex.Message}", "Ok");
+            return;
+        }
+
+        await Navigation.PopAsync();
+    }
+
+    private async void bnt_Delete(object sender, EventArgs e)
+    {
+        Customer customer = Live();
+        if (customer == null)
+            return;
+
+        if (!await DisplayAlert("Delete Customer?",
+            $"{customer.FName} {customer.SName} at {customer.Address.PropertyNameNumber} {customer.Address.Street} will be removed. This cannot be undone.",
+            "Delete", "Cancel"))
+            return;
+
+        Customer.Delete(customer.Id);
+
+        //deleting never wrote the change down, so the customer came back the
+        //next time the app started
+        Customer.Save();
+        DataRefreshNotifier.NotifyDataChanged();
+
+        await Navigation.PopAsync();
     }
 }
