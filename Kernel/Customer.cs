@@ -104,6 +104,20 @@ namespace Kernel
             _Customers.Clear();
         }
 
+        /// <summary>just the numbers, so 07700 900123 and 07700900123 are the same number</summary>
+        private static string DigitsOf(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            StringBuilder digits = new StringBuilder();
+            foreach (char c in text)
+                if (char.IsDigit(c))
+                    digits.Append(c);
+
+            return digits.ToString();
+        }
+
         private static void Filter(FilterItem filter)
         {
             string property = filter.Property.ToLower();
@@ -131,6 +145,19 @@ namespace Kernel
                         _tmpQuery.RemoveAll(x => x.FName.ToLower() != value);
                     else
                         _tmpQuery.RemoveAll(x => !x.FName.ToLower().Contains(value));
+                    break;
+
+                case "phone":
+                    //a number is written down every way there is - with spaces,
+                    //with the code in brackets - so only the digits are matched
+                    Console.Write($"Where property: {property} = {value}   ");
+                    string wanted = DigitsOf(value);
+                    if (wanted.Length == 0)
+                    {
+                        _tmpQuery.Clear();
+                        break;
+                    }
+                    _tmpQuery.RemoveAll(x => !DigitsOf(x.Phone).Contains(wanted));
                     break;
             }
         }
@@ -166,12 +193,49 @@ namespace Kernel
 
         public string FormattedAddress { get { return Address.ToString(); } }
 
+        /// <summary>
+        /// name, phone and email run together. this is for telling two
+        /// customers apart in a picker, where there is one line to do it in -
+        /// it is not a name, so do not show it as one
+        /// </summary>
         public string FormattedOverview
         {
             get
             {
                 return $"{FName} {SName} {Phone} {Email}";
             }
+        }
+
+        /// <summary>
+        /// what the customer is called. falls back to the address, because a
+        /// row with nothing on it is no use for picking the right customer
+        /// </summary>
+        public string FormattedName
+        {
+            get
+            {
+                string name = $"{FName} {SName}".Trim();
+                return name.Length > 0 ? name : FormattedAddress;
+            }
+        }
+
+        /// <summary>the phone number and email, for the line under the address</summary>
+        public string FormattedContact
+        {
+            get
+            {
+                List<string> parts = new List<string>();
+                if (!string.IsNullOrWhiteSpace(Phone))
+                    parts.Add(Phone);
+                if (!string.IsNullOrWhiteSpace(Email))
+                    parts.Add(Email);
+                return string.Join("   ", parts);
+            }
+        }
+
+        public bool HaveContact
+        {
+            get { return FormattedContact.Length > 0; }
         }
         /// <summary>
         /// contant number

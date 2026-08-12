@@ -82,6 +82,9 @@ public partial class Customers : ContentPage
         filter = new Filter("street", t_searchString.Text, cb_absolute.IsChecked);
         cust.AddRange(Customer.Query(filter));
 
+        filter = new Filter("phone", t_searchString.Text, cb_absolute.IsChecked);
+        cust.AddRange(Customer.Query(filter));
+
         List<Customer> outList = new List<Customer>();
 
         foreach(Customer c in cust)

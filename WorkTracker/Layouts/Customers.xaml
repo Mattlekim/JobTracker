@@ -18,7 +18,15 @@
             >
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <TextCell Text ="{Binding FormattedOverview}" Detail="{Binding FormattedAddress}"/>
+                    <ViewCell>
+                        <VerticalStackLayout Padding="12,8" Spacing="1">
+                            <Label Text="{Binding FormattedName}" FontAttributes="Bold"/>
+                            <Label Text="{Binding FormattedAddress}" FontSize="13"/>
+                            <!-- the phone number belongs on its own line, not
+                                 run on to the end of the name -->
+                            <Label Text="{Binding FormattedContact}" FontSize="12" TextColor="Grey" IsVisible="{Binding HaveContact}"/>
+                        </VerticalStackLayout>
+                    </ViewCell>
                     
                 </DataTemplate>
             </ListView.ItemTemplate>
