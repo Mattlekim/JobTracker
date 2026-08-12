@@ -380,32 +380,41 @@ public partial class WorkPlanner : ContentPage
 
 
         int jobsDue = 0;
-        float moneyOwed = 0;
         float amountDue = 0;
-        float amountCleaned = 0;
         int bookedInJobs = 0;
         DateTime today = UsfulFuctions.DateNow;
+
+        //what is due is about the work on the list, so it is counted off it
         foreach (Job j in _sourceJobs)
         {
             bookedInJobs++;
-            if (j.IsCompleted)
-            {
-                if (j.DateCompleated.Year == today.Year && j.DateCompleated.Month == today.Month && j.DateCompleated.Day == today.Day)
-                    amountCleaned += j.EffectivePrice;
-            }
-            else
-            if (!j.HaveCanceled)
-                if (!j.IsCompleted)
-                    if ((UsfulFuctions.DateNow - j.DueDate).Days >= 0 || ViewBooking)
-                    {
-                        jobsDue++;
-                        amountDue += j.Price;
-                    }
 
-            if (j.GetCustomer() != null)
-                if (j.GetCustomer().Balance > 0)
-                    moneyOwed += j.GetCustomer().Balance;
+            if (j.IsCompleted || j.HaveCanceled)
+                continue;
+
+            if ((UsfulFuctions.DateNow - j.DueDate).Days >= 0 || ViewBooking)
+            {
+                jobsDue++;
+                amountDue += j.Price;
+            }
         }
+
+        //Cleaned today is a figure for the day, not for whatever the list
+        //happens to be showing. Counting it off the rows on screen missed
+        //everything done from a booking: booked work is taken out of this
+        //list, and marking a job done does not unbook it.
+        float amountCleaned = 0;
+        foreach (Job j in Job.Query())
+            if (j.IsCompleted && !j.HaveCanceled && j.DateCompleated.Date == today.Date)
+                amountCleaned += j.EffectivePrice;
+
+        //and what is owed is owed by a customer, not by a job - adding it up
+        //job by job charged the same customer once for every job of theirs on
+        //the list, and left out the ones whose work is booked in
+        float moneyOwed = 0;
+        foreach (Customer c in Customer.Query())
+            if (c.Balance > 0)
+                moneyOwed += c.Balance;
 
 
 
