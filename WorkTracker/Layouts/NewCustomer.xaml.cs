@@ -5,11 +5,35 @@ public partial class NewCustomer : ContentPage
     public static bool AddNewCustomer = true;
 
     public static Customer CurrentCustomer;
+
 	public NewCustomer()
 	{
 		InitializeComponent();
         NavigatedTo += NewCustomer_NavigatedTo;
 	}
+
+    /// <summary>
+    /// The customer as the rest of the app holds it, looked up by id rather
+    /// than trusted from the reference this page was handed.
+    ///
+    /// Loading the customers - a cloud sync pulling a newer copy down, or a
+    /// backup being restored - builds a whole new set of Customer objects.
+    /// Anything still holding one of the old ones is then writing to a record
+    /// nothing else can see: this page would show the balance that was typed
+    /// into it while every other page showed the one that came down, which is
+    /// exactly the shape of "it says 6 here and 0 everywhere else".
+    /// </summary>
+    private static Customer Live()
+    {
+        if (CurrentCustomer == null)
+            return null;
+
+        List<Customer> found = Customer.Query("id", CurrentCustomer.Id.ToString());
+        if (found.Count > 0)
+            CurrentCustomer = found[0];
+
+        return CurrentCustomer;
+    }
 
     private void NewCustomer_NavigatedTo(object sender, NavigatedToEventArgs e)
     {
@@ -30,18 +54,22 @@ public partial class NewCustomer : ContentPage
 
         _bnt_Add.Text = "Save";
 
-        t_fName.Text = CurrentCustomer.FName;
-        t_area.Text = CurrentCustomer.Address.Area;
-        t_balance.Text = CurrentCustomer.Balance.ToString();
-        t_city.Text = CurrentCustomer.Address.City;
-        t_date.Date = CurrentCustomer.DateAdded;
-        t_email.Text = CurrentCustomer.Email;
-        t_phone.Text = CurrentCustomer.Phone;
-        t_postcode.Text = CurrentCustomer.Address.Postcode;
+        Customer customer = Live();
+        if (customer == null)
+            return;
+
+        t_fName.Text = customer.FName;
+        t_area.Text = customer.Address.Area;
+        t_balance.Text = customer.Balance.ToString();
+        t_city.Text = customer.Address.City;
+        t_date.Date = customer.DateAdded;
+        t_email.Text = customer.Email;
+        t_phone.Text = customer.Phone;
+        t_postcode.Text = customer.Address.Postcode;
         int i = 0;
         foreach (string s in t_preferedPayment.Items)
         {
-            if (s == CurrentCustomer.NormalPaymentMethord.ToString())
+            if (s == customer.NormalPaymentMethord.ToString())
             {
                 t_preferedPayment.SelectedIndex = i;
                 break;
@@ -49,8 +77,8 @@ public partial class NewCustomer : ContentPage
             i++;
         }
         //t_preferedPayment.SelectedIndex
-        t_street.Text = CurrentCustomer.Address.Street;
-        t_houseNumberName.Text = CurrentCustomer.Address.PropertyNameNumber;
+        t_street.Text = customer.Address.Street;
+        t_houseNumberName.Text = customer.Address.PropertyNameNumber;
         //now we need to populate the current customer
     }
 
@@ -103,22 +131,36 @@ public partial class NewCustomer : ContentPage
         }
         else
         {
-            CurrentCustomer.Address.Area = t_area.Text;
-            CurrentCustomer.Address.Postcode = t_postcode.Text;
-            CurrentCustomer.Address.Street = t_street.Text;
-            CurrentCustomer.Address.City = t_city.Text;
-            CurrentCustomer.Address.PropertyNameNumber = t_houseNumberName.Text;
+            //the live record, not whatever reference this page was handed
+            Customer customer = Live();
+            if (customer == null)
+                return;
 
-            CurrentCustomer.DateAdded = t_date.Date;
-            CurrentCustomer.Balance = (float)Convert.ToDouble(t_balance.Text);
-            CurrentCustomer.Email = t_email.Text;
-            CurrentCustomer.DateBalanceLastUpdate = DateTime.Now;
-            CurrentCustomer.FName = t_fName.Text;
-            CurrentCustomer.NormalPaymentMethord = (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)t_preferedPayment.SelectedItem);
-            CurrentCustomer.Phone = t_phone.Text;
+            customer.Address.Area = t_area.Text;
+            customer.Address.Postcode = t_postcode.Text;
+            customer.Address.Street = t_street.Text;
+            customer.Address.City = t_city.Text;
+            customer.Address.PropertyNameNumber = t_houseNumberName.Text;
+
+            customer.DateAdded = t_date.Date;
+            customer.Balance = (float)Convert.ToDouble(t_balance.Text);
+            customer.Email = t_email.Text;
+            customer.DateBalanceLastUpdate = DateTime.Now;
+            customer.FName = t_fName.Text;
+            customer.NormalPaymentMethord = (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)t_preferedPayment.SelectedItem);
+            customer.Phone = t_phone.Text;
+
+            //the balance shows against every job this customer has, and those
+            //rows are only redrawn when the job says something changed
+            foreach (Job j in Job.Query(QueryType.CustomerId, customer.Id))
+            {
+                j.Refresh();
+                j.RefreshColors();
+            }
         }
 
         Customer.Save();
+        DataRefreshNotifier.NotifyDataChanged();
         Navigation.PopAsync();
 
     }
