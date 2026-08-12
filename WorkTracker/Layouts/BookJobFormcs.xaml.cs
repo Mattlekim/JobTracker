@@ -3,9 +3,23 @@ using Kernel;
 public partial class BookJobFormcs : ContentPage
 {
     public static List<Job> jobs;
+
+    /// <summary>
+    /// the day the form opens on. work booked in from a day that has already
+    /// been picked - a day tapped on the calendar - should not open on today
+    /// and have the date typed in again. it is used once and goes back to
+    /// today, so a caller with no particular day in mind cannot pick up the
+    /// day somebody else set
+    /// </summary>
+    public static DateTime BookForDate = DateTime.MinValue;
+
     public BookJobFormcs()
     {
         InitializeComponent();
+
+        dp_bookinDate.Date = BookForDate > DateTime.MinValue ? BookForDate.Date : DateTime.Now.Date;
+        BookForDate = DateTime.MinValue;
+
         List<string> strings = new List<string>();
         float value = 0;
         int estimatedTime = 0;

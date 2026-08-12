@@ -143,6 +143,18 @@ The month by month figures come off `DateCompleated`, not `DueDate`: they are wh
 jobs stay in `_Jobs` alongside the next visit they generated, so anything counting the round itself must skip
 `IsCompleted` or it counts the same house twice.
 
+## Booking a day in from the calendar
+
+Tapping a day on `Layouts/CalenderView` picks it; double tapping opens the day's action sheet. Nobody double taps a
+phone, so a day **still to come** that has work not booked in yet also puts a *Book All … In* button under the day
+totals — one tap on the day, one on the button. Today is deliberately left out: today's work is being done, not
+arranged, and a day already gone cannot be booked at all. The button counts only work that is not done, not
+cancelled and not already booked, which is what `JobsToBookIn` returns.
+
+`BookJobFormcs.BookForDate` is how a caller says which day the form should open on — it is used once and resets to
+today, so a caller with no day in mind cannot pick up somebody else's. Without it the form opened on today and the
+date had to be typed in again, which is wrong every time the day is already known.
+
 ## Duplicate customers
 
 `Layouts/TidyCustomers` and `Kernel/CustomerMerge.cs` exist to clear up after a bug rather than to add anything.
