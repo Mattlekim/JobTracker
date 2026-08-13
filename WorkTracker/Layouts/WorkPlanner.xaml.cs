@@ -1,4 +1,4 @@
-namespace UiInterface.Layouts;
+﻿namespace UiInterface.Layouts;
 using System.Diagnostics;
 using Kernel;
 using System.Collections.ObjectModel;
@@ -906,9 +906,25 @@ public partial class WorkPlanner : ContentPage
         RefreshPage();
     }
 
+    /// <summary>
+    /// The job whose tag was tapped. The booking summary rows at the top of
+    /// the list are not real jobs and have nothing worth filtering by, so
+    /// they answer null.
+    ///
+    /// The tags used to ask the last job *selected* whether it was a booking
+    /// row. That is not the row that was tapped - and it is nothing at all
+    /// until something has been selected, so a tag tapped as the first thing
+    /// done on a freshly opened list took the app down with it.
+    /// </summary>
+    private static Job TaggedJob(object sender)
+    {
+        Job j = (sender as Element)?.BindingContext as Job;
+        return j == null || j.CustomerId == -1 ? null : j;
+    }
+
     private void Job_Type_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        if (TaggedJob(sender) == null)
             return;
 
         Label l = sender as Label;
@@ -976,7 +992,7 @@ public partial class WorkPlanner : ContentPage
 
     private void Job_Street_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        if (TaggedJob(sender) == null)
             return;
 
         Label l = sender as Label;
@@ -995,7 +1011,7 @@ public partial class WorkPlanner : ContentPage
 
     private void Job_City_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        if (TaggedJob(sender) == null)
             return;
 
         Label l = sender as Label;
@@ -1014,7 +1030,7 @@ public partial class WorkPlanner : ContentPage
 
     private void Job_Area_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        if (TaggedJob(sender) == null)
             return;
 
         Label l = sender as Label;
@@ -1033,7 +1049,7 @@ public partial class WorkPlanner : ContentPage
 
     private void Job_Price_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        if (TaggedJob(sender) == null)
             return;
 
         Label l = sender as Label;
@@ -1041,13 +1057,22 @@ public partial class WorkPlanner : ContentPage
         FilterString = FilterString.Replace(Gloable.CurrenceSymbol,String.Empty);
         FilterString = FilterString.Replace("Price", String.Empty); ;
         FilterString = FilterString.Replace(" ", String.Empty); ;
-        FilterFloat = Convert.ToInt32(FilterString);
+
+        //a price is money, not a whole number of pounds. this read the tag
+        //back as an int, so tapping the price on anything charged at £8.50
+        //threw and took the app down with it - on nothing worse than a tag
+        //being tapped
+        if (!float.TryParse(FilterString, out FilterFloat))
+            return;
+
         Filter = () =>
         {
             SecondryFilter = SecondryFilterType.JobPrice;
             l_filterBy.Text = $"{SecondryFilter}";
             List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x => x.Price != FilterFloat);
+            //compared as money rather than as an exact float: the figure was
+            //read back off the tag, so a penny either way is the same price
+            jobs.RemoveAll(x => Math.Abs(x.Price - FilterFloat) > 0.005f);
             return jobs;
 
         };
@@ -1056,7 +1081,7 @@ public partial class WorkPlanner : ContentPage
 
     private void Money_Owed_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        if (TaggedJob(sender) == null)
             return;
 
         Label l = sender as Label;
@@ -1941,7 +1966,6 @@ public partial class WorkPlanner : ContentPage
     private DateTime ViewBookingAtDate;
     private bool ViewBooking = false;
 
-    private Job _lastSelectedJob;
     private void lv_Jobs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
 
@@ -1949,7 +1973,6 @@ public partial class WorkPlanner : ContentPage
             return;
 
         Job j = lv_Jobs.SelectedItem as Job;
-        _lastSelectedJob = j;
 
         if (_selectingJobs)
         {
