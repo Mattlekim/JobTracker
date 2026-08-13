@@ -561,18 +561,18 @@ namespace Kernel
         /// blank takes it off whatever round it was on
         /// </summary>
         /// <summary>
-        /// Puts this job on a round - all of it, not just this visit.
+        /// Puts this job on a round - the job, not this one visit of it.
         ///
-        /// A round is where the house is. It is not like a tag, which says
-        /// what one clean was like: putting a house on the Tuesday round and
-        /// finding the next clean at the same house on no round at all is not
-        /// something anybody would mean by it.
+        /// A round is a thing about the job itself, like how long it takes:
+        /// it is where the house is, and the house does not move between one
+        /// clean and the next. It is not like a tag, which says what one
+        /// visit was like and belongs to that visit alone.
         ///
-        /// That is why it goes on every visit of the job rather than the one
-        /// in front of you. The visit picked out of a list is as likely as
-        /// not one already done - the next one was copied off it before the
-        /// round was set, so it carries whatever the round was then, which is
-        /// nothing.
+        /// So it goes on every visit of the job. Setting it on the one in
+        /// front of you was no use at all: that visit is as likely as not
+        /// already done, and the next one was copied off it before the round
+        /// was set, so the house showed up on no round from its next clean
+        /// onwards.
         /// </summary>
         public void SetRound(string round)
         {
@@ -593,37 +593,27 @@ namespace Kernel
         }
 
         /// <summary>
-        /// every visit of this job, the first to the last.
+        /// Every visit of this job - the same work at the same house, done
+        /// over and over.
         ///
-        /// Follows PreviousJobId back to where the job started and then
-        /// JobNextId forward through the lot. A visited guard on both, because
-        /// an id pointing at itself would otherwise go round for ever.
+        /// They are found by <see cref="BaseJobId"/>, which is what says they
+        /// are all the same job: it is the id of the first of them and every
+        /// visit copied off it carries it. That is a better handle than
+        /// following PreviousJobId and JobNextId along the chain, because a
+        /// chain with one link missing splits the job in two while the base
+        /// id still holds them together - and it is repaired on load
+        /// (FixBaseIdBug) where an old file never had one.
         /// </summary>
         public List<Job> EveryVisit()
         {
-            HashSet<int> seen = new HashSet<int>();
+            //a quote, or a job not on the list at all: it is its own visit
+            if (BaseJobId <= 0)
+                return new List<Job>() { this };
 
-            Job first = this;
-            seen.Add(first.Id);
+            List<Job> visits = _Jobs.FindAll(x => x.BaseJobId == BaseJobId);
 
-            while (true)
-            {
-                Job previous = _Jobs.Find(x => x.Id == first.PreviousJobId);
-                if (previous == null || !seen.Add(previous.Id))
-                    break;
-
-                first = previous;
-            }
-
-            List<Job> visits = new List<Job>();
-            seen.Clear();
-
-            Job j = first;
-            while (j != null && seen.Add(j.Id))
-            {
-                visits.Add(j);
-                j = _Jobs.Find(x => x.Id == j.JobNextId);
-            }
+            if (visits.Count == 0)
+                visits.Add(this);
 
             return visits;
         }

@@ -192,6 +192,50 @@ namespace Kernel
                 }
 
         }
+        /// <summary>
+        /// A round belongs to the job rather than to one visit of it, so
+        /// every visit of a job carries the same one.
+        ///
+        /// Rounds were set on the visit in front of whoever set them for a
+        /// while, which left a house on a round up to the clean it was set on
+        /// and on no round from the next one - and the next one is the one
+        /// every list and every figure is worked out from. This fills the
+        /// round down the whole job from the last visit that has one, so a
+        /// round already put together does not have to be put together again.
+        ///
+        /// Only what is in memory is changed. The file catches up on the next
+        /// save, like the other tidy ups done on load.
+        /// </summary>
+        private static void FillRoundsDownTheJob()
+        {
+            //the round off the newest visit of each job that has one: ids go
+            //up with every visit, so the highest is the last thing said about
+            //where that house is
+            Dictionary<int, KeyValuePair<int, string>> latest = new Dictionary<int, KeyValuePair<int, string>>();
+
+            foreach (Job j in _Jobs)
+            {
+                if (j.BaseJobId <= 0 || string.IsNullOrWhiteSpace(j.Round))
+                    continue;
+
+                KeyValuePair<int, string> found;
+                if (latest.TryGetValue(j.BaseJobId, out found) && found.Key >= j.Id)
+                    continue;
+
+                latest[j.BaseJobId] = new KeyValuePair<int, string>(j.Id, j.Round);
+            }
+
+            foreach (Job j in _Jobs)
+            {
+                KeyValuePair<int, string> round;
+                if (j.BaseJobId <= 0 || !latest.TryGetValue(j.BaseJobId, out round))
+                    continue;
+
+                if (!string.Equals(j.Round ?? string.Empty, round.Value, StringComparison.CurrentCulture))
+                    j.Round = round.Value;
+            }
+        }
+
         public static void Load(string dir = null)
         {
             if (_Loaded)
@@ -250,6 +294,7 @@ namespace Kernel
                     _IdGenerator = csd.NextJobId;
                 }
                 FixBaseIdBug();
+                FillRoundsDownTheJob();
                 _Loaded = true;
             }
             catch (Exception ex)
