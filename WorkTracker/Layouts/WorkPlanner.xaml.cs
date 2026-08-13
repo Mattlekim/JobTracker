@@ -2365,14 +2365,39 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             string skipped = noNumber > 0 ? $"\n\n{noNumber} skipped with no phone number." : string.Empty;
             if (!await page.DisplayAlert("Send Texts",
                 $"{toText.Count} customers will be texted, one at a time so each gets their own message. " +
-                $"Your messaging app opens for each one so you can check it before sending.{skipped}",
+                $"Send each one, come back here, and the next will be offered.{skipped}",
                 "Start", "Cancel"))
                 return;
         }
 
         int sent = 0;
-        foreach (Job j in toText)
+        for (int i = 0; i < toText.Count; i++)
         {
+            Job j = toText[i];
+
+            //  Sms.ComposeAsync only starts the messaging app - it comes back
+            //  the moment the app is on screen, long before anything has been
+            //  sent. Running the whole list through it in one go therefore
+            //  fired every message off at once, each opening the messaging
+            //  app over the last, and only one of them was ever left in front
+            //  of anybody to send. A round texted the night before went out
+            //  to one house.
+            //
+            //  So the next one is offered rather than launched: this alert
+            //  cannot be answered until the messaging app has been left and
+            //  Work Tracker is back in front, which is exactly the wait that
+            //  was missing - and it is also the way out of a queue of texts
+            //  part way through.
+            if (i > 0)
+            {
+                string where = j.JobFormattedStreet;
+
+                if (!await page.DisplayAlert("Next Text",
+                        $"{sent} of {toText.Count} done.\n\nNext is {where}.",
+                        "Text Them", "Stop"))
+                    break;
+            }
+
             try
             {
                 SmsMessage message = new SmsMessage(
@@ -2400,6 +2425,14 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
         if (sent > 0)
             Job.Save();
+
+        //what was put in front of them and what was not, so a round texted
+        //the night before is not left half done without saying so
+        if (toText.Count > 1)
+            await page.DisplayAlert("Texts",
+                sent == toText.Count
+                    ? $"All {sent} texts have been opened for sending."
+                    : $"{sent} of {toText.Count} texted. The rest have not been.", "Ok");
     }
 
     private DateTime ViewBookingAtDate;

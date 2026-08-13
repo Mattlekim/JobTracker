@@ -151,6 +151,24 @@ name is only filled in when there is nothing there yet: unlike the other two, th
 customer is edited, and going to your contacts to put a number on somebody you already have does not mean asking
 for the name you gave them to be replaced by whatever the contact is filed under.
 
+## Texting and emailing the customers
+
+`WorkPlanner.TextCustomers` sends **one text per customer** rather than a group message: a group message shows
+every customer each other's number and cannot say anything personal, like what they owe.
+
+`Sms.ComposeAsync` only *starts* the messaging app — it comes back as soon as that app is on screen, long before
+anything has been sent. Running a list straight through it therefore fired every message off at once, each
+opening the messaging app over the last, and only the final one was ever left in front of anybody: a round texted
+the night before went to one house. **Never loop over `ComposeAsync` without waiting for the user in between.**
+The wait is an alert offering the next customer, which cannot be answered until the messaging app has been left
+and Work Tracker is back in front — and it doubles as the way out of a queue of texts part way through.
+
+`EmailCustomers` is one message with everybody in **Bcc**, so it opens the mail app once and needs none of this.
+Bcc rather than To for the same reason the texts go one at a time.
+
+`HaveBeenText`/`HaveBeenEmailed` record that the message was *put in front of somebody* — neither app tells us
+whether it was actually sent.
+
 ## Quotes
 
 A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never
