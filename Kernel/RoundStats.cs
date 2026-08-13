@@ -70,6 +70,21 @@ namespace Kernel
         /// <summary>everything on the round, done or not</summary>
         public int HousesOnTheRound;
 
+        /// <summary>
+        /// what every house on it comes to - one time round, not what is left
+        /// to do today. This is the round as a thing you own rather than as a
+        /// day's work: how much it is worth to clean the lot once
+        /// </summary>
+        public float ValueOfTheRound;
+
+        /// <summary>and how long cleaning the lot would take, in minutes</summary>
+        public int MinutesForTheRound;
+
+        public string FormattedTimeForTheRound
+        {
+            get { return FormatMinutes(MinutesForTheRound); }
+        }
+
         /// <summary>what every customer in debt owes, added up</summary>
         public float MoneyOwed;
 
@@ -248,6 +263,10 @@ namespace Kernel
                 //everything from here is work still waiting
                 stats.HousesOnTheRound++;
                 stats.ValuePerMonth += PerMonth(j);
+
+                //the round in full, whether or not it is due today
+                stats.ValueOfTheRound += j.EffectivePrice;
+                stats.MinutesForTheRound += j.Minutes;
 
                 if (j.DueDate.Date > today.Date)
                     continue;

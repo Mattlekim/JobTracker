@@ -251,10 +251,15 @@ The month by month figures come off `DateCompleated`, not `DueDate`: they are wh
 jobs stay in `_Jobs` alongside the next visit they generated, so anything counting the round itself must skip
 `IsCompleted` or it counts the same house twice.
 
-`RoundStats.ByRound` runs the same sums a round at a time, which is the **By round** card on the page: half a day
-left means one thing in one village and another spread over three. Both go through `Build`, so a round's figures
-and the totals above them cannot be worked out differently. The card hides itself when no work is on a round,
-where it would only repeat the cards above it.
+`RoundStats.ByRound` runs the same sums a round at a time, which is the **By round** card on the page. Both go
+through `Build`, so a round's figures and the totals above them cannot be worked out differently. The card hides
+itself when no work is on a round, where it would only repeat the cards above it.
+
+**A round is asked about differently from the work in hand.** The cards above the card are today: what is left,
+what is overdue, what has been done. A round is a patch of the work you either have or you do not, so the card
+says how big it is and nothing else — how many houses (`HousesOnTheRound`), how long they all take
+(`MinutesForTheRound`), what they come to (`ValueOfTheRound`, one time round rather than per month) and what is
+owed on them. None of it moves about as the week is worked, which is the point.
 
 What is owed is the one figure that is not simply split up: a balance belongs to a customer, not to a job. The
 round as a whole counts **every** customer in debt, because somebody who owes money with no work left still owes
