@@ -525,6 +525,11 @@ answer as every other row, and the booking summary rows never show one because t
 
 The way out is the bar across the top of the list, not just the toolbar item: on a phone the toolbar's Cancel is
 as likely as not to be behind the ... menu, which is no use as the way out of a mode you did not mean to be in.
+
+**Select All** is on that bar (as *All*, turning into *None* once everything is picked) and on the toolbar in
+words. It picks the list **as it stands, filter and all** — booking a whole street in is tapping the street's tag
+and then this — and it goes through the same `ToggleSelected` a tap does, so nothing can disagree about what is
+picked. The booking summary rows are left out of it, because they are not work.
 Holding a row starts picking jobs out with that row already picked, the same hold as `BookedWork`.
 The finger coming up off a hold arrives as a tap too, which is what `HoldJustHappened` is there to swallow.
 The row's tap and the list's `SelectionChanged` both land in `RowTapped`, which ignores the second of two
@@ -538,11 +543,15 @@ hovering, not for a finger. The hold did nothing on any page for as long as it w
 of a longer timer, a bigger move tolerance or an extra `TapGestureRecognizer` on the row was ever going to change
 that.
 
-`Controles/LongPressBehavior.cs` is what makes it happen: on Android it makes the row's platform view
-`LongClickable` and lets Android decide when a press has been held long enough, which is also where the buzz on
-the wrist comes from. It marks the long click handled so the press does not go on to count as a tap as well.
-Everywhere else it does nothing and the pointer recognisers still do the timing, which is what they are still on
-the rows for.
+`Controles/LongPressBehavior.cs` makes the row's platform view `LongClickable` on Android and lets Android decide
+when a press has been held long enough. **That is not enough on its own, because the rows are `SwipeView`s.** The
+swipe takes the finger the moment it moves at all — which a finger held on a phone always does — and the pending
+long press is cancelled with it, so nothing on the row ever hears about the hold. That is why holding a row did
+nothing however it was hooked up.
+
+So the swipe is read rather than fought: `swip_started` records when it began, and a swipe that ran as long as a
+hold and **opened nothing** was not a swipe, it was somebody holding the row (`HoldWasReallyASwipe` on the work
+list, `swip_ended` on the booked work page). Anything that opens the swipe actions is a swipe and is left alone.
 
 The behaviour finds the page by walking up `Parent` from the row and looking for `IHoldRows` rather than being
 bound to a command: a row lives in a `DataTemplate`, so it has no way of naming its page, and a behaviour is not

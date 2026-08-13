@@ -544,6 +544,44 @@ public partial class BookedWork : ContentPage, IHoldRows
         ShowHoldOptions(item as Job);
     }
 
+    /// <summary>when the swipe on a row began, and what it was on</summary>
+    private DateTime _swipeStartedAt = DateTime.MinValue;
+    private Job _swipeJob;
+
+    private void swip_started(object sender, SwipeStartedEventArgs e)
+    {
+        SwipeView sv = sender as SwipeView;
+
+        _swipeStartedAt = DateTime.Now;
+        _swipeJob = sv == null ? null : sv.BindingContext as Job;
+    }
+
+    /// <summary>
+    /// A press held on a row arrives as a swipe: the rows are SwipeViews, and
+    /// the swipe takes the finger the moment it moves at all, which a finger
+    /// held on a phone always does. The long press android would have raised
+    /// is cancelled with it, so the row never hears about the hold.
+    ///
+    /// A swipe that ran as long as a hold and opened nothing was not a swipe.
+    /// Same as the work list, so a hold means the same thing on both.
+    /// </summary>
+    private void swip_ended(object sender, SwipeEndedEventArgs e)
+    {
+        Job j = _swipeJob;
+        DateTime started = _swipeStartedAt;
+
+        _swipeJob = null;
+        _swipeStartedAt = DateTime.MinValue;
+
+        if (e.IsOpen || j == null || started == DateTime.MinValue)
+            return;
+
+        if ((DateTime.Now - started).TotalMilliseconds < HoldMilliseconds)
+            return;
+
+        ShowHoldOptions(j);
+    }
+
     /// <summary>
     /// everything that can be done to a booked job, the two kept off the
     /// swipe included

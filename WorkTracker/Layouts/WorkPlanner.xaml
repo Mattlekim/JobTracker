@@ -34,17 +34,23 @@
                  way out that is actually on the screen -->
             <Border x:Name="brd_selecting" IsVisible="false" StrokeThickness="0" StrokeShape="RoundRectangle 10"
                     BackgroundColor="#00695C" Margin="8,6,8,0" Padding="12,8">
-                <Grid ColumnSpacing="8">
+                <Grid ColumnSpacing="6">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"></ColumnDefinition>
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                         <ColumnDefinition Width="Auto"></ColumnDefinition>
+                        <ColumnDefinition Width="Auto"></ColumnDefinition>
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0" x:Name="l_selectedCount" TextColor="White" FontAttributes="Bold" VerticalOptions="Center"></Label>
-                    <Button Grid.Column="1" Text="Book In" Clicked="bnt_BookinWork_Clicked" FontSize="12" Padding="14,4" CornerRadius="8"
+                    <!-- picking a whole list one row at a time is what nobody
+                         does. the same button puts them all back -->
+                    <Button Grid.Column="1" x:Name="bnt_selectAll" Text="All" Clicked="bnt_selectAll_Clicked" FontSize="12" Padding="10,4" CornerRadius="8"
+                            BackgroundColor="Transparent" BorderWidth="2" BorderColor="White" TextColor="White" VerticalOptions="Center"
+                            ToolTipProperties.Text="Pick every job on the list, or put them all back"></Button>
+                    <Button Grid.Column="2" Text="Book In" Clicked="bnt_BookinWork_Clicked" FontSize="12" Padding="10,4" CornerRadius="8"
                             BackgroundColor="Transparent" BorderWidth="2" BorderColor="White" TextColor="White" VerticalOptions="Center"
                             ToolTipProperties.Text="Put the jobs you have picked in for a day"></Button>
-                    <Button Grid.Column="2" Text="Cancel" Clicked="Bnt_cancelSelection_Clicked" FontSize="12" Padding="14,4" CornerRadius="8"
+                    <Button Grid.Column="3" Text="Cancel" Clicked="Bnt_cancelSelection_Clicked" FontSize="12" Padding="10,4" CornerRadius="8"
                             BackgroundColor="Transparent" BorderWidth="2" BorderColor="White" TextColor="White" VerticalOptions="Center"
                             ToolTipProperties.Text="Stop picking jobs and put the tick boxes away"></Button>
                 </Grid>
