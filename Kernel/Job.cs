@@ -560,13 +560,72 @@ namespace Kernel
         /// puts this job on a round, and remembers the round for next time.
         /// blank takes it off whatever round it was on
         /// </summary>
+        /// <summary>
+        /// Puts this job on a round - all of it, not just this visit.
+        ///
+        /// A round is where the house is. It is not like a tag, which says
+        /// what one clean was like: putting a house on the Tuesday round and
+        /// finding the next clean at the same house on no round at all is not
+        /// something anybody would mean by it.
+        ///
+        /// That is why it goes on every visit of the job rather than the one
+        /// in front of you. The visit picked out of a list is as likely as
+        /// not one already done - the next one was copied off it before the
+        /// round was set, so it carries whatever the round was then, which is
+        /// nothing.
+        /// </summary>
         public void SetRound(string round)
         {
-            Round = TidyTag(round);
-            RememberRound(Round);
+            round = TidyTag(round);
+            RememberRound(round);
+
+            foreach (Job visit in EveryVisit())
+                visit.PutOnRound(round);
+        }
+
+        /// <summary>the round on this one visit and nothing else</summary>
+        private void PutOnRound(string round)
+        {
+            Round = round;
             RaisePropertyChanged("Round");
             RaisePropertyChanged("HaveRound");
             RaisePropertyChanged("RoundOrNone");
+        }
+
+        /// <summary>
+        /// every visit of this job, the first to the last.
+        ///
+        /// Follows PreviousJobId back to where the job started and then
+        /// JobNextId forward through the lot. A visited guard on both, because
+        /// an id pointing at itself would otherwise go round for ever.
+        /// </summary>
+        public List<Job> EveryVisit()
+        {
+            HashSet<int> seen = new HashSet<int>();
+
+            Job first = this;
+            seen.Add(first.Id);
+
+            while (true)
+            {
+                Job previous = _Jobs.Find(x => x.Id == first.PreviousJobId);
+                if (previous == null || !seen.Add(previous.Id))
+                    break;
+
+                first = previous;
+            }
+
+            List<Job> visits = new List<Job>();
+            seen.Clear();
+
+            Job j = first;
+            while (j != null && seen.Add(j.Id))
+            {
+                visits.Add(j);
+                j = _Jobs.Find(x => x.Id == j.JobNextId);
+            }
+
+            return visits;
         }
 
         private List<string> _tags = new List<string>();

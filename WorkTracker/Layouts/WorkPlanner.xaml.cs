@@ -2198,10 +2198,28 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         CancelSelectingJobs();
         RefreshPage();
 
+        //this list is the work in hand - a fortnight of it - so a house that
+        //is not due for a month is not on it to be picked. Somebody putting
+        //their round together is not going to guess that from a list that
+        //looks complete, and the figures on the stats page are worked out
+        //over everything rather than over this fortnight
+        string rest = string.Empty;
+        if (round.Length > 0)
+        {
+            int without = 0;
+            foreach (Job j in Job.Query())
+                if (!j.IsCompleted && !j.HaveCanceled && !j.HaveRound && j.CustomerId != -1)
+                    without++;
+
+            if (without > 0)
+                rest = $"\n\n{without} job(s) are still not on any round. This list only reaches a fortnight ahead - "
+                    + "open Filters and push the end date out to get at the rest of the work.";
+        }
+
         await DisplayAlert("Round",
             round.Length == 0
                 ? $"{picked.Count} job(s) taken off their round."
-                : $"{picked.Count} job(s) put on {round}.", "Ok");
+                : $"{picked.Count} job(s) put on {round}, and every visit of them.{rest}", "Ok");
     }
 
     private async void bnt_selectJobs_Clicked(object sender, EventArgs e)

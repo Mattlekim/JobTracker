@@ -495,6 +495,16 @@ a round is named by whoever has one, and a made up default would only be in the 
 Unlike a tag it belongs to the job rather than to one visit, so **`Job.DeepCopy` does carry it over** — the next
 clean at a house is on the same round as the last one.
 
+For the same reason **`Job.SetRound` puts it on every visit of the job**, not on the one in front of you
+(`Job.EveryVisit` walks `PreviousJobId` back to the first and `JobNextId` forward through the lot). The visit
+picked out of a list is as likely as not one already done, and the next one was copied off it before the round
+was set — so setting it on that visit alone left the house on no round from its next clean onwards, which is what
+made the stats page keep saying work had no round after a whole list had been put on one.
+
+The other half of that: the work list only reaches a **fortnight** ahead (`ResetDateFilter`), so a house not due
+for a month is not on it to be picked at all. **Put On A Round** says how many are still on no round afterwards,
+and that the dates on the filter panel are how to reach them.
+
 Both work pages put it first: `Layouts/WorkPlanner` sorts by round then by date, and `Layouts/PaperView` groups by
 round *and* street (a street worked on two rounds is two lots of work) with a heading naming each round. Work on
 no round sorts **last** rather than first, so what nobody has organised is not the top of every page. The paper
