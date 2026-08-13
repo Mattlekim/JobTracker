@@ -113,7 +113,30 @@ public partial class PaperView : ContentPage
 			{
 				_jobI3 = value;
 				RaisePropertyChanged("JobI3");
+				RaiseTagsChanged();
 			}
+		}
+
+		/// <summary>
+		/// the tags on the visit this row is writing up - the one whose mark
+		/// is in the record column, which is the visit that is due or, once
+		/// that is done and the next one is not due yet, the one just done.
+		/// they are what was different about that time of doing it
+		/// </summary>
+		public string TagsText
+		{
+			get { return JobI3 == null ? string.Empty : JobI3.TagsText; }
+		}
+
+		public bool HaveTags
+		{
+			get { return ShowJobDetails && JobI3 != null && JobI3.HaveTags; }
+		}
+
+		public void RaiseTagsChanged()
+		{
+			RaisePropertyChanged("TagsText");
+			RaisePropertyChanged("HaveTags");
 		}
 
         public Job JobI4 { get; set; }
@@ -382,6 +405,10 @@ public partial class PaperView : ContentPage
 			TNB = j.TNB;
 			//booking a job in, or clearing it, has to show on the row straight away
 			RaisePropertyChanged("ShowBookedTab");
+
+			//marking work done is what puts the tag bar's tags on it, so the
+			//row has to be asked for them again every time it is written up
+			RaiseTagsChanged();
 
 			//a job whose customer has gone still has to draw rather than bring
 			//the page down with it

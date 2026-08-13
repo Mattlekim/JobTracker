@@ -27,6 +27,22 @@ namespace Kernel
             }
         }
         public Color AltColour { get; set; }
+
+        /// <summary>
+        /// the tags on this visit, as one line. tags belong to the one time
+        /// the job was done, so this is what says which of the visits in the
+        /// history were front only, or had nobody in, or whatever else
+        /// </summary>
+        public string TagsText
+        {
+            get { return TheJob == null ? string.Empty : TheJob.TagsText; }
+        }
+
+        public bool HaveTags
+        {
+            get { return TheJob != null && TheJob.HaveTags; }
+        }
+
         public History(Job theJob)
         {
             TheJob = theJob;

@@ -66,6 +66,85 @@ namespace Kernel
             job.Name = DefaultJobName;
         }
 
+        /// <summary>
+        /// the tags that have been used before, offered when something is
+        /// being tagged so the same thing is not typed three different ways.
+        /// edited on the settings page and saved with the settings, like
+        /// <see cref="JobNames"/>.
+        ///
+        /// this is only the list to pick from. what a visit was actually
+        /// tagged with is on the job itself, so taking a tag off this list
+        /// never changes what happened on a day already worked
+        /// </summary>
+        public static List<string> TagNames = new List<string>()
+        {
+            "Front Only",
+            "Extra Dirty",
+            "No Access",
+            "Gate Locked",
+            "Dog Out",
+            "Customer In",
+
+        };
+
+        /// <summary>
+        /// The tags every job picks up as it is marked done, set on the tag
+        /// bar at the top of the pages work is written up from.
+        ///
+        /// A day is usually all the same: everything front only because of
+        /// the weather, or every house on a street with nobody in. Saying so
+        /// once and having it go on as the work is marked off is the only way
+        /// it will actually get recorded on a round.
+        ///
+        /// Kept with the settings so it survives the app being closed
+        /// mid-round. That is safe because the bar shows what it is set to
+        /// whenever anything is set - it can only be folded away while it is
+        /// empty, so it can never quietly tag a round nobody asked it to.
+        /// </summary>
+        public static List<string> AutoTags = new List<string>();
+
+        public static bool AddAutoTag(string tag)
+        {
+            tag = TidyTag(tag);
+            if (tag.Length == 0
+                || AutoTags.Exists(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)))
+                return false;
+
+            AutoTags.Add(tag);
+            RememberTag(tag);
+            return true;
+        }
+
+        public static bool RemoveAutoTag(string tag)
+        {
+            tag = TidyTag(tag);
+            return AutoTags.RemoveAll(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)) > 0;
+        }
+
+        /// <summary>
+        /// tags are compared and stored trimmed, because a tag typed with a
+        /// space on the end is the same tag
+        /// </summary>
+        private static string TidyTag(string tag)
+        {
+            return tag == null ? string.Empty : tag.Trim();
+        }
+
+        /// <summary>
+        /// puts a tag on the list to pick from next time. matched without
+        /// case, so typing "front only" does not add a second entry alongside
+        /// "Front Only"
+        /// </summary>
+        public static bool RememberTag(string tag)
+        {
+            tag = TidyTag(tag);
+            if (tag.Length == 0 || TagNames.Exists(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)))
+                return false;
+
+            TagNames.Add(tag);
+            return true;
+        }
+
         public GridLength Gr { get; set; } = new GridLength(0.3, GridUnitType.Star);
 
         /// <summary>
@@ -394,6 +473,83 @@ namespace Kernel
         /// any notes for this instance of job
         /// </summary>
         public string JobInstanceNotes = string.Empty;
+
+        private List<string> _tags = new List<string>();
+
+        /// <summary>
+        /// What was different about this visit - front only, no access, the
+        /// customer was in. It belongs to this time of doing the job and
+        /// nothing else: a completed visit keeps its tags for good, and the
+        /// next visit it generates starts with none, which is what makes the
+        /// customer's history say which times a tag was on.
+        ///
+        /// <see cref="DeepCopy"/> is deliberately not copying them for that
+        /// reason - see the note there before changing it.
+        /// </summary>
+        public List<string> Tags
+        {
+            //never handed out as null: everything from the lists to the save
+            //file walks it, and a job read from a file written before tags
+            //existed has nothing in the element for it
+            get { return _tags ?? (_tags = new List<string>()); }
+            set { _tags = value ?? new List<string>(); }
+        }
+
+        /// <summary>is this visit tagged with this, whatever case it was typed in</summary>
+        public bool HasTag(string tag)
+        {
+            tag = TidyTag(tag);
+            return tag.Length > 0
+                && Tags.Exists(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase));
+        }
+
+        /// <summary>
+        /// tag this visit. the tag is remembered for next time as well, so a
+        /// tag only ever has to be typed once
+        /// </summary>
+        /// <returns>true when it was not already on</returns>
+        public bool AddTag(string tag)
+        {
+            tag = TidyTag(tag);
+            if (tag.Length == 0 || HasTag(tag))
+                return false;
+
+            Tags.Add(tag);
+            RememberTag(tag);
+            RefreshTags();
+            return true;
+        }
+
+        /// <returns>true when the tag was on and has been taken off</returns>
+        public bool RemoveTag(string tag)
+        {
+            tag = TidyTag(tag);
+            if (Tags.RemoveAll(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)) == 0)
+                return false;
+
+            RefreshTags();
+            return true;
+        }
+
+        [XmlIgnore]
+        public bool HaveTags
+        {
+            get { return Tags.Count > 0; }
+        }
+
+        /// <summary>the tags as one line, for the job rows and the history</summary>
+        [XmlIgnore]
+        public string TagsText
+        {
+            get { return string.Join(" • ", Tags); }
+        }
+
+        private void RefreshTags()
+        {
+            RaisePropertyChanged("Tags");
+            RaisePropertyChanged("HaveTags");
+            RaisePropertyChanged("TagsText");
+        }
         /// <summary>
         /// the address of the job
         /// </summary>
@@ -669,6 +825,7 @@ namespace Kernel
             RaisePropertyChanged("IsOneOff");
             RaisePropertyChanged("ShowOneOff");
             RaisePropertyChanged("CanDoAgain");
+            RefreshTags();
         }
 
         /// <summary>
@@ -890,6 +1047,14 @@ namespace Kernel
             HaveSkipped = false;
             DateSkipped = UsfulFuctions.DateBase;
             DateCompleated = date;
+
+            //whatever the tag bar is set to goes on as the work is written
+            //up. it is done here rather than in each of the places work can
+            //be marked done - the swipes, the paper view, the job's own
+            //window - so none of them can be the one that forgets
+            foreach (string tag in AutoTags)
+                AddTag(tag);
+
             if (Frequence > 0)
                 JobNextId = GenerateNextDueDate();
 
@@ -923,6 +1088,13 @@ namespace Kernel
 
             IsCompleted = false;
             DateCompleated = new DateTime();
+
+            //the tags that came with the done mark go back off with it, so
+            //clearing a job swiped by mistake really does put it back as it
+            //was. marking it done again brings them straight back
+            foreach (string tag in AutoTags)
+                RemoveTag(tag);
+
             _Jobs.RemoveAll(x => x.Id == JobNextId); //remove the next instance of the job
 
             MatchCustomer();
@@ -1129,9 +1301,10 @@ namespace Kernel
         /// Does this job answer to what has been typed into a search box.
         ///
         /// Matched on the things you would actually go looking by: the
-        /// address, what the job is called, the customer's name, and their
-        /// phone number. Nothing typed matches everything, so an empty box
-        /// is the whole round rather than none of it.
+        /// address, what the job is called, the tags on this visit, the
+        /// customer's name, and their phone number. Nothing typed matches
+        /// everything, so an empty box is the whole round rather than none
+        /// of it.
         /// </summary>
         public bool MatchesSearch(string search)
         {
@@ -1150,6 +1323,10 @@ namespace Kernel
 
             if (Has(Name, search))
                 return true;
+
+            foreach (string tag in Tags)
+                if (Has(tag, search))
+                    return true;
 
             MatchCustomer();
             if (_customer != null)
@@ -1725,6 +1902,8 @@ namespace Kernel
             job.Price = Price;
             job.TNB = TNB;
             job.HaveCanceled = HaveCanceled;
+            //Tags are deliberately left off: they say what happened on one
+            //visit, so the next visit starts with a clean sheet
             if (this.AlternativePrices != null)
             {
                 job.AlternativePrices = new List<AlternativePrice>();

@@ -23,6 +23,10 @@
         </Grid.ColumnDefinitions>
         <VerticalStackLayout x:Name="vsl_header" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
 
+            <!-- the tags to put on work as it is marked done. folded away
+                 while nothing is set -->
+            <controls:TagBar></controls:TagBar>
+
             <!-- filters as it is typed into, so a house can be found without
                  scrolling the whole round -->
             <Grid Padding="8,6" ColumnSpacing="6" x:Name="g_search" IsVisible="false">
@@ -299,6 +303,7 @@
                                     <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding Id}" Clicked="On_Job_Compleated" />
                                     <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding Id}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}" />
                                     <MenuFlyoutItem Text="More" CommandParameter="{Binding Id}" Clicked="On_Job_More" />
+                                    <MenuFlyoutItem Text="Tag" CommandParameter="{Binding Id}" Clicked="On_Job_Tag" />
                                     <MenuFlyoutItem Text="Do It Again" CommandParameter="{Binding Id}" Clicked="On_Job_DoAgain" IsEnabled="{Binding CanDoAgain}" />
                                     <MenuFlyoutSeparator />
                                     <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
@@ -405,6 +410,8 @@
                                     <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <!-- direct debit requested, waiting for the money to come through -->
                                     <Label Text="{Binding PaymentPendingText}" TextColor="White" BackgroundColor="#6A1B9A" IsVisible="{Binding PaymentPending}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
+                                    <!-- what was different about this visit -->
+                                    <Label Text="{Binding TagsText}" TextColor="White" BackgroundColor="#00838F" IsVisible="{Binding HaveTags}" Padding="4,2" FontSize="12" FontAttributes="Bold" LineBreakMode="TailTruncation"></Label>
                                 </HorizontalStackLayout>
 
                                 <!-- notes get their own line under the tags -->

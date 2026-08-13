@@ -93,6 +93,92 @@ public partial class JobStatus : ContentPage
         ShowPaidSection();
         ShowDoneSection();
         ShowOneOffSection();
+        ShowTags();
+    }
+
+    //  ----------------------------------------------------------------  tags
+
+    /// <summary>
+    /// the tags as they will be once Save is pressed. kept apart from the job
+    /// until then so Cancel really does leave the visit as it was, the same
+    /// as everything else on this page
+    /// </summary>
+    private List<string> _tags;
+
+    /// <summary>the tags the visit already had when this page opened</summary>
+    private List<string> _tagsAtOpen;
+
+    private void ShowTags()
+    {
+        if (_tags == null)
+        {
+            _tags = new List<string>(_job.Tags);
+            _tagsAtOpen = new List<string>(_job.Tags);
+        }
+
+        vsl_tags.Clear();
+
+        foreach (string tag in _tags)
+            vsl_tags.Add(TagRow(tag));
+
+        l_noTags.IsVisible = _tags.Count == 0;
+    }
+
+    /// <summary>one tag, with the way to take it off again</summary>
+    private View TagRow(string tag)
+    {
+        Label name = new Label()
+        {
+            Text = tag,
+            TextColor = Colors.White,
+            BackgroundColor = Color.FromArgb("#00838F"),
+            Padding = new Thickness(8, 3),
+            FontAttributes = FontAttributes.Bold,
+            FontSize = 13,
+            VerticalOptions = LayoutOptions.Center,
+        };
+
+        Button remove = new Button()
+        {
+            Text = "Remove",
+            FontSize = 12,
+            Padding = new Thickness(10, 2),
+            CornerRadius = 8,
+            BorderWidth = 2,
+            BorderColor = Color.FromArgb("#E53935"),
+            BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#E53935"),
+            VerticalOptions = LayoutOptions.Center,
+        };
+
+        remove.Clicked += (s, e) =>
+        {
+            _tags.RemoveAll(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase));
+            ShowTags();
+        };
+
+        return new HorizontalStackLayout()
+        {
+            Spacing = 8,
+            Children = { name, remove },
+        };
+    }
+
+    private async void bnt_addTag_Clicked(object sender, EventArgs e)
+    {
+        //nothing to tag: the page was opened without a job, so it never built
+        if (_job == null || _tags == null)
+            return;
+
+        string tag = await TagPicker.AskAsync(this, "Tag This Visit");
+        if (tag == null)
+            return;
+
+        if (_tags.Exists(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)))
+            return;
+
+        _tags.Add(tag);
+        ShowTags();
     }
 
     //  -------------------------------------------------------------  one off
@@ -410,6 +496,7 @@ public partial class JobStatus : ContentPage
             return;
 
         ApplyDone();
+        ApplyTags();
 
         _job.Refresh();
         _job.RefreshColors();
@@ -454,6 +541,33 @@ public partial class JobStatus : ContentPage
 
         if (_job.IsCompleted && cb_done.IsChecked)
             _job.DateCompleated = dp_done.Date;
+    }
+
+    /// <summary>
+    /// the tags as the page was left. a tag typed here is new to the round,
+    /// so the list of tags to pick from has grown and that lives with the
+    /// settings rather than with the jobs
+    /// </summary>
+    private void ApplyTags()
+    {
+        if (_tags == null)
+            return;
+
+        int known = Job.TagNames.Count;
+
+        //only what was taken off here comes off, rather than writing the
+        //page's list over the top: ticking the job done in this same save
+        //puts the tag bar's tags on it, and clearing the lot first would
+        //take those straight back off again
+        foreach (string tag in _tagsAtOpen)
+            if (!_tags.Exists(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)))
+                _job.RemoveTag(tag);
+
+        foreach (string tag in _tags)
+            _job.AddTag(tag);
+
+        if (Job.TagNames.Count != known)
+            Settings.Save();
     }
 
     /// <summary>

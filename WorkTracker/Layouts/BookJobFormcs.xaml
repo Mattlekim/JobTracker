@@ -17,7 +17,16 @@
         <HorizontalStackLayout>
             <Label Text="Book in date: " VerticalOptions="Center"></Label>
         <DatePicker x:Name="dp_bookinDate"></DatePicker>
-        
+
+        </HorizontalStackLayout>
+
+        <!-- a tag put on here goes on every job being booked in, because that
+             is all a booking is - the work on a day -->
+        <HorizontalStackLayout Spacing="8" Padding="0,4">
+            <Label Text="Tag: " VerticalOptions="Center"></Label>
+            <Label x:Name="l_tags" Text="None" VerticalOptions="Center" TextColor="White" BackgroundColor="#00838F" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="false"></Label>
+            <Button Text="Add Tag" Clicked="bnt_addTag" BackgroundColor="Transparent" TextColor="#00838F" BorderColor="#00838F" BorderWidth="2" Padding="8" FontSize="12"></Button>
+            <Button x:Name="bnt_clearTags" Text="Clear" Clicked="bnt_clearTags_Clicked" IsVisible="false" BackgroundColor="Transparent" TextColor="{StaticResource MidGray}" BorderColor="{StaticResource MidGray}" BorderWidth="2" Padding="8" FontSize="12"></Button>
         </HorizontalStackLayout>
         <ListView x:Name="lv_jobs">
             <ListView.ItemTemplate>
