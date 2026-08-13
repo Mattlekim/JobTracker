@@ -151,6 +151,30 @@ name is only filled in when there is nothing there yet: unlike the other two, th
 customer is edited, and going to your contacts to put a number on somebody you already have does not mean asking
 for the name you gave them to be replaced by whatever the contact is filed under.
 
+## Texting and emailing the customers
+
+`WorkPlanner.TextCustomers` sends **one text per customer** rather than a group message: a group message shows
+every customer each other's number and cannot say anything personal, like what they owe.
+
+`Sms.ComposeAsync` only *starts* the messaging app — it comes back as soon as that app is on screen, long before
+anything has been sent. Running a list straight through it therefore fired every message off at once, each
+opening the messaging app over the last, and only the final one was ever left in front of anybody: a round texted
+the night before went to one house. **Never loop over `ComposeAsync` without waiting for the user in between.**
+The wait is an alert offering the next customer, which cannot be answered until the messaging app has been left
+and Work Tracker is back in front — and it doubles as the way out of a queue of texts part way through.
+
+`EmailCustomers` is one message with everybody in **Bcc**, so it opens the mail app once and needs none of this.
+Bcc rather than To for the same reason the texts go one at a time.
+
+`HaveBeenText`/`HaveBeenEmailed` record that the message was *put in front of somebody* — neither app tells us
+whether it was actually sent.
+
+Tapping the number or the email on `Layouts/ViewCustomerDetails` is **not** either of those. It is somebody
+wanting a word — the gate was locked, they are running late — so it opens the messaging app with nothing written
+in and composes directly rather than going through `TextCustomers`/`EmailCustomers`. Those two fill in the night
+before wording and then mark the job as told, and a job marked as told is left out of the next round of notices,
+so a quick word from this page would have quietly cost that customer the message that actually matters.
+
 ## Quotes
 
 A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never
@@ -204,6 +228,22 @@ anything already done stays done.
 `BookJobFormcs.BookForDate` is how a caller says which day the form should open on — it is used once and resets to
 today, so a caller with no day in mind cannot pick up somebody else's. Without it the form opened on today and the
 date had to be typed in again, which is wrong every time the day is already known.
+
+### Dragging a day on to another day
+
+`CalenderDay.MoveDay` moves the work, and **booked work is moved by `DateJobBookinFor`, not by `DueDate`** — the
+calendar puts a booked job on the day it is booked for, so moving only the due date looked right on screen and
+came back to where it started the next time the page was built from the jobs. That was reported as a merge that
+undid itself on a restart, and it is the thing to check first if it is ever seen again.
+
+Work already done stays on the day it was done — that day is what the month's takings are read off — so the move
+returns how many jobs actually went, and a day with nothing movable left on it says so rather than looking
+ignored. `Booking.Bookings` is built from the jobs, so the move ends with `DataRefreshNotifier.NotifyDataChanged`:
+without it the work list keeps a booking row for the day the work came off.
+
+Being asked whether to tell the customers is part of moving the day, not an alternative to it. Answering **Yes**
+used to send the messages and then stop, so the one case where everybody had been told the date had changed was
+the case where it had not.
 
 ## Changing things from the customer's page
 
@@ -503,6 +543,12 @@ and anything that adds is a plus (`Resources/Images/search.svg`, `filter.svg`, `
 They are stroked **white**, unlike the icons used on the swipe actions and the tab bar, because the toolbar is the
 Shell nav bar: green in the light theme and nearly black in the dark one. A black stroked icon disappears into
 both.
+
+`info.svg` is white for the same reason and it is not a toolbar icon: it sits on the blue disc of the info button
+on a job row, where it was black on blue and barely there. It is drawn as the **i on its own**, without Feather's
+ring around it — the button is already a circle, so the ring was a second circle inside the first, which at 30
+odd pixels reads as a smudge rather than as anything. The button is the same size on the work list as on the
+calendar; it is the same button, so it should not change between the two pages.
 
 Every item keeps its `Text` alongside the icon. Android shows that text on a long press and reads it out in the
 ... menu, so an icon never leaves somebody guessing — and an item that goes to Secondary is text only anyway.

@@ -448,8 +448,12 @@
 
                                 <!-- an icon with no words to it, so it carries a
                                      tooltip: a long press brings it up on a
-                                     phone, hovering does on a desktop -->
-                                <ImageButton Grid.Row="0" Grid.Column="3" Grid.RowSpan="2" Source="info.png" HeightRequest="30" WidthRequest="30" Padding="4" CornerRadius="15" BackgroundColor="#1E88E5" HorizontalOptions="Center" VerticalOptions="Center" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"
+                                     phone, hovering does on a desktop.
+
+                                     Same size as the one on the calendar - it
+                                     is the same button and it should not move
+                                     or change size between the two pages. -->
+                                <ImageButton Grid.Row="0" Grid.Column="3" Grid.RowSpan="2" Source="info.png" HeightRequest="34" WidthRequest="34" Padding="5" CornerRadius="17" BackgroundColor="#1E88E5" HorizontalOptions="Center" VerticalOptions="Center" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"
                                              ToolTipProperties.Text="Everything about this job - price, notes, when it is due and who it is for"></ImageButton>
 
                                 <!-- the job tags on their own line. fixed rows rather
