@@ -97,8 +97,196 @@ public partial class ViewCustomerDetails : ContentPage
         l_phone.Text = c.Phone;
         l_email.Text = c.Email;
 
+        ShowHowTheyPay();
 
 
+
+    }
+
+
+    //  ------------------------------------------------------  how they pay
+    //
+    //  What is set here is what marking their work done then acts on, so it
+    //  is on this page rather than buried in the edit form: it is a thing you
+    //  change about a customer, not a thing you fill in once when they join.
+
+    /// <summary>true while the card is being filled in, so setting a picker
+    /// to what it already says does not count as a change</summary>
+    private bool _fillingInPayment = false;
+
+    private void ShowHowTheyPay()
+    {
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null)
+            return;
+
+        _fillingInPayment = true;
+
+        if (p_paysBy.Items.Count == 0)
+            foreach (string name in Enum.GetNames(typeof(PaymentMethod)))
+                p_paysBy.Items.Add(name);
+
+        p_paysBy.SelectedItem = c.NormalPaymentMethord.ToString();
+        e_payPalEmail.Text = c.PayPalEmail;
+
+        _fillingInPayment = false;
+
+        vsl_payPal.IsVisible = c.NormalPaymentMethord == PaymentMethod.Paypal;
+        vsl_goCardless.IsVisible = c.NormalPaymentMethord == PaymentMethod.GoCardless;
+
+        ShowPayPalState(c);
+        ShowGoCardlessState(c);
+        ShowWhatHappensOnDone(c);
+    }
+
+    private void ShowPayPalState(Customer c)
+    {
+        if (!PayPal.IsSetUp)
+        {
+            l_payPalState.Text = "Put your paypal.me name in on the settings page before this can send anything.";
+            return;
+        }
+
+        l_payPalState.Text = string.IsNullOrWhiteSpace(c.PayPalContact)
+            ? "No email for them, so the link would have to be texted or copied."
+            : $"The link would go to {c.PayPalContact}.";
+    }
+
+    private void ShowGoCardlessState(Customer c)
+    {
+        bool linked = c.HasGoCardless();
+
+        bnt_gcUnlink.IsVisible = linked;
+        bnt_gcLink.Text = linked ? "Link To Somebody Else" : "Find In GoCardless";
+
+        if (!GoCardless.IsConnected)
+        {
+            l_gcState.Text = "GoCardless is not connected yet - do that on the settings page, or type the mandate in by hand.";
+            return;
+        }
+
+        l_gcState.Text = linked
+            ? $"Linked to mandate {c.GoCardlessMandateId}."
+            : "Not linked to a direct debit yet.";
+    }
+
+    /// <summary>
+    /// what marking this customer's work done will now do by itself, said out
+    /// loud so it is never a surprise
+    /// </summary>
+    private void ShowWhatHappensOnDone(Customer c)
+    {
+        switch (c.NormalPaymentMethord)
+        {
+            case PaymentMethod.GoCardless:
+                l_onDone.Text = c.HasGoCardless()
+                    ? "Marking their work done will offer to collect what they owe by direct debit."
+                    : "Link them to a direct debit and marking their work done will offer to collect it.";
+                return;
+
+            case PaymentMethod.Paypal:
+                l_onDone.Text = PayPal.IsSetUp
+                    ? "Marking their work done will offer to send them a PayPal link for what they owe."
+                    : "Set your paypal.me name up and marking their work done will offer to send them a link.";
+                return;
+
+            default:
+                l_onDone.Text = "Marking their work done does nothing about the money - it goes on their balance to be settled however you like.";
+                return;
+        }
+    }
+
+    private void p_paysBy_Changed(object sender, EventArgs e)
+    {
+        if (_fillingInPayment)
+            return;
+
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null || p_paysBy.SelectedItem == null)
+            return;
+
+        c.NormalPaymentMethord = (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)p_paysBy.SelectedItem);
+        Customer.Save();
+
+        ShowHowTheyPay();
+    }
+
+    private void e_payPalEmail_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (_fillingInPayment)
+            return;
+
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null)
+            return;
+
+        c.PayPalEmail = e.NewTextValue == null ? string.Empty : e.NewTextValue.Trim();
+        Customer.Save();
+
+        ShowPayPalState(c);
+    }
+
+    private async void bnt_gcLink_Clicked(object sender, EventArgs e)
+    {
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null)
+            return;
+
+        if (!GoCardless.IsConnected)
+        {
+            await DisplayAlert("GoCardless", "GoCardless is not connected yet. Connect it on the settings page, or type the mandate in by hand.", "Ok");
+            return;
+        }
+
+        await LinkToGoCardless(c);
+        ShowHowTheyPay();
+    }
+
+    /// <summary>
+    /// the ids typed in rather than picked, for when they are already known -
+    /// off the GoCardless dashboard, or from a round taken over from somebody
+    /// who was already collecting
+    /// </summary>
+    private async void bnt_gcByHand_Clicked(object sender, EventArgs e)
+    {
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null)
+            return;
+
+        string mandate = await DisplayPromptAsync("Direct Debit Mandate",
+            "The mandate id that collects from this customer. It starts MD.", "Save", "Cancel",
+            initialValue: c.GoCardlessMandateId);
+        if (mandate == null)
+            return;
+
+        string customerId = await DisplayPromptAsync("GoCardless Customer",
+            "Their customer id in GoCardless. It starts CU. Leave it blank if you do not know it - the mandate is what collects.", "Save", "Cancel",
+            initialValue: c.GoCardlessCustomerId);
+        if (customerId == null)
+            return;
+
+        c.GoCardlessMandateId = mandate.Trim();
+        c.GoCardlessCustomerId = customerId.Trim();
+        Customer.Save();
+
+        ShowHowTheyPay();
+    }
+
+    private async void bnt_gcUnlink_Clicked(object sender, EventArgs e)
+    {
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null)
+            return;
+
+        if (!await DisplayAlert("GoCardless",
+            "Unlink this customer from their direct debit? The direct debit itself is not cancelled - this app just stops collecting on it.", "Unlink", "Cancel"))
+            return;
+
+        c.GoCardlessCustomerId = string.Empty;
+        c.GoCardlessMandateId = string.Empty;
+        Customer.Save();
+
+        ShowHowTheyPay();
     }
 
     private async void l_emailClicked(object sender, EventArgs e)
@@ -193,7 +381,8 @@ public partial class ViewCustomerDetails : ContentPage
                 break;
 
             case "Email It":
-                await WorkPlanner.EmailCustomers(jobs, DateTime.Now, message, this, false);
+                //to their PayPal address when they have given one
+                await WorkPlanner.EmailPayPalLink(c, message, this);
                 break;
 
             case "Copy The Link":
