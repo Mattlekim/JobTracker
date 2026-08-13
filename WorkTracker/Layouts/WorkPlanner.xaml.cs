@@ -18,13 +18,14 @@ using Android.Content.PM;
 {AppThemeBinding Light=White, Dark=Black}
 */
 using System.ComponentModel;
+using UiInterface.Controles;
 
 public class BookingCatch
 {
     public string Date;
     public List<Job> Jobs;
 }
-public partial class WorkPlanner : ContentPage
+public partial class WorkPlanner : ContentPage, IHoldRows
 {
 
     private const string bntAddText = "Add Job";
@@ -1794,10 +1795,13 @@ public partial class WorkPlanner : ContentPage
 
     //  -----------------------------------------------------  hold to select
     //
-    //  There is no long press gesture of its own, so the hold is timed from
-    //  the finger going down: it counts once it has stayed put for half a
-    //  second, and a scroll or a swipe calls it off. Same as the booked work
-    //  page, so a hold means the same thing on both.
+    //  There is no long press gesture of its own. On a phone the hold is left
+    //  to android, through LongPressBehavior on the row, which is the only
+    //  way it happens at all: the pointer events below are raised for a mouse
+    //  or a stylus and never for a finger. On a desktop they still time it -
+    //  the press counts once it has stayed put for half a second, and a
+    //  scroll or a swipe calls it off. Same as the booked work page, so a
+    //  hold means the same thing on both.
 
     private const int HoldMilliseconds = 500;
     private const double HoldMoveTolerance = 20;
@@ -1813,6 +1817,9 @@ public partial class WorkPlanner : ContentPage
     /// </summary>
     private DateTime _heldAt = DateTime.MinValue;
 
+    /// <summary>the row the last hold was on</summary>
+    private Job _lastHeld;
+
     private void Job_PointerPressed(object sender, PointerEventArgs e)
     {
         Element row = sender as Element;
@@ -1827,7 +1834,7 @@ public partial class WorkPlanner : ContentPage
             _holdTimer = Dispatcher.CreateTimer();
             _holdTimer.Interval = TimeSpan.FromMilliseconds(HoldMilliseconds);
             _holdTimer.IsRepeating = false;
-            _holdTimer.Tick += (s, a) => HoldToSelect();
+            _holdTimer.Tick += (s, a) => HoldToSelect(_holdJob);
         }
 
         _holdTimer.Stop();
@@ -1859,18 +1866,30 @@ public partial class WorkPlanner : ContentPage
         _holdJob = null;
     }
 
+    /// <summary>a row has been held on a platform that has a long press of its own</summary>
+    public void RowHeld(object item)
+    {
+        HoldToSelect(item as Job);
+    }
+
     /// <summary>
     /// holding a row starts picking jobs out with that one already picked,
     /// and holding another one after that picks that too
     /// </summary>
-    private void HoldToSelect()
+    private void HoldToSelect(Job j)
     {
-        Job j = _holdJob;
         CancelHold();
 
+        //the booking summary rows are not work and cannot be picked out
         if (j == null || j.CustomerId == -1)
             return;
 
+        //a platform that both has a long press and raises the pointer events
+        //would otherwise pick the row and put it straight back
+        if (ReferenceEquals(j, _lastHeld) && HoldJustHappened)
+            return;
+
+        _lastHeld = j;
         _heldAt = DateTime.Now;
 
         if (_selectingJobs)

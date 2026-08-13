@@ -379,14 +379,34 @@ answer as every other row, and the booking summary rows never show one because t
 
 The way out is the bar across the top of the list, not just the toolbar item: on a phone the toolbar's Cancel is
 as likely as not to be behind the ... menu, which is no use as the way out of a mode you did not mean to be in.
-Holding a row starts picking jobs out with that row already picked, the same half second hold as `BookedWork`.
+Holding a row starts picking jobs out with that row already picked, the same hold as `BookedWork`.
 The finger coming up off a hold arrives as a tap too, which is what `HoldJustHappened` is there to swallow.
+The row's tap and the list's `SelectionChanged` both land in `RowTapped`, which ignores the second of two
+reports of the same tap.
 
-**A row that holds needs a `TapGestureRecognizer` on it as well as the `PointerGestureRecognizer`**, or the hold
-never happens: Android only delivers touches to a view that is handling them, and the pointer recogniser alone
-does not count. That is why the same hold code worked on `BookedWork` — whose row has always had a tap on it —
-and did nothing on the work list until the row was given one. The row's tap and the list's `SelectionChanged`
-both land in `RowTapped`, which ignores the second of two reports of the same tap.
+### Holding a row
+
+MAUI has no long press gesture, and the obvious way round that — timing the finger going down with a
+`PointerGestureRecognizer` — **does not work on a phone at all**: those events are raised for a mouse or a stylus
+hovering, not for a finger. The hold did nothing on any page for as long as it was built that way, and no amount
+of a longer timer, a bigger move tolerance or an extra `TapGestureRecognizer` on the row was ever going to change
+that.
+
+`Controles/LongPressBehavior.cs` is what makes it happen: on Android it makes the row's platform view
+`LongClickable` and lets Android decide when a press has been held long enough, which is also where the buzz on
+the wrist comes from. It marks the long click handled so the press does not go on to count as a tap as well.
+Everywhere else it does nothing and the pointer recognisers still do the timing, which is what they are still on
+the rows for.
+
+The behaviour finds the page by walking up `Parent` from the row and looking for `IHoldRows` rather than being
+bound to a command: a row lives in a `DataTemplate`, so it has no way of naming its page, and a behaviour is not
+an `Element` — an ancestor binding from inside one has nothing to walk. It reads the row's binding context at the
+moment it is held rather than when it was built, because the list is virtualised and a row shows a different job
+every time it comes back round. That is also why it hooks `HandlerChanged`: a recycled row is handed a new
+platform view each time.
+
+Both pages take the two paths through one method (`HoldToSelect`, `ShowHoldOptions`), which ignores the same row
+being held twice inside a second, so a platform that raises both only acts once.
 
 ## Screenshot mode
 

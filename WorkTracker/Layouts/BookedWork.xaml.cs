@@ -2,8 +2,9 @@
 
 using Kernel;
 using Microsoft.Maui.Dispatching;
+using UiInterface.Controles;
 
-public partial class BookedWork : ContentPage
+public partial class BookedWork : ContentPage, IHoldRows
 {
     public class BookingGroup : List<Job>
     {
@@ -476,9 +477,12 @@ public partial class BookedWork : ContentPage
         WorkPlanner.EditJobDetails(j, this);
     }
 
-    //there is no long press gesture of its own, so the hold is timed from the
-    //finger going down: it counts once it has stayed put for half a second,
-    //and a scroll or a swipe calls it off
+    //There is no long press gesture of its own. On a phone the hold is left
+    //to android, through LongPressBehavior on the row, which is the only way
+    //it happens at all: the pointer events below are raised for a mouse or a
+    //stylus and never for a finger. On a desktop they still time it - the
+    //press counts once it has stayed put for half a second, and a scroll or a
+    //swipe calls it off.
     private const int HoldMilliseconds = 500;
     private const double HoldMoveTolerance = 20;
 
@@ -486,6 +490,7 @@ public partial class BookedWork : ContentPage
     private Job _holdJob;
     private Point _holdFrom;
     private DateTime _optionsShownAt = DateTime.MinValue;
+    private Job _lastHeld;
 
     private void Job_PointerPressed(object sender, PointerEventArgs e)
     {
@@ -501,7 +506,7 @@ public partial class BookedWork : ContentPage
             _holdTimer = Dispatcher.CreateTimer();
             _holdTimer.Interval = TimeSpan.FromMilliseconds(HoldMilliseconds);
             _holdTimer.IsRepeating = false;
-            _holdTimer.Tick += (s, a) => ShowHoldOptions();
+            _holdTimer.Tick += (s, a) => ShowHoldOptions(_holdJob);
         }
 
         _holdTimer.Stop();
@@ -533,18 +538,29 @@ public partial class BookedWork : ContentPage
         _holdJob = null;
     }
 
+    /// <summary>a row has been held on a platform that has a long press of its own</summary>
+    public void RowHeld(object item)
+    {
+        ShowHoldOptions(item as Job);
+    }
+
     /// <summary>
     /// everything that can be done to a booked job, the two kept off the
     /// swipe included
     /// </summary>
-    private async void ShowHoldOptions()
+    private async void ShowHoldOptions(Job j)
     {
-        Job j = _holdJob;
         CancelHold();
 
         if (j == null)
             return;
 
+        //a platform that both has a long press and raises the pointer events
+        //would otherwise put the sheet up twice
+        if (ReferenceEquals(j, _lastHeld) && (DateTime.Now - _optionsShownAt).TotalMilliseconds < 1000)
+            return;
+
+        _lastHeld = j;
         _optionsShownAt = DateTime.Now;
 
         //a job already marked wants clearing or opening up, not marking again
