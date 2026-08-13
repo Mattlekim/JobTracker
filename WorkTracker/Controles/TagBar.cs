@@ -40,6 +40,9 @@ public class TagBar : ContentView
     public TagBar()
     {
         _header = SmallButton("Tag ▸", TagColour);
+        //a button with an arrow on it says nothing about what it opens. a
+        //long press brings this up on a phone, hovering does on a desktop
+        ToolTipProperties.SetText(_header, "Tags to put on every job as you mark it done - front only, nobody in, and so on");
         _header.Clicked += (s, e) =>
         {
             _open = !_open;
@@ -59,9 +62,11 @@ public class TagBar : ContentView
         };
 
         _add = SmallButton("Add", TagColour);
+        ToolTipProperties.SetText(_add, "Pick a tag to go on the work you mark done from here on");
         _add.Clicked += Add_Clicked;
 
         _clear = SmallButton("Clear", "#6B7280");
+        ToolTipProperties.SetText(_clear, "Stop tagging work as it is marked done");
         _clear.Clicked += (s, e) =>
         {
             Job.AutoTags.Clear();
@@ -162,6 +167,8 @@ public class TagBar : ContentView
             TextColor = Colors.White,
             VerticalOptions = LayoutOptions.Center,
         };
+
+        ToolTipProperties.SetText(chip, $"Take {tag} off - work marked done will stop being tagged with it");
 
         chip.Clicked += (s, e) =>
         {

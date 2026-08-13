@@ -1,7 +1,9 @@
-namespace UiInterface.Layouts;
+﻿namespace UiInterface.Layouts;
 using System.Diagnostics;
 using Kernel;
 using System.Collections.ObjectModel;
+//the hold that starts picking jobs out is timed with one of these
+using Microsoft.Maui.Dispatching;
 /*#if ANDROID
 using Android.Telephony;
 using AndroidX.AppCompat.App;
@@ -85,12 +87,17 @@ public partial class WorkPlanner : ContentPage
 
         int jCount = Job.Query().Count;
 
+        //a funnel and a plus say what these are to anybody. the Text stays on
+        //them: Android puts it up on a long press and reads it out in the ...
+        //menu, so the icon never leaves somebody guessing
         bnt_Filters = new ToolbarItem();
         bnt_Filters.Text = "Filters";
+        bnt_Filters.IconImageSource = "filter.png";
         bnt_Filters.Clicked += l_filterText_Clicked;
 
         bnt_addNewJob = new ToolbarItem();
         bnt_addNewJob.Text = "Add Job";
+        bnt_addNewJob.IconImageSource = "add.png";
         bnt_addNewJob.Clicked += bnt_addJob_Clicked;
 
         bnt_selectJobs = new ToolbarItem();
@@ -176,12 +183,13 @@ public partial class WorkPlanner : ContentPage
 
     private void CancelSelectingJobs()
     {
-     
-        _selectingJobs = false;
-        //Job.SelectionModeEnabled = _selectingJobs;
-        foreach (Job j in _tmpJobs)
-            j.SelectionModeEnabled = _selectingJobs;
 
+        _selectingJobs = false;
+
+        //one switch for the whole list, which also clears what was picked
+        Job.SetSelectionMode(false);
+        _selectedJobs.Clear();
+        ShowSelectionBar();
 
         var vt = lv_Jobs.GetVisualTreeDescendants();
         CheckBox cb;
@@ -196,13 +204,61 @@ public partial class WorkPlanner : ContentPage
         }
         UpdateToolBarNoraml();
     }
+
+    /// <summary>
+    /// The bar across the top while jobs are being picked out: how many are
+    /// picked, and the way back out.
+    ///
+    /// The toolbar has a Cancel on it as well, but on a phone it is as
+    /// likely as not to be behind the ... menu, and a mode you did not mean
+    /// to be in needs a way out that is actually on the screen.
+    /// </summary>
+    private void ShowSelectionBar()
+    {
+        brd_selecting.IsVisible = _selectingJobs;
+
+        if (!_selectingJobs)
+            return;
+
+        l_selectedCount.Text = _selectedJobs.Count switch
+        {
+            0 => "Tap the jobs you want",
+            1 => "1 job picked",
+            _ => $"{_selectedJobs.Count} jobs picked",
+        };
+    }
+
+    /// <summary>
+    /// picks a job, or puts it back. the tick boxes, the row taps and the
+    /// hold all come through here so they cannot disagree about what is
+    /// picked
+    /// </summary>
+    private void ToggleSelected(Job j)
+    {
+        if (j == null || j.CustomerId == -1)
+            return;
+
+        j.IsSelected = !j.IsSelected;
+
+        if (j.IsSelected)
+        {
+            if (!_selectedJobs.Contains(j.Id))
+                _selectedJobs.Add(j.Id);
+        }
+        else
+            _selectedJobs.Remove(j.Id);
+
+        ShowSelectionBar();
+    }
     private void Bnt_cancelSelection_Clicked(object sender, EventArgs e)
     {
         CancelSelectingJobs();
     }
 
+    /// <summary>what the tag filter is matching, for saying so above the list</summary>
     private string FilterString;
-    private float FilterFloat;
+
+    /// <summary>the tag filter itself, or null while the list is the round</summary>
     private Func<List<Job>> Filter;
     private void WorkPlanner_NavigatedTo(object sender, NavigatedToEventArgs e)
     {
@@ -214,6 +270,12 @@ public partial class WorkPlanner : ContentPage
             return;
         }
 
+        //the tick boxes are one switch for the whole round, so coming back to
+        //the page puts it back to whatever this page is actually doing rather
+        //than trusting what it was left as
+        Job.SetSelectionMode(_selectingJobs);
+        ShowSelectionBar();
+
         RefreshPage();
     }
 
@@ -223,22 +285,14 @@ public partial class WorkPlanner : ContentPage
 
         List<Job> jobs;
 
-
-        Filter = null; //disable filters for now due to problems
+        //a tag filter narrows the round to one thing - a street, a price, a
+        //job type. it used to be thrown away here rather than run, because
+        //there was no way of telling it was on and no obvious way back out.
+        //what says so is ShowActiveFilter, and the Clear on the bar it puts up
         if (Filter != null)
-        {
-
             jobs = Filter();
-            l_filterResultsText.IsVisible = true;
-            l_filterResultsText.Text = $"Filtering Results By {SecondryFilter}";
-
-        }
         else
-        {
             jobs = MasterFilter();
-            l_filterResultsText.IsVisible = false;
-        }
-
 
         foreach (Job j in jobs)
             if (j.IsCompleted)
@@ -247,7 +301,10 @@ public partial class WorkPlanner : ContentPage
                 j.tmpDate = j.DueDate;
 
         jobs = jobs.OrderBy(x => x.tmpDate).ToList();
-        if (!ViewBooking)
+
+        //the booking summary rows are the round's diary, not work matching
+        //what was tapped, so they stay off a filtered list
+        if (!ViewBooking && Filter == null)
         foreach (Booking b in Booking.Bookings)
                 jobs.Insert(0,b.BookingInfo);
 
@@ -256,6 +313,10 @@ public partial class WorkPlanner : ContentPage
         //the booking summary rows are not jobs, so they go while searching
         if (!string.IsNullOrWhiteSpace(_searchText))
             jobs = jobs.FindAll(x => x.CustomerId != -1 && x.MatchesSearch(_searchText));
+
+        //counted after the search rather than before it, so the bar says how
+        //much work is actually on the list. the booking rows are not work
+        ShowActiveFilter(jobs.FindAll(x => x.CustomerId != -1).Count);
 
         //quotes are not on this list. they are not due and cannot be done, so
         //they have their own page under Work - see Layouts/Quotes
@@ -846,33 +907,8 @@ public partial class WorkPlanner : ContentPage
 
     private async void bnt_addJob_Clicked(object sender, EventArgs e)
     {
-    /*    if (_selectingJobs)
-        {
-            Update/ToolBarNoraml();
-            _selectingJobs = false;
-            foreach (Job j in _tmpJobs)
-                j.SelectionModeEnabled = true;
-            _selectedJobs.Clear();
-            foreach (Job j in _sourceJobs)
-                j.IsSelected = false;
-            var vt = lv_Jobs.GetVisualTreeDescendants();
-            CheckBox cb;
-            SwipeView sv;
-            foreach (object o in vt)
-            {
-                cb = o as CheckBox;
-                if (cb != null)
-                    cb.IsVisible = false;
-                sv = o as SwipeView;
-                if (sv != null)
-                {
-                    sv.IsEnabled = true;
-                }
-            }
-
-           
-            return;
-        }*/
+        //(the commented out block that used to sit here turned the tick boxes
+        //off a job at a time. that is one switch now - Job.SetSelectionMode)
         NewJob.JobToAdd = new Job();
         NewJob.AddNewJob = true;
        
@@ -895,35 +931,185 @@ public partial class WorkPlanner : ContentPage
         StartFilterDate = StartFilterDate.AddDays(-7);
 
     }
+    /// <summary>
+    /// everything back to how the page opens: the fortnight either side of
+    /// today, no tag filter, cancelled work out of the way.
+    ///
+    /// It used to give up straight away unless a tag filter happened to be
+    /// on, so Reset did nothing at all to a date range that had been dragged
+    /// somewhere unhelpful - which is the thing most likely to need it.
+    /// </summary>
     private void bnt_Clear_Filter_Clicked(object sender, EventArgs e)
+    {
+        ResetDateFilter();
+        dp_StartSearchDate.Date = StartFilterDate;
+        dp_EndSearchDate.Date = EndFilterDate;
+
+        FilterDate = true;
+        cb_filterDates.IsChecked = true;
+        cb_showCancelled.IsChecked = false;
+
+        ClearTagFilter();
+        RefreshPage();
+    }
+
+    /// <summary>
+    /// the Clear on the bar above the list, and the one next to the tag in
+    /// the panel. it takes off what it is sat next to and nothing else - a
+    /// date range that has been set on purpose is not what was being cleared
+    /// </summary>
+    private void bnt_ClearTagFilter_Clicked(object sender, EventArgs e)
     {
         if (Filter == null)
             return;
-        ResetDateFilter();
-        SecondryFilter = SecondryFilterType.None;
-        l_filterBy.Text = $"{SecondryFilter}";
-        Filter = null;
+
+        ClearTagFilter();
         RefreshPage();
+    }
+
+    private void ClearTagFilter()
+    {
+        Filter = null;
+        SecondryFilter = SecondryFilterType.None;
+        FilterString = string.Empty;
+    }
+
+    /// <summary>
+    /// What the list is being narrowed by, said in the bar above it whether
+    /// the filter panel is open or not, along with how much of the round is
+    /// left showing. A list quietly showing a fraction of the work with
+    /// nothing to say why is what had the tag filters switched off.
+    /// </summary>
+    private void ShowActiveFilter(int showing)
+    {
+        bool on = Filter != null;
+
+        brd_filterOn.IsVisible = on;
+        hsl_tagFilter.IsVisible = on;
+
+        if (!on)
+            return;
+
+        l_filterBy.Text = FilterDescription();
+        l_filterResultsText.Text = $"Showing only {FilterDescription()}";
+        l_filterResultsCount.Text = showing == 1
+            ? "1 job, from the whole round"
+            : $"{showing} jobs, from the whole round";
+    }
+
+    /// <summary>the tag filter in the words it would be described in</summary>
+    private string FilterDescription()
+    {
+        switch (SecondryFilter)
+        {
+            case SecondryFilterType.JobType:
+                return $"{FilterString} jobs";
+
+            case SecondryFilterType.JobPrice:
+                return $"work at {FilterString}";
+
+            case SecondryFilterType.Owed:
+                return "customers who owe money";
+
+            case SecondryFilterType.Credit:
+                return "customers in credit";
+
+            case SecondryFilterType.NothingOwed:
+                return "customers who owe nothing";
+        }
+
+        //the street, the town and the area say what they are on their own
+        return FilterString;
+    }
+
+    /// <summary>
+    /// the three money filters are a question about the customer rather than
+    /// a value off the job, so they have nothing to put in the description
+    /// and are the only ones allowed to set a filter without one
+    /// </summary>
+    private static bool NamesNoValue(SecondryFilterType type)
+    {
+        return type == SecondryFilterType.Owed
+            || type == SecondryFilterType.Credit
+            || type == SecondryFilterType.NothingOwed;
+    }
+
+    /// <summary>
+    /// What a tag filter picks from.
+    ///
+    /// The whole round rather than the date range the list is normally kept
+    /// to: tapping High Street and being shown three of its twelve houses,
+    /// because the rest are not due for a fortnight, is not what anybody
+    /// means by tapping it.
+    ///
+    /// Work that is finished is left out for the same reason - every visit
+    /// ever made to that street is a history, not a list of work to do - and
+    /// cancelled work follows the same tick as everywhere else on the page.
+    /// </summary>
+    private List<Job> FilterSource()
+    {
+        List<Job> jobs = new List<Job>(Job.Query());
+
+        jobs.RemoveAll(x => x.IsCompleted);
+
+        if (!cb_showCancelled.IsChecked)
+            jobs.RemoveAll(x => x.HaveCanceled);
+
+        return jobs;
+    }
+
+    /// <summary>
+    /// Puts a tag filter on: what is being matched, for saying so above the
+    /// list, and the test that decides what stays.
+    ///
+    /// The test is given the job that was tapped rather than the words off
+    /// its tag. Reading a tag back out of its own label is what put £8.50
+    /// through a whole-number parse and took the app down with it.
+    /// </summary>
+    private void SetTagFilter(SecondryFilterType type, string what, Func<Job, bool> keep)
+    {
+        //the money tags name no value of their own. everything else does, and
+        //a filter on a blank street, or on a job with no type, could only
+        //ever say "Showing only "
+        if (!NamesNoValue(type) && string.IsNullOrWhiteSpace(what))
+            return;
+
+        SecondryFilter = type;
+        FilterString = what ?? string.Empty;
+
+        Filter = () =>
+        {
+            List<Job> jobs = FilterSource();
+            jobs.RemoveAll(x => !keep(x));
+            return jobs;
+        };
+
+        RefreshPage();
+    }
+
+    /// <summary>
+    /// The job whose tag was tapped. The booking summary rows at the top of
+    /// the list are not real jobs and have nothing worth filtering by, so
+    /// they answer null.
+    ///
+    /// The tags used to ask the last job *selected* whether it was a booking
+    /// row. That is not the row that was tapped - and it is nothing at all
+    /// until something has been selected, so a tag tapped as the first thing
+    /// done on a freshly opened list took the app down with it.
+    /// </summary>
+    private static Job TaggedJob(object sender)
+    {
+        Job j = (sender as Element)?.BindingContext as Job;
+        return j == null || j.CustomerId == -1 ? null : j;
     }
 
     private void Job_Type_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        Job j = TaggedJob(sender);
+        if (j == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.JobType;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x=>x.Name != FilterString);
-            return jobs;
-            
-        };
-        RefreshPage();
-
+        SetTagFilter(SecondryFilterType.JobType, j.Name, x => x.Name == j.Name);
     }
 
 
@@ -938,7 +1124,9 @@ public partial class WorkPlanner : ContentPage
     private static List<Job> tmpJobList;
     private List<Job> MasterFilter()
     {
-        tmpJobList = Job.Query();
+        //a copy: Job.Query hands out one buffer it refills for everybody, and
+        //what follows here takes jobs out of it
+        tmpJobList = new List<Job>(Job.Query());
 
         if (!cb_showCancelled.IsChecked)
             tmpJobList.RemoveAll(x => x.HaveCanceled);
@@ -976,123 +1164,84 @@ public partial class WorkPlanner : ContentPage
 
     private void Job_Street_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        Job j = TaggedJob(sender);
+        if (j?.Address == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.Street;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x => x.Address?.Street != FilterString);
-            return jobs;
-
-        };
-        RefreshPage();
+        SetTagFilter(SecondryFilterType.Street, j.Address.Street,
+            x => x.Address != null && x.Address.Street == j.Address.Street);
     }
 
     private void Job_City_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        Job j = TaggedJob(sender);
+        if (j?.Address == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.City;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x => x.Address?.City != FilterString);
-            return jobs;
-
-        };
-        RefreshPage();
+        SetTagFilter(SecondryFilterType.City, j.Address.City,
+            x => x.Address != null && x.Address.City == j.Address.City);
     }
 
     private void Job_Area_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        Job j = TaggedJob(sender);
+        if (j?.Address == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.Area;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x => x.Address?.Area != FilterString);
-            return jobs;
-
-        };
-        RefreshPage();
+        SetTagFilter(SecondryFilterType.Area, j.Address.Area,
+            x => x.Address != null && x.Address.Area == j.Address.Area);
     }
 
     private void Job_Price_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        Job j = TaggedJob(sender);
+        if (j == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        FilterString = FilterString.Replace(Gloable.CurrenceSymbol,String.Empty);
-        FilterString = FilterString.Replace("Price", String.Empty); ;
-        FilterString = FilterString.Replace(" ", String.Empty); ;
-        FilterFloat = Convert.ToInt32(FilterString);
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.JobPrice;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x => x.Price != FilterFloat);
-            return jobs;
-
-        };
-        RefreshPage();
+        //compared as money rather than as an exact float
+        SetTagFilter(SecondryFilterType.JobPrice, $"{Gloable.CurrenceSymbol}{j.Price}",
+            x => Math.Abs(x.Price - j.Price) < 0.005f);
     }
 
+    /// <summary>
+    /// the money tag asks about the customer behind the job, so tapping it
+    /// on somebody who owes turns up everybody who owes - which is the round
+    /// to knock on before the next one starts
+    /// </summary>
     private void Money_Owed_Filter(object sender, EventArgs e)
     {
-        if (_lastSelectedJob.Name == "Booking")
+        Job j = TaggedJob(sender);
+        if (j == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
+        Customer c = j.GetCustomer();
+        if (c == null)
+            return;
 
-        Filter = () =>
+        if (c.Balance > 0)
         {
-            List<Job> jobs = MasterFilter();
+            SetTagFilter(SecondryFilterType.Owed, null, x => Balance(x) > 0);
+            return;
+        }
 
-            if (FilterString.Contains("Owes"))
-            {
-                SecondryFilter = SecondryFilterType.Owed;
-                l_filterBy.Text = $"{SecondryFilter}";
-                jobs.RemoveAll(x => x.GetCustomer()?.Balance <= 0);
-                return jobs;
-            }
+        if (c.Balance < 0)
+        {
+            SetTagFilter(SecondryFilterType.Credit, null, x => Balance(x) < 0);
+            return;
+        }
 
-            if (FilterString.Contains("Credit"))
-            {
-                SecondryFilter = SecondryFilterType.Credit;
-                l_filterBy.Text = $"{SecondryFilter}";
-                jobs.RemoveAll(x => x.GetCustomer()?.Balance >= 0);
-                return jobs;
-            }
+        SetTagFilter(SecondryFilterType.NothingOwed, null, x => Balance(x) == 0);
+    }
 
-            if (FilterString.Contains("Nothing"))
-            {
-                SecondryFilter = SecondryFilterType.NothingOwed;
-                l_filterBy.Text = $"{SecondryFilter}";
-                jobs.RemoveAll(x => x.GetCustomer()?.Balance != 0);
-                return jobs;
-            }
-            return jobs;
-
-        };
-        RefreshPage();
+    /// <summary>
+    /// what the customer behind a job owes. work whose customer has gone
+    /// counts as owing nothing rather than dropping out of every one of the
+    /// three answers
+    /// </summary>
+    private static float Balance(Job j)
+    {
+        Customer c = j.GetCustomer();
+        return c == null ? 0 : c.Balance;
     }
 
     private void swip_ended(object sender, SwipeEndedEventArgs e)
@@ -1488,15 +1637,25 @@ public partial class WorkPlanner : ContentPage
         g_filter.IsVisible = false;
     }
 
+    /// <summary>
+    /// the Filters toolbar item. it opens and closes the panel rather than
+    /// only opening it, so the same button puts it away again
+    /// </summary>
     private void l_filterText_Clicked(object sender, EventArgs e)
     {
-        g_filter.IsVisible = true;
+        g_filter.IsVisible = !g_filter.IsVisible;
 
-        l_filterBy.Text = $"{SecondryFilter}";
+        if (!g_filter.IsVisible)
+            return;
 
+        //the panel is filled in from what is actually being filtered by, so
+        //it can never say one thing while the list is doing another
         dp_StartSearchDate.Date = StartFilterDate;
         dp_EndSearchDate.Date = EndFilterDate;
-        p_viewFilter.SelectedItem = "Jobs";
+        cb_filterDates.IsChecked = FilterDate;
+        g_dateRange.IsVisible = FilterDate;
+
+        ShowActiveFilter(_sourceJobs == null ? 0 : _sourceJobs.Count);
     }
 
     private void UpdateMasterFileterStart(object sender, DateChangedEventArgs e)
@@ -1523,34 +1682,130 @@ public partial class WorkPlanner : ContentPage
     {
         CheckBox cb = sender as CheckBox;
         FilterDate = cb.IsChecked;
+
+        //the two dates say nothing while the list is not being kept to them
+        g_dateRange.IsVisible = FilterDate;
         RefreshPage();
     }
 
     public List<int> _selectedJobs = new List<int>();
+
+    /// <summary>
+    /// the tick box on a row. it only follows what the box now says, so
+    /// nothing here can argue with a tick that has just been put in
+    /// </summary>
     private void cb_streetSelected(object sender, CheckedChangedEventArgs e)
     {
         CheckBox ck = sender as CheckBox;
+        Job j = ck?.BindingContext as Job;
 
+        if (j == null || j.CustomerId == -1)
+            return;
 
-        int id = Convert.ToInt32(ck.ClassId);
+        j.IsSelected = ck.IsChecked;
+
         if (ck.IsChecked)
         {
-            if (!_selectedJobs.Contains(id))
-            {
-                _selectedJobs.Add(id);
-                Job j = _sourceJobs.FirstOrDefault(x => x.Id == id);
-                if (j != null)
-                    j.IsSelected = true;
-            }
-
+            if (!_selectedJobs.Contains(j.Id))
+                _selectedJobs.Add(j.Id);
         }
         else
+            _selectedJobs.Remove(j.Id);
+
+        ShowSelectionBar();
+    }
+
+    //  -----------------------------------------------------  hold to select
+    //
+    //  There is no long press gesture of its own, so the hold is timed from
+    //  the finger going down: it counts once it has stayed put for half a
+    //  second, and a scroll or a swipe calls it off. Same as the booked work
+    //  page, so a hold means the same thing on both.
+
+    private const int HoldMilliseconds = 500;
+    private const double HoldMoveTolerance = 20;
+
+    private IDispatcherTimer _holdTimer;
+    private Job _holdJob;
+    private Point _holdFrom;
+
+    /// <summary>
+    /// when the hold last picked something. the finger coming up off a hold
+    /// is a tap as well, and that tap would put straight back what the hold
+    /// had just picked
+    /// </summary>
+    private DateTime _heldAt = DateTime.MinValue;
+
+    private void Job_PointerPressed(object sender, PointerEventArgs e)
+    {
+        Element row = sender as Element;
+        _holdJob = row?.BindingContext as Job;
+        if (_holdJob == null)
+            return;
+
+        _holdFrom = e.GetPosition(row) ?? Point.Zero;
+
+        if (_holdTimer == null)
         {
-            _selectedJobs.Remove(id);
-            Job j = _sourceJobs.FirstOrDefault(x => x.Id == id);
-            if (j!= null)
-                j.IsSelected = false;
+            _holdTimer = Dispatcher.CreateTimer();
+            _holdTimer.Interval = TimeSpan.FromMilliseconds(HoldMilliseconds);
+            _holdTimer.IsRepeating = false;
+            _holdTimer.Tick += (s, a) => HoldToSelect();
         }
+
+        _holdTimer.Stop();
+        _holdTimer.Start();
+    }
+
+    private void Job_PointerMoved(object sender, PointerEventArgs e)
+    {
+        if (_holdJob == null)
+            return;
+
+        Point? now = e.GetPosition(sender as Element);
+        if (now == null)
+            return;
+
+        if (Math.Abs(now.Value.X - _holdFrom.X) > HoldMoveTolerance
+            || Math.Abs(now.Value.Y - _holdFrom.Y) > HoldMoveTolerance)
+            CancelHold();
+    }
+
+    private void Job_PointerReleased(object sender, PointerEventArgs e)
+    {
+        CancelHold();
+    }
+
+    private void CancelHold()
+    {
+        _holdTimer?.Stop();
+        _holdJob = null;
+    }
+
+    /// <summary>
+    /// holding a row starts picking jobs out with that one already picked,
+    /// and holding another one after that picks that too
+    /// </summary>
+    private void HoldToSelect()
+    {
+        Job j = _holdJob;
+        CancelHold();
+
+        if (j == null || j.CustomerId == -1)
+            return;
+
+        _heldAt = DateTime.Now;
+
+        if (_selectingJobs)
+            ToggleSelected(j);
+        else
+            StartSelectingJobs(j);
+    }
+
+    /// <summary>true while the tap that ended a hold is still coming</summary>
+    private bool HoldJustHappened
+    {
+        get { return (DateTime.Now - _heldAt).TotalMilliseconds < 1000; }
     }
 
     private bool _selectingJobs = false;
@@ -1569,10 +1824,12 @@ public partial class WorkPlanner : ContentPage
             UpdateToolBarNoraml();
 
 
+            //the ids of what was picked are read below, so they are left
+            //alone here - it is the tick boxes that are being put away
             _selectingJobs = false;
-            //Job.SelectionMode = _selectingJobs;
-            foreach (Job j in _tmpJobs)
-                j.SelectionModeEnabled = _selectingJobs;
+            Job.SetSelectionMode(false);
+            ShowSelectionBar();
+
             var vt = lv_Jobs.GetVisualTreeDescendants();
 
             CheckBox cb;
@@ -1642,27 +1899,30 @@ public partial class WorkPlanner : ContentPage
             return;
         }
        
-        CheckBox cb;
+        StartSelectingJobs();
+    }
+
+    /// <summary>
+    /// turns the tick boxes on, with the job that was held already picked
+    /// when it was a hold that started it
+    /// </summary>
+    private void StartSelectingJobs(Job first = null)
+    {
         SwipeView sv;
-     
-
-
 
         _selectingJobs = true;
-        ColumnDefinition cd;
 
-
-
-        //Job.SelectionMode = _selectingJobs;
-        foreach (Job j in _tmpJobs)
-            j.SelectionModeEnabled = _selectingJobs;
-       // g_jobList.TranslationX = 0;
-        UpdateToolBarSelectJobs();
-      
-    
+        //nothing carried over from the last time
         _selectedJobs.Clear();
-        foreach (Job j in _sourceJobs)
-            j.IsSelected = false;
+        Job.SetSelectionMode(true);
+
+        UpdateToolBarSelectJobs();
+
+        if (first != null)
+            ToggleSelected(first);
+
+        ShowSelectionBar();
+
         var v = lv_Jobs.GetVisualTreeDescendants();
 
     
@@ -1941,7 +2201,6 @@ public partial class WorkPlanner : ContentPage
     private DateTime ViewBookingAtDate;
     private bool ViewBooking = false;
 
-    private Job _lastSelectedJob;
     private void lv_Jobs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
 
@@ -1949,23 +2208,18 @@ public partial class WorkPlanner : ContentPage
             return;
 
         Job j = lv_Jobs.SelectedItem as Job;
-        _lastSelectedJob = j;
 
         if (_selectingJobs)
         {
             lv_Jobs.SelectedItem = null;
-            //clicking anywhere on the row toggles the job while selecting
-            if (j != null && j.CustomerId != -1)
-            {
-                j.IsSelected = !j.IsSelected;
-                if (j.IsSelected)
-                {
-                    if (!_selectedJobs.Contains(j.Id))
-                        _selectedJobs.Add(j.Id);
-                }
-                else
-                    _selectedJobs.Remove(j.Id);
-            }
+
+            //the finger coming up off a hold arrives here as a tap, and would
+            //put straight back what the hold had just picked
+            if (HoldJustHappened)
+                return;
+
+            //tapping anywhere on the row picks the job while selecting
+            ToggleSelected(j);
             return;
         }
 
@@ -1999,14 +2253,11 @@ public partial class WorkPlanner : ContentPage
         bnt_cancel_booking.IsVisible = false;
         bnt_reschedule_booking.IsVisible = false;
           _selectingJobs = false;
-        //Job.SelectionMode = _selectingJobs;
-        foreach (Job j in _tmpJobs)
-            j.SelectionModeEnabled = _selectingJobs;
+        Job.SetSelectionMode(false);
         UpdateToolBarNoraml();
 
             _selectedJobs.Clear();
-            foreach (Job j in _sourceJobs)
-                j.IsSelected = false;
+            ShowSelectionBar();
         var vt = lv_Jobs.GetVisualTreeDescendants();
             CheckBox cb;
             SwipeView sv;
