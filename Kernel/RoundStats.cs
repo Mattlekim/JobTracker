@@ -40,6 +40,21 @@ namespace Kernel
     /// </summary>
     public class RoundStats
     {
+        /// <summary>what No Round is called when it is put on screen</summary>
+        public const string NoRound = "No Round";
+
+        /// <summary>
+        /// which round these figures are for. empty on the figures for the
+        /// whole round, which is everything added together
+        /// </summary>
+        public string Round = string.Empty;
+
+        /// <summary>the round's name as it is shown</summary>
+        public string RoundName
+        {
+            get { return string.IsNullOrWhiteSpace(Round) ? NoRound : Round; }
+        }
+
         /// <summary>how many houses are still to do</summary>
         public int HousesLeft;
 
@@ -137,10 +152,67 @@ namespace Kernel
         /// <summary>the figures as they stood on a given day, for testing</summary>
         public static RoundStats Now(DateTime today, int months)
         {
-            RoundStats stats = new RoundStats();
-
             //a copy, because the queries below hand back a buffer they share
-            List<Job> jobs = new List<Job>(Job.Query());
+            return Build(new List<Job>(Job.Query()), today, months, string.Empty, true);
+        }
+
+        /// <summary>
+        /// the same figures, a round at a time.
+        ///
+        /// A round is a patch of the work, so what is left on one says
+        /// nothing about the others: a day's worth still to do in the village
+        /// is a different thing from the same figure spread over everywhere.
+        /// The rounds come back in the order the work pages use - by name,
+        /// with the work nobody has put on a round last.
+        /// </summary>
+        public static List<RoundStats> ByRound(int months = 12)
+        {
+            return ByRound(UsfulFuctions.DateNow, months);
+        }
+
+        /// <summary>a round at a time, as they stood on a given day</summary>
+        public static List<RoundStats> ByRound(DateTime today, int months)
+        {
+            Dictionary<string, List<Job>> byRound = new Dictionary<string, List<Job>>(StringComparer.CurrentCultureIgnoreCase);
+
+            foreach (Job j in new List<Job>(Job.Query()))
+            {
+                string round = j.HaveRound ? j.Round.Trim() : string.Empty;
+
+                List<Job> onIt;
+                if (!byRound.TryGetValue(round, out onIt))
+                {
+                    onIt = new List<Job>();
+                    byRound[round] = onIt;
+                }
+
+                onIt.Add(j);
+            }
+
+            List<RoundStats> rounds = new List<RoundStats>();
+            foreach (KeyValuePair<string, List<Job>> pair in byRound)
+                rounds.Add(Build(pair.Value, today, months, pair.Key, false));
+
+            return rounds
+                .OrderBy(x => string.IsNullOrWhiteSpace(x.Round) ? 1 : 0)
+                .ThenBy(x => x.Round, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+        }
+
+        /// <summary>
+        /// works the figures out over one list of jobs.
+        /// </summary>
+        /// <param name="everyCustomer">
+        /// true to count what every customer owes, which is what the round as
+        /// a whole is asked for - somebody who owes money with no work left
+        /// still owes it. False counts only the customers with work on this
+        /// list, because a debt has to be put against the round it came off,
+        /// and each of them once however many houses they have on it
+        /// </param>
+        private static RoundStats Build(List<Job> jobs, DateTime today, int months, string round, bool everyCustomer)
+        {
+            RoundStats stats = new RoundStats();
+            stats.Round = round;
 
             Dictionary<string, MonthOfWork> byMonth = new Dictionary<string, MonthOfWork>();
             DateTime earliest = new DateTime(today.Year, today.Month, 1).AddMonths(-(months - 1));
@@ -195,12 +267,34 @@ namespace Kernel
                 .ThenByDescending(x => x.Month)
                 .ToList();
 
-            foreach (Customer c in Customer.Query())
-                if (c.Balance > 0)
+            if (everyCustomer)
+            {
+                foreach (Customer c in Customer.Query())
+                    if (c.Balance > 0)
+                    {
+                        stats.MoneyOwed += c.Balance;
+                        stats.CustomersOwing++;
+                    }
+            }
+            else
+            {
+                //the customers with work on this round, each counted once
+                //however many houses of theirs are on it
+                HashSet<int> counted = new HashSet<int>();
+
+                foreach (Job j in jobs)
                 {
-                    stats.MoneyOwed += c.Balance;
-                    stats.CustomersOwing++;
+                    if (!counted.Add(j.CustomerId))
+                        continue;
+
+                    Customer c = j.GetCustomer();
+                    if (c != null && c.Balance > 0)
+                    {
+                        stats.MoneyOwed += c.Balance;
+                        stats.CustomersOwing++;
+                    }
                 }
+            }
 
             return stats;
         }

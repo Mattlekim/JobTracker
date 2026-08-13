@@ -79,6 +79,16 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!--  ROUND BY ROUND. hidden while no work is on a round, when it
+                  would only say the same thing as the cards above  -->
+            <Border Style="{StaticResource Card}" x:Name="brd_rounds" IsVisible="false">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="By round" Style="{StaticResource SectionTitle}" />
+                    <Label x:Name="l_roundsNote" Style="{StaticResource Caption}"></Label>
+                    <VerticalStackLayout x:Name="vsl_rounds" Spacing="12"></VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
             <!--  MONTH BY MONTH  -->
             <Border Style="{StaticResource Card}">
                 <VerticalStackLayout Spacing="10">

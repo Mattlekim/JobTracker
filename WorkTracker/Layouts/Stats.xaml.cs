@@ -45,7 +45,95 @@ public partial class Stats : ContentPage
         l_roundNote.Text = "Worked out from how often each house is done, so one done every four weeks counts for "
             + "more than one done every eight. One offs are left out - they are not coming round again.";
 
+        BuildRounds();
         BuildMonths(stats);
+    }
+
+    /// <summary>
+    /// The same figures a round at a time.
+    ///
+    /// A round is a patch of the work, so the totals above say nothing about
+    /// how any one of them is doing: half a day left is a different thing
+    /// again depending on whether it is all in one village or spread over
+    /// three. Only the figures that mean something per round are here - the
+    /// months are the round's takings as a whole and stay in one place.
+    /// </summary>
+    private void BuildRounds()
+    {
+        vsl_rounds.Clear();
+
+        //nothing is on a round, so this would be one row saying what the
+        //cards above already say
+        if (Job.RoundsInUse().Count == 0)
+        {
+            brd_rounds.IsVisible = false;
+            return;
+        }
+
+        List<RoundStats> rounds = RoundStats.ByRound(Months);
+
+        brd_rounds.IsVisible = rounds.Count > 0;
+        l_roundsNote.Text = "What is still to do on each, and what each is worth in a month.";
+
+        foreach (RoundStats round in rounds)
+            vsl_rounds.Add(RoundRow(round));
+    }
+
+    private View RoundRow(RoundStats round)
+    {
+        VerticalStackLayout rows = new VerticalStackLayout() { Spacing = 2 };
+
+        Grid top = new Grid()
+        {
+            ColumnSpacing = 8,
+            ColumnDefinitions =
+            {
+                new ColumnDefinition() { Width = GridLength.Star },
+                new ColumnDefinition() { Width = GridLength.Auto },
+            },
+        };
+
+        top.Add(new Label()
+        {
+            Text = round.RoundName,
+            FontAttributes = FontAttributes.Bold,
+            FontSize = 15,
+            LineBreakMode = LineBreakMode.TailTruncation,
+            VerticalOptions = LayoutOptions.Center,
+        }, 0);
+
+        top.Add(new Label()
+        {
+            Text = $"{Money(round.ValueLeft)} left",
+            FontAttributes = FontAttributes.Bold,
+            FontSize = 15,
+            TextColor = Color.FromArgb("#2E7D32"),
+            VerticalOptions = LayoutOptions.Center,
+        }, 1);
+
+        rows.Add(top);
+
+        //the houses left, how long they will take and what the round is
+        //worth a month, in one line under the name
+        string houses = round.HousesLeft == 1 ? "1 house" : $"{round.HousesLeft} houses";
+        string line = $"{houses} · {round.FormattedTimeLeft} · {Money(round.ValuePerMonth)} a month";
+
+        if (round.HousesOverdue > 0)
+            line += $" · {round.HousesOverdue} overdue";
+
+        if (round.MoneyOwed > 0)
+            line += $" · {Money(round.MoneyOwed)} owed";
+
+        rows.Add(new Label()
+        {
+            Text = line,
+            FontSize = 12,
+            TextColor = Application.Current.PlatformAppTheme == AppTheme.Dark
+                ? Color.FromArgb("#9CA3AF")
+                : Color.FromArgb("#6B7280"),
+        });
+
+        return rows;
     }
 
     private void BuildMonths(RoundStats stats)
