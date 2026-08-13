@@ -473,6 +473,11 @@
                                 <!-- the flags get a line of their own so a long one
                                      cannot push the others off the screen -->
                                 <HorizontalStackLayout Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Spacing="4" Margin="0,2,0,0">
+                                    <Label Text="{Binding Round}" TextColor="White" BackgroundColor="#5E35B1" IsVisible="{Binding HaveRound}" Padding="4,2" FontSize="12" FontAttributes="Bold" LineBreakMode="TailTruncation">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="Job_Round_Filter"></TapGestureRecognizer>
+                                        </Label.GestureRecognizers>
+                                    </Label>
                                     <Label Text="One off" TextColor="White" BackgroundColor="#546E7A" IsVisible="{Binding ShowOneOff}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <Label Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>

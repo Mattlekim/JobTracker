@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.NewJob"
@@ -52,6 +52,13 @@
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Job type" Style="{StaticResource Caption}" />
                             <Picker x:Name="p_JobType"></Picker>
+                        </VerticalStackLayout>
+
+                        <!-- which round the work is on. the list is set up on
+                             the settings page; No Round is always offered -->
+                        <VerticalStackLayout x:Name="vsl_round" Spacing="2">
+                            <Label Text="Round" Style="{StaticResource Caption}" />
+                            <Picker x:Name="p_round"></Picker>
                         </VerticalStackLayout>
 
                         <Grid ColumnSpacing="12">

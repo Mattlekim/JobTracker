@@ -1,4 +1,4 @@
-namespace UiInterface.Layouts;
+﻿namespace UiInterface.Layouts;
 using Kernel;
 public partial class NewJob : ContentPage
 {
@@ -42,6 +42,7 @@ public partial class NewJob : ContentPage
        
 
         p_JobType.ItemsSource = Job.JobNames;
+        BuildRoundPicker();
         NavigatedTo += NewJob_NavigatedTo;
 
         cb_differentAddress.CheckedChanged += Cb_differentAddress_CheckedChanged;
@@ -145,6 +146,10 @@ public partial class NewJob : ContentPage
         //before
         g_differentAddress.IsVisible = false;
         bd_messaging.IsVisible = false;
+
+        //which round it goes on is a question for when the work is taken on,
+        //not for pricing it up
+        vsl_round.IsVisible = false;
     }
 
     /// <summary>
@@ -166,6 +171,52 @@ public partial class NewJob : ContentPage
 
         if (Job.JobNames.Count > 0)
             p_JobType.SelectedItem = Job.DefaultJobName;
+    }
+
+    /// <summary>what No Round reads as in the picker</summary>
+    private const string NoRound = "No Round";
+
+    /// <summary>
+    /// the rounds to pick from, with No Round at the top. always offered,
+    /// because taking work back off a round has to be possible and a round
+    /// is not something every job has
+    /// </summary>
+    private void BuildRoundPicker()
+    {
+        List<string> rounds = new List<string>() { NoRound };
+
+        foreach (string r in Job.RoundNames)
+            if (!string.IsNullOrWhiteSpace(r))
+                rounds.Add(r);
+
+        p_round.ItemsSource = rounds;
+        p_round.SelectedItem = NoRound;
+    }
+
+    /// <summary>
+    /// picks the job's round. one that has been taken off the settings list
+    /// is put back on it rather than dropped - the work is still on it, and
+    /// silently moving it to No Round would lose that
+    /// </summary>
+    private void SelectRound(string round)
+    {
+        if (string.IsNullOrWhiteSpace(round))
+        {
+            p_round.SelectedItem = NoRound;
+            return;
+        }
+
+        if (Job.RememberRound(round))
+            BuildRoundPicker();
+
+        p_round.SelectedItem = round;
+    }
+
+    /// <summary>the round picked, or blank for No Round</summary>
+    private string ChosenRound()
+    {
+        string picked = p_round.SelectedItem as string;
+        return string.IsNullOrWhiteSpace(picked) || picked == NoRound ? string.Empty : picked;
     }
 
     /// <summary>
@@ -271,6 +322,7 @@ public partial class NewJob : ContentPage
                 p_ballenceType.SelectedItem = "Credit";
                 t_description.Text = string.Empty;
                 SelectJobType(null);
+                SelectRound(null);
                 t_notes.Text = string.Empty;
 
                 e_estimatedDruation.Text = $"{Settings.DefaultJobDuration}";
@@ -344,6 +396,7 @@ public partial class NewJob : ContentPage
             ShowFrequency();
 
             SelectJobType(JobToAdd.Name);
+            SelectRound(JobToAdd.Round);
             t_description.Text = JobToAdd.Description;
             t_notes.Text = JobToAdd.Notes;
             t_price.Text = JobToAdd.Price.ToString();
@@ -613,6 +666,7 @@ public partial class NewJob : ContentPage
 
 
         JobToAdd.Name = ChosenJobType();
+        JobToAdd.SetRound(ChosenRound());
 
         float price;
         if (!TryRead(t_price, out price))

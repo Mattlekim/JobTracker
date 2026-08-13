@@ -311,6 +311,29 @@ that.
 file. The other way round, work with no type gets the first *built in* type rather than the first of this round's
 own. Only what is in memory is changed — the file catches up on the next save, like the other tidy ups done on load.
 
+## Rounds
+
+A round is a patch of the work — a village, a day of the week, whatever it is actually split into. `Job.Round`
+is a plain string on the job (blank for work that is not on one) with `Job.RoundNames` as the list to pick from,
+edited on the settings page and saved with the settings like `JobNames` and `TagNames`. It starts **empty**:
+a round is named by whoever has one, and a made up default would only be in the way.
+
+Unlike a tag it belongs to the job rather than to one visit, so **`Job.DeepCopy` does carry it over** — the next
+clean at a house is on the same round as the last one.
+
+Both work pages put it first: `Layouts/WorkPlanner` sorts by round then by date, and `Layouts/PaperView` groups by
+round *and* street (a street worked on two rounds is two lots of work) with a heading naming each round. Work on
+no round sorts **last** rather than first, so what nobody has organised is not the top of every page. The paper
+view only draws round headings when some work is actually on a round, so a round nobody uses changes nothing.
+
+Filtering: tap the round tag on a job row in the work list, or pick Round from the paper view's View menu
+(`Kernal/Fiilters/RoundFilter`, which offers the rounds work is really on plus No Round — the rounds *in use*
+rather than the settings list, because a round taken off that list still has its work).
+
+`Layouts/RoundPicker` is the one place that asks which round. **Put On A Round** on the work list's selection
+toolbar is what makes this usable on an existing round: filling one in a house at a time through the job form is
+not something anybody will do.
+
 ## Filtering the work list
 
 Two things narrow `Layouts/WorkPlanner`, and they are not the same kind of thing:

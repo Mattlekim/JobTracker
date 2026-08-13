@@ -145,6 +145,48 @@ namespace Kernel
             return true;
         }
 
+        /// <summary>
+        /// The rounds work can belong to - a patch, a village, a day of the
+        /// week, whatever the work is actually split into.
+        ///
+        /// Empty to start with, because a round is a thing somebody names
+        /// themselves: there is no sensible default and a made up one would
+        /// only be in the way. Edited on the settings page and saved with the
+        /// settings, like <see cref="JobNames"/> and <see cref="TagNames"/>.
+        /// </summary>
+        public static List<string> RoundNames = new List<string>();
+
+        /// <summary>
+        /// puts a round on the list to pick from. matched without case, so a
+        /// round typed in twice does not become two rounds
+        /// </summary>
+        public static bool RememberRound(string round)
+        {
+            round = TidyTag(round);
+            if (round.Length == 0
+                || RoundNames.Exists(x => string.Equals(x, round, StringComparison.CurrentCultureIgnoreCase)))
+                return false;
+
+            RoundNames.Add(round);
+            return true;
+        }
+
+        /// <summary>
+        /// every round that has work on it, whether it is on the list to pick
+        /// from or not - a round taken off that list still has its work
+        /// </summary>
+        public static List<string> RoundsInUse()
+        {
+            List<string> rounds = new List<string>();
+
+            foreach (Job j in _Jobs)
+                if (j.HaveRound && !rounds.Exists(x => string.Equals(x, j.Round, StringComparison.CurrentCultureIgnoreCase)))
+                    rounds.Add(j.Round);
+
+            rounds.Sort(StringComparer.CurrentCultureIgnoreCase);
+            return rounds;
+        }
+
         public GridLength Gr { get; set; } = new GridLength(0.3, GridUnitType.Star);
 
         /// <summary>
@@ -473,6 +515,59 @@ namespace Kernel
         /// any notes for this instance of job
         /// </summary>
         public string JobInstanceNotes = string.Empty;
+
+        /// <summary>
+        /// The round this work belongs to, or blank for work that has not
+        /// been put on one.
+        ///
+        /// Unlike a tag it belongs to the job rather than to one visit, so
+        /// <see cref="DeepCopy"/> carries it over: the next visit to a house
+        /// is on the same round as the last one.
+        /// </summary>
+        public string Round = string.Empty;
+
+        [XmlIgnore]
+        public bool HaveRound
+        {
+            get { return !string.IsNullOrWhiteSpace(Round); }
+        }
+
+        /// <summary>the round as a heading, for work that is not on one</summary>
+        [XmlIgnore]
+        public string RoundOrNone
+        {
+            get { return HaveRound ? Round : "No Round"; }
+        }
+
+        /// <summary>
+        /// what the lists sort on. work with no round goes last rather than
+        /// first: a blank sorts before everything, which would put the work
+        /// nobody has organised at the top of every page
+        /// </summary>
+        [XmlIgnore]
+        public int SortRoundFirst
+        {
+            get { return HaveRound ? 0 : 1; }
+        }
+
+        [XmlIgnore]
+        public string SortRound
+        {
+            get { return HaveRound ? Round.Trim() : string.Empty; }
+        }
+
+        /// <summary>
+        /// puts this job on a round, and remembers the round for next time.
+        /// blank takes it off whatever round it was on
+        /// </summary>
+        public void SetRound(string round)
+        {
+            Round = TidyTag(round);
+            RememberRound(Round);
+            RaisePropertyChanged("Round");
+            RaisePropertyChanged("HaveRound");
+            RaisePropertyChanged("RoundOrNone");
+        }
 
         private List<string> _tags = new List<string>();
 
@@ -865,6 +960,9 @@ namespace Kernel
             RaisePropertyChanged("IsOneOff");
             RaisePropertyChanged("ShowOneOff");
             RaisePropertyChanged("CanDoAgain");
+            RaisePropertyChanged("Round");
+            RaisePropertyChanged("HaveRound");
+            RaisePropertyChanged("RoundOrNone");
             RefreshTags();
         }
 
@@ -1367,6 +1465,9 @@ namespace Kernel
             foreach (string tag in Tags)
                 if (Has(tag, search))
                     return true;
+
+            if (Has(Round, search))
+                return true;
 
             MatchCustomer();
             if (_customer != null)
@@ -1942,6 +2043,9 @@ namespace Kernel
             job.Price = Price;
             job.TNB = TNB;
             job.HaveCanceled = HaveCanceled;
+            //the round is the job's, not the visit's: the next clean at a
+            //house is on the same round as the last one
+            job.Round = Round;
             //Tags are deliberately left off: they say what happened on one
             //visit, so the next visit starts with a clean sheet
             if (this.AlternativePrices != null)
