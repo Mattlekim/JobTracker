@@ -323,8 +323,10 @@ Two things narrow `Layouts/WorkPlanner`, and they are not the same kind of thing
   else like *this one*.
 
 The filter panel is the work list's `CollectionView.Header`, not a pinned row above it: it is a big thing to
-leave taking up a phone screen, so scrolling takes it out of the way. That is also why opening it scrolls back to
-the top (`ScrollToTheTop`) — a panel at the top of the list's content is off screen if the list is scrolled, and
+leave taking up a phone screen, so scrolling takes it out of the way. **Closing it takes it off the list
+altogether** (`ShowFilterPanel` sets `lv_Jobs.Header` to null) rather than only hiding it — a header that is
+merely invisible still holds its place, which left the top job sitting a panel's worth of empty space down the
+screen. That is also why opening it scrolls back to the top (`ScrollToTheTop`) — a panel at the top of the list's content is off screen if the list is scrolled, and
 the button would look like it had done nothing. The small bars — the tag bar, what is selected, and what is being
 filtered by — stay pinned, because those have to be on screen to be any use.
 

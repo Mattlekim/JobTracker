@@ -134,6 +134,11 @@ public partial class WorkPlanner : ContentPage
         dp_StartSearchDate.Date = StartFilterDate;
         dp_EndSearchDate.Date = EndFilterDate;
 
+        //the panel is the list's header in the xaml and it starts closed, so
+        //it comes straight back off again - otherwise the list opens with an
+        //empty panel's worth of space above the first job
+        ShowFilterPanel(false);
+
         //built from the booked jobs rather than added to what is already
         //there - opening this page used to pile another copy of every
         //booking on top of the last
@@ -1634,7 +1639,21 @@ public partial class WorkPlanner : ContentPage
 
     private void bnt_hideFilter(object sender, EventArgs e)
     {
-        g_filter.IsVisible = false;
+        ShowFilterPanel(false);
+    }
+
+    /// <summary>
+    /// Opens or closes the filter panel.
+    ///
+    /// It comes off the list altogether rather than just being hidden. A
+    /// header that is only made invisible still holds its place, so the top
+    /// job sat a panel's worth of empty space down the screen with nothing
+    /// in it. Taken off, the work starts where the list starts.
+    /// </summary>
+    private void ShowFilterPanel(bool show)
+    {
+        g_filter.IsVisible = show;
+        lv_Jobs.Header = show ? g_filter : null;
     }
 
     /// <summary>
@@ -1643,7 +1662,7 @@ public partial class WorkPlanner : ContentPage
     /// </summary>
     private void l_filterText_Clicked(object sender, EventArgs e)
     {
-        g_filter.IsVisible = !g_filter.IsVisible;
+        ShowFilterPanel(!g_filter.IsVisible);
 
         if (!g_filter.IsVisible)
             return;
