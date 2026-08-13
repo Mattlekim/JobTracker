@@ -531,87 +531,10 @@ public partial class WorkPlanner : ContentPage
             j.MarkJobDone();
             if (j.TAC)
                 TextCustomerReceipt(j, page);
-
-            //whatever this customer's way of paying needs doing, done here
-            //rather than left to be remembered
-            AskForTheMoney(j, page);
         }
 
         j.Refresh();
         j.RefreshColors();
-    }
-
-    /// <summary>
-    /// The money side of marking a job done, for the customers whose way of
-    /// paying has something to do: a direct debit to collect, or a PayPal
-    /// link to send. Everybody else is untouched - the work goes on their
-    /// balance and is settled however it always was.
-    ///
-    /// It asks first. Both of these are things the customer sees - money
-    /// leaving their bank, or a message arriving - and a swipe that did
-    /// either of them silently would be a swipe nobody could take back. The
-    /// point is that it comes to you rather than having to be gone looking
-    /// for.
-    ///
-    /// Nothing is marked paid here either way. A direct debit is marked paid
-    /// when it clears; a PayPal link is marked paid when the money lands on
-    /// the statement.
-    /// </summary>
-    private static async void AskForTheMoney(Job j, Page page)
-    {
-        Customer c = j?.GetCustomer();
-        if (c == null || page == null)
-            return;
-
-        //already dealt with, or on its way
-        if (j.IsPaidFor || j.PaymentPending)
-            return;
-
-        //the job's price has just gone on, so this is what they owe now
-        float owed = c.Balance;
-        if (owed <= 0)
-            return;
-
-        string who = $"{c.FName} {c.SName}".Trim();
-
-        if (c.NormalPaymentMethord == PaymentMethod.GoCardless && c.HasGoCardless() && GoCardless.IsConnected)
-        {
-            if (!await page.DisplayAlert("Collect By Direct Debit",
-                $"{who} owes {Gloable.CurrenceSymbol}{owed:0.00}. Collect it by direct debit?",
-                "Collect", "Not Now"))
-                return;
-
-            await RequestGoCardlessPayment(j, owed, page);
-            return;
-        }
-
-        if (c.PaysByPayPal() && PayPal.IsSetUp)
-        {
-            if (!await page.DisplayAlert("Ask For Payment",
-                $"{who} owes {Gloable.CurrenceSymbol}{owed:0.00}. Send them a PayPal link for it?",
-                "Send", "Not Now"))
-                return;
-
-            string message = PayPal.MessageFor(owed);
-            List<Job> jobs = new List<Job>() { j };
-
-            //texted when there is a number for them, emailed when there is
-            //not: a link is no use sitting in an app nobody opened
-            if (!string.IsNullOrWhiteSpace(c.Phone))
-            {
-                await TextCustomers(jobs, UsfulFuctions.DateNow, message, page, false);
-                return;
-            }
-
-            if (!string.IsNullOrWhiteSpace(c.PayPalContact))
-            {
-                await EmailPayPalLink(c, message, page);
-                return;
-            }
-
-            await page.DisplayAlert("Ask For Payment",
-                $"There is no phone number or email for {who}, so there is nowhere to send the link.", "Ok");
-        }
     }
 
     /// <summary>
@@ -2171,37 +2094,6 @@ public partial class WorkPlanner : ContentPage
             //     ActivityCompat.RequestPermissions(WorkTracker.AndroidGloable.Main_Activity, new string[] { Manifest.Permission.SendSms }, result);
         }
 #endif
-    }
-
-    /// <summary>
-    /// emails one customer their PayPal link.
-    ///
-    /// Not through EmailCustomers, which sends to whatever address a customer
-    /// is emailed everything else at. A PayPal request goes to their PayPal
-    /// address when they have given a different one, which is the whole
-    /// reason for that field.
-    /// </summary>
-    public async static Task EmailPayPalLink(Customer c, string message, Page page)
-    {
-        try
-        {
-            EmailMessage email = new EmailMessage
-            {
-                Subject = "Window Cleaning",
-                Body = message,
-                To = new List<string> { c.PayPalContact },
-            };
-
-            await Email.ComposeAsync(email);
-        }
-        catch (FeatureNotSupportedException)
-        {
-            await page.DisplayAlert("Failed", "Email is not supported on this device.", "OK");
-        }
-        catch (Exception ex)
-        {
-            await page.DisplayAlert("Failed", ex.Message, "OK");
-        }
     }
 
     /// <summary>

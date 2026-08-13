@@ -253,28 +253,6 @@ Two separate things, neither of which needs an account connecting or a key pasti
   third layout alongside csv and pdf, and money in off one is recorded as `PaymentMethod.Paypal`
   (`StatmentViewer.ImportedPaymentMethod`) rather than Bank.
 
-## How a customer pays, and what marking work done does about it
-
-`Customer.NormalPaymentMethord` is edited on `Layouts/ViewCustomerDetails` rather than only on the new customer
-form, because it is what marking their work done then acts on. The card under the balance holds it, along with
-whatever that way of paying needs: a PayPal email (blank means their normal one — `Customer.PayPalContact`), or
-the GoCardless mandate, which can be found through the API or typed in for a round taken over from somebody who
-was already collecting.
-
-`WorkPlanner.AskForTheMoney` is what runs when a job is marked done, off the back of `MarkJobDone` where the
-text-after-completion already lived. A GoCardless customer is offered a collection for what they owe; a PayPal
-customer is offered a link for it. Everybody else is untouched.
-
-**It asks first, and it does not mark anything paid.** Both of these are things the customer sees — money leaving
-their bank, or a message arriving — so a swipe must not do either silently. A direct debit is marked paid when it
-clears, a PayPal link when the money lands on the statement. The amount is `Customer.Balance` *after* the job has
-gone on, so it asks for everything owed rather than just today's clean.
-
-The paper view marks work done without going through `MarkJobDone`, so writing a round up there does not ask for
-money house by house. That is deliberate: it is a bulk write-up, not a round being worked.
-
-## PayPal statements
-
 The amount taken is PayPal's **Gross** — what the customer actually sent — so a job paid by PayPal clears the
 balance to the penny. The fee is in a column of its own and is not brought in; the import says so. Taking the net
 instead would leave every customer a few pence short for ever.

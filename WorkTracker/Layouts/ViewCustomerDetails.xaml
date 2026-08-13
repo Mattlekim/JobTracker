@@ -56,40 +56,6 @@
 
 
 
-        <!-- How this customer pays, and whatever that way of paying needs.
-             Marking their work done then does it by itself rather than
-             leaving it to be remembered -->
-        <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Margin="8,0" Padding="10">
-            <VerticalStackLayout Spacing="6">
-                <HorizontalStackLayout Spacing="8">
-                    <Label Text="Pays by" VerticalOptions="Center" FontAttributes="Bold"></Label>
-                    <Picker x:Name="p_paysBy" SelectedIndexChanged="p_paysBy_Changed" MinimumWidthRequest="140"></Picker>
-                </HorizontalStackLayout>
-
-                <!--  PAYPAL  -->
-                <VerticalStackLayout x:Name="vsl_payPal" IsVisible="false" Spacing="2">
-                    <Label Text="PayPal email (leave blank to use their normal email)" FontSize="12" TextColor="{StaticResource MidGray}"></Label>
-                    <Entry x:Name="e_payPalEmail" Placeholder="their PayPal email" Keyboard="Email" TextChanged="e_payPalEmail_Changed"></Entry>
-                    <Label x:Name="l_payPalState" FontSize="12" TextColor="{StaticResource MidGray}"></Label>
-                </VerticalStackLayout>
-
-                <!--  GOCARDLESS  -->
-                <VerticalStackLayout x:Name="vsl_goCardless" IsVisible="false" Spacing="2">
-                    <Label x:Name="l_gcState" FontSize="12" TextColor="{StaticResource MidGray}"></Label>
-                    <HorizontalStackLayout Spacing="8">
-                        <Button x:Name="bnt_gcLink" Text="Find In GoCardless" Clicked="bnt_gcLink_Clicked" FontSize="12" Padding="12,4" CornerRadius="8"
-                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5"></Button>
-                        <Button x:Name="bnt_gcByHand" Text="Type It In" Clicked="bnt_gcByHand_Clicked" FontSize="12" Padding="12,4" CornerRadius="8"
-                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="{StaticResource MidGray}" TextColor="{StaticResource MidGray}"></Button>
-                        <Button x:Name="bnt_gcUnlink" Text="Unlink" Clicked="bnt_gcUnlink_Clicked" IsVisible="false" FontSize="12" Padding="12,4" CornerRadius="8"
-                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="#E53935" TextColor="#E53935"></Button>
-                    </HorizontalStackLayout>
-                </VerticalStackLayout>
-
-                <Label x:Name="l_onDone" FontSize="12" TextColor="{StaticResource MidGray}"></Label>
-            </VerticalStackLayout>
-        </Border>
-
         <Label Text="_________________________________" HorizontalOptions="Center"></Label>
         <Label Text="History" FontAttributes="Bold" FontSize="Title" HorizontalOptions="Center"></Label>
         

@@ -355,31 +355,6 @@ namespace Kernel
         public List<string> PaymentRefrences = new List<string>();
 
         /// <summary>
-        /// where a PayPal request goes, when it is not the address they are
-        /// emailed everything else at. blank means use their normal email
-        /// </summary>
-        public string PayPalEmail = string.Empty;
-
-        /// <summary>
-        /// the address to send a PayPal payment link to. most people use one
-        /// address for everything, so the normal one stands in
-        /// </summary>
-        public string PayPalContact
-        {
-            get { return string.IsNullOrWhiteSpace(PayPalEmail) ? Email : PayPalEmail; }
-        }
-
-        /// <summary>
-        /// this customer is set up to be asked for money through PayPal.
-        /// there is nothing to link - it is a link sent to them - so all it
-        /// takes is saying that is how they pay
-        /// </summary>
-        public bool PaysByPayPal()
-        {
-            return NormalPaymentMethord == PaymentMethod.Paypal;
-        }
-
-        /// <summary>
         /// the customer id (CUxxxx) in GoCardless once linked
         /// </summary>
         public string GoCardlessCustomerId = string.Empty;
