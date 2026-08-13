@@ -137,6 +137,20 @@ Three things keep that from coming back, and all three are needed:
 Alerts go through `Say`/`Confirm`, which do nothing when the page has gone. An alert put up on a page that has been
 navigated away from never returns, and that would hang the caller — the very thing being fixed.
 
+## Filling a number and an email in from the phone's contacts
+
+`WorkTracker/ContactFill.cs` opens the phone's own contact picker and hands back the name, number and email, so a
+customer taken down on the doorstep is not typed in twice. A contact with more than one number or email is asked
+about rather than guessed at, and a field the contact has nothing for is left as it stands, so it can be used to
+top up somebody half filled in. The contacts API offers no postal address, so the address is still typed (or
+taken from where the phone is standing, above). It needs `READ_CONTACTS` in the Android manifest, and it says so
+plainly when the device cannot pick a contact at all — Windows cannot.
+
+It is on **`Layouts/NewCustomer`**, **`Layouts/QuickAddCustomer`** and **`Layouts/NewJob`**. On the job form the
+name is only filled in when there is nothing there yet: unlike the other two, that form is also how an existing
+customer is edited, and going to your contacts to put a number on somebody you already have does not mean asking
+for the name you gave them to be replaced by whatever the contact is filed under.
+
 ## Quotes
 
 A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never

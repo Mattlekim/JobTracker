@@ -944,6 +944,33 @@ public partial class NewJob : ContentPage
     }
 
     /// <summary>
+    /// fills the customer's number and email in from the phone's own
+    /// contacts, so a number does not have to be read out and typed in.
+    ///
+    /// The name is only filled in when there is nothing there yet. Unlike the
+    /// two forms that only ever add somebody, this one is also how an
+    /// existing customer is edited - and somebody going to their contacts to
+    /// put a number on a customer they already have does not mean to have the
+    /// name they gave them replaced by whatever the contact is filed under.
+    /// A field the contact has nothing for is left as it stands either way.
+    /// </summary>
+    private async void bnt_FromContacts(object sender, EventArgs e)
+    {
+        ContactFill.Details picked = await ContactFill.PickAsync(this);
+        if (picked == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(picked.Name) && string.IsNullOrWhiteSpace(t_customerName.Text))
+            t_customerName.Text = picked.Name;
+
+        if (!string.IsNullOrWhiteSpace(picked.Phone))
+            t_customerPhone.Text = picked.Phone;
+
+        if (!string.IsNullOrWhiteSpace(picked.Email))
+            t_customerEmail.Text = picked.Email;
+    }
+
+    /// <summary>
     /// fills the job address in from where the phone is standing. the house
     /// number is left alone - a phone is not accurate enough to be trusted
     /// with which house it is outside
