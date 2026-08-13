@@ -97,6 +97,8 @@ public partial class ViewCustomerDetails : ContentPage
         l_phone.Text = c.Phone;
         l_email.Text = c.Email;
 
+        ShowJobDuration();
+
 
 
     }
@@ -457,5 +459,25 @@ public partial class ViewCustomerDetails : ContentPage
             OnJobDetialsUpdated(CurrentJob);
     }
 
+    /// <summary>
+    /// how long this job takes, its own estimate or the round's usual said
+    /// plainly - the figure is no use if it is not clear which of the two it
+    /// is
+    /// </summary>
+    private void ShowJobDuration()
+    {
+        l_jobDuration.Text = JobDuration.Describe(CurrentJob);
+    }
+
+    private async void bnt_changeDuration_Clicked(object sender, EventArgs e)
+    {
+        if (!await JobDuration.ChangeAsync(CurrentJob, this))
+            return;
+
+        ShowJobDuration();
+
+        if (OnJobDetialsUpdated != null)
+            OnJobDetialsUpdated(CurrentJob);
+    }
 }
 
