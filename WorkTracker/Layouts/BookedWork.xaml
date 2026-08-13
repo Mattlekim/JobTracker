@@ -100,10 +100,16 @@
 
                     <Border StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="8,3"
                             BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+                        <!-- holding a row brings up everything that can be
+                             done to it, the swipe actions included. the
+                             behaviour is what does it on a phone; the pointer
+                             events are never raised for a finger and only do
+                             the timing on a desktop -->
+                        <Border.Behaviors>
+                            <controls:LongPressBehavior/>
+                        </Border.Behaviors>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="job_Tapped" CommandParameter="{Binding .}"/>
-                            <!-- holding a row brings up everything that can be
-                                 done to it, the swipe actions included -->
                             <PointerGestureRecognizer PointerPressed="Job_PointerPressed"
                                                       PointerMoved="Job_PointerMoved"
                                                       PointerReleased="Job_PointerReleased"

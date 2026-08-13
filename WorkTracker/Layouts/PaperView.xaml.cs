@@ -1888,9 +1888,12 @@ public partial class PaperView : ContentPage
         options.Add("City");
         options.Add("Area");
         options.Add("Round");
-        options.Add("Group");
-        string result = await DisplayActionSheet("Select View", null, null, options.ToArray());
-        if (result == null)
+
+        //Group was on this list with nothing behind it, so picking it put the
+        //sheet away and changed nothing. under a button labelled Filters that
+        //reads as a filter that does not work
+        string result = await DisplayActionSheet("Filter The List", "Cancel", null, options.ToArray());
+        if (result == null || result == "Cancel")
             return;
         switch (result)
 		{

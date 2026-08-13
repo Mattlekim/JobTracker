@@ -4,12 +4,10 @@
              xmlns:controls="clr-namespace:UiInterface.Controles"
              x:Class="UiInterface.Layouts.WorkPlanner"
              Title="WorkPlanner">
-    <!-- the toolbar items keep their Text as well as the icon: it is what
-         Android shows on a long press and what the ... menu reads, so an
-         icon never leaves somebody guessing -->
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Search" IconImageSource="search.png" Clicked="tbi_Search_Clicked"></ToolbarItem>
-    </ContentPage.ToolbarItems>
+    <!-- the toolbar is built in code (UpdateToolBar) rather than here,
+         because what is on it depends on what the page is doing and every
+         mode rebuilds it. an item put on here is thrown away by the first
+         rebuild and never comes back, which is what happened to Search. -->
 
 
     <Grid x:Name="g_root">
@@ -354,10 +352,13 @@
                         <!-- Holding a row starts picking jobs out, with that
                              one already picked.
 
-                             The tap recogniser is not spare: android only
-                             delivers touches to a view that is handling them,
-                             so without it the hold below never gets a finger
-                             down to time. -->
+                             The behaviour is what does it on a phone: the
+                             pointer events below are never raised for a
+                             finger, so on android the hold is left to android
+                             itself. They still do the timing on a desktop. -->
+                        <Border.Behaviors>
+                            <controls:LongPressBehavior/>
+                        </Border.Behaviors>
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="job_Row_Tapped" CommandParameter="{Binding .}"/>
                             <PointerGestureRecognizer PointerPressed="Job_PointerPressed"

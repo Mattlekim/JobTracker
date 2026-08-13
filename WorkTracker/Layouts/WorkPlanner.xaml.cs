@@ -18,13 +18,14 @@ using Android.Content.PM;
 {AppThemeBinding Light=White, Dark=Black}
 */
 using System.ComponentModel;
+using UiInterface.Controles;
 
 public class BookingCatch
 {
     public string Date;
     public List<Job> Jobs;
 }
-public partial class WorkPlanner : ContentPage
+public partial class WorkPlanner : ContentPage, IHoldRows
 {
 
     private const string bntAddText = "Add Job";
@@ -46,6 +47,7 @@ public partial class WorkPlanner : ContentPage
     }
 
 
+    public ToolbarItem bnt_search;
     public ToolbarItem bnt_Filters;
     public ToolbarItem bnt_addNewJob;
     public ToolbarItem bnt_selectJobs;
@@ -56,30 +58,83 @@ public partial class WorkPlanner : ContentPage
     public ToolbarItem bnt_cancelSelection;
     public ToolbarItem bnt_setRound;
 
-    public void UpdateToolBarSelectJobs()
+    /// <summary>what the page is doing, which is what the toolbar says</summary>
+    private enum ToolBarMode
+    {
+        Normal,
+        SelectingJobs,
+        ViewingBooking
+    }
+
+    private ToolBarMode _toolBarMode = ToolBarMode.Normal;
+
+    /// <summary>
+    /// The one place the toolbar is built, from what the page is doing at the
+    /// time it is asked.
+    ///
+    /// Every mode used to build it for itself, and all three started by
+    /// emptying it - which threw away Search, because that one was put on in
+    /// the xaml and never put back. Picking jobs out once and coming back out
+    /// of it was enough to lose it for the rest of the run. Filters and Select
+    /// Jobs went the other way: they were added in the constructor if the
+    /// round had work at that moment, so a first run, or a page built before
+    /// the jobs were loaded, had a toolbar with nothing on it but Add Job and
+    /// no way of getting the rest back.
+    ///
+    /// So nothing is remembered here: the items are worked out again every
+    /// time, and this is called on the way back to the page as well as on
+    /// every change of mode.
+    /// </summary>
+    private void UpdateToolBar()
     {
         this.ToolbarItems.Clear();
-        this.ToolbarItems.Add(bnt_cancelSelection);
-        this.ToolbarItems.Add(bnt_bookInWork);
-        this.ToolbarItems.Add(bnt_setRound);
-        this.ToolbarItems.Add(bnt_textCustomers);
-        this.ToolbarItems.Add(bnt_CreateGroup);
+
+        //search is on every mode: finding a house is not something to be
+        //stopped from doing by what else the page happens to be showing
+        this.ToolbarItems.Add(bnt_search);
+
+        if (_toolBarMode == ToolBarMode.ViewingBooking)
+            return;
+
+        if (_toolBarMode == ToolBarMode.SelectingJobs)
+        {
+            this.ToolbarItems.Add(bnt_cancelSelection);
+            this.ToolbarItems.Add(bnt_bookInWork);
+            this.ToolbarItems.Add(bnt_setRound);
+            this.ToolbarItems.Add(bnt_textCustomers);
+            this.ToolbarItems.Add(bnt_CreateGroup);
+            return;
+        }
+
+        //filtering and picking out are about work that is there. asked again
+        //every time, so the first job added brings them with it
+        bool haveWork = Job.Query().Count > 0;
+
+        if (haveWork)
+            this.ToolbarItems.Add(bnt_Filters);
+
+        this.ToolbarItems.Add(bnt_addNewJob);
+
+        if (haveWork)
+            this.ToolbarItems.Add(bnt_selectJobs);
+    }
+
+    public void UpdateToolBarSelectJobs()
+    {
+        _toolBarMode = ToolBarMode.SelectingJobs;
+        UpdateToolBar();
     }
 
     public void UpdateToolBarNoraml()
     {
-
-        this.ToolbarItems.Clear();
-        this.ToolbarItems.Add(bnt_Filters);
-        this.ToolbarItems.Add(bnt_addNewJob);
-        this.ToolbarItems.Add(bnt_selectJobs);
-
-     
+        _toolBarMode = ToolBarMode.Normal;
+        UpdateToolBar();
     }
 
     public void UpdateToolBarViewBooking()
     {
-        this.ToolbarItems.Clear();
+        _toolBarMode = ToolBarMode.ViewingBooking;
+        UpdateToolBar();
     }
     public WorkPlanner()
     {
@@ -88,11 +143,14 @@ public partial class WorkPlanner : ContentPage
 
         InitializeComponent();
 
-        int jCount = Job.Query().Count;
+        //a magnifier, a funnel and a plus say what these are to anybody. the
+        //Text stays on them: Android puts it up on a long press and reads it
+        //out in the ... menu, so the icon never leaves somebody guessing
+        bnt_search = new ToolbarItem();
+        bnt_search.Text = "Search";
+        bnt_search.IconImageSource = "search.png";
+        bnt_search.Clicked += tbi_Search_Clicked;
 
-        //a funnel and a plus say what these are to anybody. the Text stays on
-        //them: Android puts it up on a long press and reads it out in the ...
-        //menu, so the icon never leaves somebody guessing
         bnt_Filters = new ToolbarItem();
         bnt_Filters.Text = "Filters";
         bnt_Filters.IconImageSource = "filter.png";
@@ -134,11 +192,7 @@ public partial class WorkPlanner : ContentPage
         bnt_setRound.Clicked += bnt_setRound_Clicked;
         bnt_setRound.Order = ToolbarItemOrder.Secondary;
 
-        if (jCount > 0)
-            this.ToolbarItems.Add(bnt_Filters);
-        this.ToolbarItems.Add(bnt_addNewJob);
-        if (jCount > 0)
-            this.ToolbarItems.Add(bnt_selectJobs);
+        UpdateToolBar();
 
         ResetDateFilter();
         dp_StartSearchDate.Date = StartFilterDate;
@@ -290,6 +344,10 @@ public partial class WorkPlanner : ContentPage
         //than trusting what it was left as
         Job.SetSelectionMode(_selectingJobs);
         ShowSelectionBar();
+
+        //what is on the toolbar depends on there being work, and the first
+        //job may well have been added on the page just come back from
+        UpdateToolBar();
 
         RefreshPage();
     }
@@ -1794,10 +1852,13 @@ public partial class WorkPlanner : ContentPage
 
     //  -----------------------------------------------------  hold to select
     //
-    //  There is no long press gesture of its own, so the hold is timed from
-    //  the finger going down: it counts once it has stayed put for half a
-    //  second, and a scroll or a swipe calls it off. Same as the booked work
-    //  page, so a hold means the same thing on both.
+    //  There is no long press gesture of its own. On a phone the hold is left
+    //  to android, through LongPressBehavior on the row, which is the only
+    //  way it happens at all: the pointer events below are raised for a mouse
+    //  or a stylus and never for a finger. On a desktop they still time it -
+    //  the press counts once it has stayed put for half a second, and a
+    //  scroll or a swipe calls it off. Same as the booked work page, so a
+    //  hold means the same thing on both.
 
     private const int HoldMilliseconds = 500;
     private const double HoldMoveTolerance = 20;
@@ -1813,6 +1874,9 @@ public partial class WorkPlanner : ContentPage
     /// </summary>
     private DateTime _heldAt = DateTime.MinValue;
 
+    /// <summary>the row the last hold was on</summary>
+    private Job _lastHeld;
+
     private void Job_PointerPressed(object sender, PointerEventArgs e)
     {
         Element row = sender as Element;
@@ -1827,7 +1891,7 @@ public partial class WorkPlanner : ContentPage
             _holdTimer = Dispatcher.CreateTimer();
             _holdTimer.Interval = TimeSpan.FromMilliseconds(HoldMilliseconds);
             _holdTimer.IsRepeating = false;
-            _holdTimer.Tick += (s, a) => HoldToSelect();
+            _holdTimer.Tick += (s, a) => HoldToSelect(_holdJob);
         }
 
         _holdTimer.Stop();
@@ -1859,18 +1923,30 @@ public partial class WorkPlanner : ContentPage
         _holdJob = null;
     }
 
+    /// <summary>a row has been held on a platform that has a long press of its own</summary>
+    public void RowHeld(object item)
+    {
+        HoldToSelect(item as Job);
+    }
+
     /// <summary>
     /// holding a row starts picking jobs out with that one already picked,
     /// and holding another one after that picks that too
     /// </summary>
-    private void HoldToSelect()
+    private void HoldToSelect(Job j)
     {
-        Job j = _holdJob;
         CancelHold();
 
+        //the booking summary rows are not work and cannot be picked out
         if (j == null || j.CustomerId == -1)
             return;
 
+        //a platform that both has a long press and raises the pointer events
+        //would otherwise pick the row and put it straight back
+        if (ReferenceEquals(j, _lastHeld) && HoldJustHappened)
+            return;
+
+        _lastHeld = j;
         _heldAt = DateTime.Now;
 
         if (_selectingJobs)
