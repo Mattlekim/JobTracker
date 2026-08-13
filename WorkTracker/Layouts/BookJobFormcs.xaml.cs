@@ -30,7 +30,10 @@ public partial class BookJobFormcs : ContentPage
             if (j.TNB)
                 strings[strings.Count - 1] = $"TNB*  {strings[strings.Count - 1]}";
             value += j.Price;
-            estimatedTime += j.EstimatedTime;
+            //the round's usual counts towards the day, but a house that has
+            //never been timed is still a guess, which is what the wording
+            //below is about
+            estimatedTime += j.Minutes;
             if (j.EstimatedTime == 0)
                 timeIsEstimate = true;
         }

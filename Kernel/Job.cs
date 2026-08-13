@@ -669,6 +669,60 @@ namespace Kernel
         /// estimated time in minutes
         /// </summary>
         public int EstimatedTime = 0;
+
+        /// <summary>
+        /// How long a job with no estimate of its own counts as taking.
+        ///
+        /// It is a setting (Settings.DefaultJobDuration is this, it does not
+        /// keep a second copy) but it lives here because the jobs are what
+        /// needs it: how long a house takes is asked on every page that shows
+        /// work, and none of them should be spelling the fallback out for
+        /// themselves.
+        /// </summary>
+        public static int DefaultDuration = 0;
+
+        /// <summary>
+        /// how long this job counts as taking, its own estimate or the
+        /// round's usual. this is the one definition of it - the calendar,
+        /// the booked work page, the booking form and the job rows all ask
+        /// here, so a day's figures cannot disagree with the row above them
+        /// </summary>
+        [XmlIgnore]
+        public int Minutes
+        {
+            get { return EstimatedTime > 0 ? EstimatedTime : DefaultDuration; }
+        }
+
+        /// <summary>true while there is a length worth putting on the row</summary>
+        [XmlIgnore]
+        public bool HaveLength
+        {
+            get { return Minutes > 0; }
+        }
+
+        /// <summary>the job's length as a tag, on the rows and the calendar</summary>
+        [XmlIgnore]
+        public string LengthText
+        {
+            get { return SpellMinutes(Minutes); }
+        }
+
+        /// <summary>minutes as somebody would say them</summary>
+        public static string SpellMinutes(int minutes)
+        {
+            if (minutes <= 0)
+                return string.Empty;
+
+            if (minutes < 60)
+                return $"{minutes} mins";
+
+            int hours = minutes / 60;
+            int rest = minutes % 60;
+
+            string said = hours == 1 ? "1 hr" : $"{hours} hrs";
+
+            return rest == 0 ? said : $"{said} {rest} mins";
+        }
         /// <summary>
         /// if the job is booked in or not
         /// </summary>
@@ -963,6 +1017,9 @@ namespace Kernel
             RaisePropertyChanged("Round");
             RaisePropertyChanged("HaveRound");
             RaisePropertyChanged("RoundOrNone");
+            RaisePropertyChanged("Minutes");
+            RaisePropertyChanged("HaveLength");
+            RaisePropertyChanged("LengthText");
             RefreshTags();
         }
 

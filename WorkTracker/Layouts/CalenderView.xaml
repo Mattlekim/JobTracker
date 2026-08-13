@@ -220,6 +220,10 @@
                                     </Label>
                                     <Label
                                     Text="One off" TextColor="White" BackgroundColor="#546E7A" IsVisible="{Binding ShowOneOff}" Padding="6" FontAttributes="Bold" TranslationX="12"></Label>
+                                    <!-- how long the job takes, which is what the
+                                         day's own total is made of -->
+                                    <Label
+                                    Text="{Binding LengthText}" TextColor="White" BackgroundColor="#5D4037" IsVisible="{Binding HaveLength}" Padding="6" FontAttributes="Bold" TranslationX="14"></Label>
                                     <Label
                                     Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="6" FontAttributes="Bold" TranslationX="16"></Label>
                                     <Label
