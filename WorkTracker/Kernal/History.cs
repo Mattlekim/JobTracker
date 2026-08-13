@@ -159,7 +159,7 @@ namespace Kernel
             get {
 
                 if (IsJob)
-                    return $"Job Address: {TheJob.Address.PropertyNameNumber} {TheJob.Address.Street} {TheJob.Address.City}";
+                    return $"Job Address: {TheJob.Address.PropertyNameNumber} {TheJob.Address.DisplayStreet} {TheJob.Address.DisplayCity}";
                 else
                 {
                     return $"Paid by {ThePayment.PaymentType} {Gloable.CurrenceSymbol}{ThePayment.Amount}";
