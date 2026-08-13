@@ -17,16 +17,19 @@ namespace WorkTracker
     //  the alternative is finding it again through the picker on the settings
     //  page, from an app that has just been installed and knows nothing.
     //
-    //  There is no mime type for a .rbf, so the filter has to take anything
-    //  and pick the file out by its name instead. That is what the path
-    //  pattern is for.
+    //  There is no mime type for a .rbf, so there is nothing to ask for by
+    //  name, and it takes two filters rather than one because what arrives
+    //  is not the file - it is a content uri belonging to whichever app sent
+    //  it, and only some of those carry the file's name.
     //
-    //  It is written out three times because Android's pattern matching does
-    //  not back up: ".*\.rbf" is matched by taking everything and then
-    //  looking for the dot, so a path with a dot anywhere earlier in it never
-    //  matches at all. One pattern per dot in the path is the way round it,
-    //  and it is three filters rather than one with three patterns because
-    //  the singular property is the one every version of the binding has.
+    //  The first filter is for the ones that do (the storage provider, and a
+    //  file uri): it matches the name at the end of the path. It is written
+    //  out three times because Android's pattern matching does not back up -
+    //  ".*\.rbf" is matched by taking everything and then looking for the
+    //  dot, so a path with a dot anywhere earlier in it never matches at all,
+    //  and one pattern per dot is the way round that. The host has to be
+    //  there for any of it to be read: Android ignores the path of a filter
+    //  that does not name a host.
     [IntentFilter(new[] { Intent.ActionView },
         Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
         DataSchemes = new[] { "content", "file" },
@@ -45,6 +48,21 @@ namespace WorkTracker
         DataHost = "*",
         DataMimeType = "*/*",
         DataPathPattern = ".*\\\\..*\\\\..*\\\\.rbf")]
+
+    //  The second filter is for the ones that do not. A backup in the
+    //  downloads list is content://...downloads/1000000123 - the name is not
+    //  in there anywhere, so there is nothing for a pattern to match and the
+    //  filter above never fires. That is the case that matters most, because
+    //  a backup off an email or out of Drive is exactly where it lands.
+    //
+    //  All that is left to go on is the type, and a file the phone has no
+    //  type for is application/octet-stream. So Work Tracker is offered for
+    //  those, and the file is checked by name once it can be read: anything
+    //  that is not a .rbf is put back down without a word.
+    [IntentFilter(new[] { Intent.ActionView },
+        Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
+        DataSchemes = new[] { "content", "file" },
+        DataMimeType = "application/octet-stream")]
     public class MainActivity : MauiAppCompatActivity
     {
 
