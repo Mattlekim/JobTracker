@@ -1656,6 +1656,30 @@ public partial class WorkPlanner : ContentPage
         g_dateRange.IsVisible = FilterDate;
 
         ShowActiveFilter(_sourceJobs == null ? 0 : _sourceJobs.Count);
+
+        ScrollToTheTop();
+    }
+
+    /// <summary>
+    /// Back to the very top of the list, the filter panel included.
+    ///
+    /// The panel sits at the top of the list's own content now rather than
+    /// above it, so it scrolls away and gives the screen back - but that
+    /// means opening it while the list is scrolled down would put it out of
+    /// sight, and the button would look like it had done nothing.
+    ///
+    /// Asking for the first job to be at the *bottom* of the screen is what
+    /// does it: that is further up than the list can go, so it stops at the
+    /// top with the whole panel showing. Asking for the top of the first job
+    /// would scroll the panel just off the screen instead, which is the one
+    /// thing this must not do.
+    /// </summary>
+    private void ScrollToTheTop()
+    {
+        if (_sourceJobs == null || _sourceJobs.Count == 0)
+            return;
+
+        lv_Jobs.ScrollTo(_sourceJobs[0], position: ScrollToPosition.End, animate: false);
     }
 
     private void UpdateMasterFileterStart(object sender, DateChangedEventArgs e)
