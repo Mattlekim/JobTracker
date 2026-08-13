@@ -112,11 +112,23 @@ phone handing the app a file that has been **opened** — from a file manager, a
 is how a backup normally reaches a new phone. Restoring replaces everything on the device, so it asks first, and
 it says to restart afterwards because the pages already built are still showing what was there before.
 
-The Android side is an `ACTION_VIEW` intent filter on `MainActivity`. There is no mime type for a `.rbf`, so it
-takes `*/*` and picks the file out by name. The pattern is written **three times**, once per possible dot in the
-path, because Android's pattern matching does not back up: `.*\.rbf` takes everything and then looks for the dot,
-so a path with a dot earlier in it never matches. They are three filters rather than one filter with three
-patterns because `DataPathPattern` is in every version of the binding.
+The Android side is `ACTION_VIEW` intent filters on `MainActivity`, and it takes **two kinds** of them because
+what arrives is not the file — it is a `content://` uri belonging to whichever app sent it, and only some of those
+carry the name.
+
+- **Name in the path** (the storage provider, a `file://` uri): matched by `pathPattern`. Written three times,
+  once per possible dot in the path, because Android's pattern matching does not back up — `.*\.rbf` takes
+  everything and then looks for the dot, so a path with a dot earlier in it never matches. `DataHost` has to be
+  set or Android ignores the path of the filter altogether.
+- **No name in the path** (the downloads list, MediaStore): `content://…/downloads/1000000123` has nothing to
+  match on, so these are taken on **type** alone — `application/octet-stream`, which is what a file the phone has
+  no type for is called, plus the zip types because a `.rbf` is a zip and anything that looks inside will say so.
+  The name is checked once the file can be read, so a file that is not a backup is put back down without a word.
+
+The second kind is the one that matters: a backup off an email or out of Drive lands in the downloads list, and
+**with only the pattern filters the app never appeared in the chooser at all**. Do not take them out. For the same
+reason, a backup saved with *Save To This Device* is written as `application/octet-stream` rather than left for
+the phone to guess at — that is what makes it openable again from where it landed.
 
 `MainActivity` is `SingleTop` so a file opened while the app is running reaches `OnNewIntent` rather than starting
 a second copy of the app. What arrives is somebody else's `content://` uri, readable only while that intent lives

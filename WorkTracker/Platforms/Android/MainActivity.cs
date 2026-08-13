@@ -59,10 +59,16 @@ namespace WorkTracker
     //  type for is application/octet-stream. So Work Tracker is offered for
     //  those, and the file is checked by name once it can be read: anything
     //  that is not a .rbf is put back down without a word.
+    //
+    //  The zip types are there because a .rbf is a zip, and an app that looks
+    //  inside a file rather than at its name will say so. Being offered for a
+    //  zip is the price of being offered for a backup that something has
+    //  looked inside - and it costs nothing, because the name is still what
+    //  decides whether anything happens.
     [IntentFilter(new[] { Intent.ActionView },
         Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
         DataSchemes = new[] { "content", "file" },
-        DataMimeType = "application/octet-stream")]
+        DataMimeTypes = new[] { "application/octet-stream", "application/zip", "application/x-zip-compressed" })]
     public class MainActivity : MauiAppCompatActivity
     {
 
