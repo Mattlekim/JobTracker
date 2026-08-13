@@ -64,16 +64,6 @@ jobs:
           -p:AndroidSigningKeyPass=worktracker-ci
           -o artifacts
 
-      # TEMPORARY: prints the manifest the build actually generated, so the
-      # .rbf intent filters can be checked without a device
-      - name: Show the generated manifest
-        if: always()
-        run: |
-          for f in $(find WorkTracker/obj -name AndroidManifest.xml); do
-            echo "=================== $f"
-            cat "$f"
-          done
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
