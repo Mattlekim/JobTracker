@@ -70,6 +70,22 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!--  TAGS  -->
+                <!-- what was different about this visit. it stays on this
+                     visit only, so the customer's history shows which times
+                     it was like that -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Tags for this visit" Style="{StaticResource SectionTitle}" />
+                        <Label x:Name="l_noTags" Text="Nothing tagged on this one." Style="{StaticResource Caption}" />
+                        <!-- fixed rows rather than a wrapping layout, so
+                             nothing depends on a measure pass -->
+                        <VerticalStackLayout x:Name="vsl_tags" Spacing="4"></VerticalStackLayout>
+                        <Button Text="Add Tag" Clicked="bnt_addTag_Clicked" HorizontalOptions="Start"
+                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="#00838F" TextColor="#00838F" CornerRadius="8" Padding="14,6" FontSize="13"></Button>
+                    </VerticalStackLayout>
+                </Border>
+
                 <!--  DONE  -->
                 <Border Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="8">

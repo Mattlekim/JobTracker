@@ -33,12 +33,29 @@ public partial class BookedWork : ContentPage
 
         public Color HeaderColour { get; set; } = Colors.Grey;
 
+        /// <summary>the tags on this day's work, each one once</summary>
+        public string TagsText { get; set; } = string.Empty;
+
+        public bool HaveTags { get; set; }
+
         public BookingGroup(string header, DateTime date, List<Job> jobs) : base(jobs)
         {
             Header = header;
             Date = date;
             WorkOutProgress();
             WorkOutOverdue();
+            WorkOutTags();
+        }
+
+        /// <summary>
+        /// a tag put on a day goes on the work that day, so the day shows the
+        /// tags its work is carrying rather than keeping any of its own
+        /// </summary>
+        private void WorkOutTags()
+        {
+            List<string> tags = Booking.TagsOn(this);
+            TagsText = string.Join(" • ", tags);
+            HaveTags = tags.Count > 0;
         }
 
         /// <summary>
@@ -282,6 +299,21 @@ public partial class BookedWork : ContentPage
         vsl_moveDay.IsVisible = true;
     }
 
+    /// <summary>
+    /// tags a whole day's work at once - the day was wet, or the whole street
+    /// was done front only. the tag goes on each job on the day, because that
+    /// is where it is any use afterwards
+    /// </summary>
+    private async void On_Tag_Day(object sender, EventArgs e)
+    {
+        BookingGroup g = (sender as Element)?.BindingContext as BookingGroup;
+        if (g == null)
+            return;
+
+        if (await TagPicker.EditAsync(this, g, $"The Work On {g.Date:ddd dd MMM}"))
+            Reload();
+    }
+
     private void On_Move_Day_Cancel(object sender, EventArgs e)
     {
         CloseMoveDay();
@@ -476,8 +508,8 @@ public partial class BookedWork : ContentPage
 
         //a job already marked wants clearing or opening up, not marking again
         string[] options = j.IsMarked
-            ? new[] { "Clear", "More", "Skip", "Cancel Job", "Unbook", "Edit Details" }
-            : new[] { "Done", "Done & Paid", "More", "Skip", "Cancel Job", "Unbook", "Edit Details" };
+            ? new[] { "Clear", "More", "Tag", "Skip", "Cancel Job", "Unbook", "Edit Details" }
+            : new[] { "Done", "Done & Paid", "More", "Tag", "Skip", "Cancel Job", "Unbook", "Edit Details" };
 
         string result = await DisplayActionSheet(j.JobFormattedStreet, "Close", null, options);
 
@@ -505,6 +537,9 @@ public partial class BookedWork : ContentPage
                 break;
             case "More":
                 WorkPlanner.ShowJobStatus(j, this, Reload);
+                break;
+            case "Tag":
+                await TagJob(j);
                 break;
             case "Skip":
                 WorkPlanner.MarkJobSkipped(j);
@@ -630,6 +665,21 @@ public partial class BookedWork : ContentPage
     private void On_Job_More(object sender, EventArgs e)
     {
         WorkPlanner.ShowJobStatus(JobFrom(sender), this, Reload);
+    }
+
+    private async void On_Job_Tag(object sender, EventArgs e)
+    {
+        await TagJob(JobFrom(sender));
+    }
+
+    /// <summary>tags this one house, leaving the rest of the day alone</summary>
+    private async Task TagJob(Job j)
+    {
+        if (j == null)
+            return;
+
+        if (await TagPicker.EditAsync(this, new List<Job>() { j }, j.JobFormattedStreet))
+            Reload();
     }
 
     private async void On_Job_DoAgain(object sender, EventArgs e)

@@ -44,6 +44,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
                         <Label Text="{Binding Header}" FontAttributes="Bold" FontSize="16" TextColor="{Binding HeaderColour}"/>
@@ -53,8 +54,15 @@
                             <Label Text="{Binding Progress}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#455A64" Padding="6,2"/>
                             <Label Text="{Binding TimeLeft}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#EF6C00" Padding="6,2" IsVisible="{Binding ShowTimeLeft}"/>
                         </HorizontalStackLayout>
+                        <!-- the tags on this day's work, so a day tagged as a
+                             whole says so on the day rather than only on each
+                             house in it -->
+                        <Label Text="{Binding TagsText}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#00838F" Padding="6,2" IsVisible="{Binding HaveTags}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"/>
                     </VerticalStackLayout>
-                    <Button Grid.Column="1" Text="Change Date" FontSize="12" Padding="8,0" HeightRequest="32" MinimumHeightRequest="32"
+                    <Button Grid.Column="1" Text="Tag Day" FontSize="12" Padding="8,0" HeightRequest="32" MinimumHeightRequest="32"
+                            BackgroundColor="Transparent" TextColor="#00838F" BorderColor="#00838F" BorderWidth="2"
+                            VerticalOptions="Center" Clicked="On_Tag_Day"/>
+                    <Button Grid.Column="2" Text="Change Date" FontSize="12" Padding="8,0" HeightRequest="32" MinimumHeightRequest="32"
                             BackgroundColor="Transparent" TextColor="#FB8C00" BorderColor="#FB8C00" BorderWidth="2"
                             VerticalOptions="Center" Clicked="On_Change_Day_Date"/>
                 </Grid>
@@ -102,6 +110,7 @@
                                 <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding .}" Clicked="On_Job_Compleated"/>
                                 <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding .}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}"/>
                                 <MenuFlyoutItem Text="More" CommandParameter="{Binding .}" Clicked="On_Job_More"/>
+                                <MenuFlyoutItem Text="Tag" CommandParameter="{Binding .}" Clicked="On_Job_Tag"/>
                                 <MenuFlyoutItem Text="Do It Again" CommandParameter="{Binding .}" Clicked="On_Job_DoAgain" IsEnabled="{Binding CanDoAgain}"/>
                                 <MenuFlyoutSeparator/>
                                 <MenuFlyoutItem Text="Unbook" CommandParameter="{Binding .}" Clicked="On_Job_Unbook"/>
@@ -125,6 +134,8 @@
                                          when there is something to settle -->
                                     <Label Text="{Binding JobFormattedOwed}" TextColor="White" BackgroundColor="{Binding OwedColorCode}" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding ShowOwed}" LineBreakMode="TailTruncation"/>
                                 </HorizontalStackLayout>
+                                <!-- what was different about this visit -->
+                                <Label Text="{Binding TagsText}" TextColor="White" BackgroundColor="#00838F" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding HaveTags}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"/>
                                 <!-- notes get a line of their own so a long one cannot
                                      push the tags off the row -->
                                 <Label Text="{Binding JobFormattedStringNotes}" TextColor="White" BackgroundColor="#FB8C00" Padding="6,2" FontSize="12" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"/>

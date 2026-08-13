@@ -299,6 +299,7 @@
                                     <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding Id}" Clicked="On_Job_Compleated" />
                                     <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding Id}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}" />
                                     <MenuFlyoutItem Text="More" CommandParameter="{Binding Id}" Clicked="On_Job_More" />
+                                    <MenuFlyoutItem Text="Tag" CommandParameter="{Binding Id}" Clicked="On_Job_Tag" />
                                     <MenuFlyoutItem Text="Do It Again" CommandParameter="{Binding Id}" Clicked="On_Job_DoAgain" IsEnabled="{Binding CanDoAgain}" />
                                     <MenuFlyoutSeparator />
                                     <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
@@ -405,6 +406,8 @@
                                     <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <!-- direct debit requested, waiting for the money to come through -->
                                     <Label Text="{Binding PaymentPendingText}" TextColor="White" BackgroundColor="#6A1B9A" IsVisible="{Binding PaymentPending}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
+                                    <!-- what was different about this visit -->
+                                    <Label Text="{Binding TagsText}" TextColor="White" BackgroundColor="#00838F" IsVisible="{Binding HaveTags}" Padding="4,2" FontSize="12" FontAttributes="Bold" LineBreakMode="TailTruncation"></Label>
                                 </HorizontalStackLayout>
 
                                 <!-- notes get their own line under the tags -->

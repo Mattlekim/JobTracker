@@ -92,6 +92,11 @@
                                     <Label Text="{Binding FormattedLine2}" TextColor="White" BackgroundColor="Orange" Padding="2"></Label>
 
                                 </HorizontalStackLayout>
+                                <!-- what was different about this particular
+                                     visit, which is the whole point of a tag -->
+                                <HorizontalStackLayout IsVisible="{Binding HaveTags}" Padding="4">
+                                    <Label Text="{Binding TagsText}" TextColor="White" BackgroundColor="#00838F" Padding="4,2" FontAttributes="Bold"></Label>
+                                </HorizontalStackLayout>
                                 <HorizontalStackLayout  IsVisible="{Binding IsJob}" Padding="4">
                                     <Label Text="Notes: "></Label>
                                     <Label Text="{Binding Notes}" ></Label>

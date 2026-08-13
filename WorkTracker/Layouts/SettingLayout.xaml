@@ -76,6 +76,28 @@
                         <Button Text="Add Job Type"  BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8" Clicked="bnt_addJobType"></Button>
                     </VerticalStackLayout>
                 </Border>
+
+                <Label Text="Job Tags"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" TranslationX="0" Padding="4">
+                    <VerticalStackLayout>
+                        <!-- only the list offered when something is being
+                             tagged. what a visit was actually tagged with is
+                             kept on that visit, so taking a tag off here never
+                             changes a day already worked -->
+                        <Label Text="Offered when you tag a job or a day's work. A tag says what that time of doing the job was like, and stays on that visit only."></Label>
+                        <ListView x:Name="l_tagNames" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <ViewCell>
+                                        <Entry Text="{Binding Name}" ClassId="{Binding Index}" TextChanged="e_tagTextChanged"></Entry>
+                                    </ViewCell>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+
+                        </ListView>
+                        <Button Text="Add Tag"  BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8" Clicked="bnt_addTag"></Button>
+                    </VerticalStackLayout>
+                </Border>
             </VerticalStackLayout>
 
             <!--  PAPER VIEW  -->

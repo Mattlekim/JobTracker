@@ -159,6 +159,76 @@ namespace Kernel
                 && x.DateJobBookinFor.Date == day.Date);
         }
 
+        //  ------------------------------------------------------------  tags
+        //
+        //  A booking is a day's work and nothing else - it is worked out from
+        //  the jobs every time and never saved - so it has nowhere of its own
+        //  to keep a tag. Tagging a booking therefore means tagging the work
+        //  on it, which is also the only thing that would be any use: the tag
+        //  is there to say what this visit to a house was like, and that is
+        //  what shows up in the customer's history afterwards.
+
+        /// <summary>every tag on a piece of work, each one once</summary>
+        public static List<string> TagsOn(List<Job> jobs)
+        {
+            List<string> tags = new List<string>();
+
+            if (jobs != null)
+                foreach (Job j in jobs)
+                    foreach (string tag in j.Tags)
+                        if (!tags.Exists(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)))
+                            tags.Add(tag);
+
+            return tags;
+        }
+
+        /// <summary>
+        /// tags a piece of work. work already carrying the tag is left as it
+        /// is rather than tagged twice
+        /// </summary>
+        /// <returns>how many jobs it was put on</returns>
+        public static int TagJobs(List<Job> jobs, string tag)
+        {
+            int tagged = 0;
+
+            if (jobs != null)
+                foreach (Job j in jobs)
+                    if (j != null && j.AddTag(tag))
+                        tagged++;
+
+            return tagged;
+        }
+
+        /// <returns>how many jobs the tag came off</returns>
+        public static int UntagJobs(List<Job> jobs, string tag)
+        {
+            int untagged = 0;
+
+            if (jobs != null)
+                foreach (Job j in jobs)
+                    if (j != null && j.RemoveTag(tag))
+                        untagged++;
+
+            return untagged;
+        }
+
+        /// <summary>tags all of this booking's work</summary>
+        public int AddTag(string tag)
+        {
+            return TagJobs(Jobs, tag);
+        }
+
+        public int RemoveTag(string tag)
+        {
+            return UntagJobs(Jobs, tag);
+        }
+
+        /// <summary>every tag on this booking's work</summary>
+        public List<string> Tags
+        {
+            get { return TagsOn(Jobs); }
+        }
+
         /// <summary>
         /// Clears away the bookings that have nothing left to say: a day that
         /// has passed with all of its work done. The jobs keep their done mark

@@ -1112,6 +1112,21 @@ public partial class WorkPlanner : ContentPage
     }
 
     /// <summary>
+    /// tags this visit - front only, nobody in, whatever it was. it stays on
+    /// this time of doing the job, so the customer's history shows which
+    /// times it was like that
+    /// </summary>
+    private async void On_Job_Tag(object sender, EventArgs e)
+    {
+        Job j = GetJobForSwipe(sender);
+        if (j == null)
+            return;
+
+        if (await TagPicker.EditAsync(this, new List<Job>() { j }, j.JobFormattedStreet))
+            RefreshPage();
+    }
+
+    /// <summary>
     /// the old inline more panel. no longer opened from the list - More goes
     /// to the job's own window now - and due to come out once that has been
     /// used in anger

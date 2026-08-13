@@ -34,6 +34,12 @@ public struct SettingsData
 
     public List<string> JobNames;
 
+    /// <summary>
+    /// the tags offered when a job or a day's work is tagged. what a visit
+    /// was actually tagged with is kept on the visit, not here
+    /// </summary>
+    public List<string> TagNames;
+
     public int DefaultFrequence;
     public FrequenceType DefalutFrequenceType;
 
@@ -106,6 +112,10 @@ public class Settings
         sd.JobNames = new List<string>();
         Job.JobNames.Remove(string.Empty);
         sd.JobNames.AddRange(Job.JobNames);
+
+        sd.TagNames = new List<string>();
+        Job.TagNames.Remove(string.Empty);
+        sd.TagNames.AddRange(Job.TagNames);
 
         sd.DefaultJobDuration = DefaultJobDuration;
         sd.HaveShowenJobIntro = HaveShowenJobIntro;
@@ -196,6 +206,15 @@ public class Settings
                 {
                     Job.JobNames.Clear();
                     Job.JobNames.AddRange(sd.JobNames);
+                }
+
+                //null is a settings file written before tags existed, which
+                //keeps the ones this starts with. an empty list is a round
+                //that has deleted the lot on purpose, and that is left empty
+                if (sd.TagNames != null)
+                {
+                    Job.TagNames.Clear();
+                    Job.TagNames.AddRange(sd.TagNames);
                 }
             }
         }
@@ -470,6 +489,8 @@ public partial class SettingLayout : ContentPage
 
         l_jobNames.ItemsSource = jnsd;
 
+        ShowTagNames();
+
         e_DefaultTNB.Text = WorkPlanner.DefaultTNBMessage;
         e_DefaultTAC.Text = WorkPlanner.DefaultJobCompleateMessage;
         e_DefaultNotComming.Text = WorkPlanner.DefaultNotCommingMessage;
@@ -707,6 +728,51 @@ public partial class SettingLayout : ContentPage
         l_jobNames.ItemsSource = jnsd;
 
 
+    }
+
+    /// <summary>
+    /// the tags to pick from when something is tagged. only the list is
+    /// edited here - a tag already put on a visit stays on it, because it
+    /// says what happened that day
+    /// </summary>
+    private void ShowTagNames()
+    {
+        List<JobNamesSettingData> tags = new List<JobNamesSettingData>();
+
+        int index = 0;
+        foreach (string s in Job.TagNames)
+        {
+            tags.Add(new JobNamesSettingData()
+            {
+                Name = s,
+                Index = index,
+            });
+            index++;
+        }
+
+        l_tagNames.ItemsSource = null;
+        l_tagNames.ItemsSource = tags;
+    }
+
+    private void bnt_addTag(object sender, EventArgs e)
+    {
+        //one blank row at a time, the same as the job types: a second one
+        //would have nothing to tell it apart from the first
+        if (Job.TagNames.Contains(string.Empty))
+            return;
+
+        Job.TagNames.Add(string.Empty);
+        ShowTagNames();
+    }
+
+    private void e_tagTextChanged(object sender, TextChangedEventArgs e)
+    {
+        Entry entry = sender as Entry;
+        if (e.OldTextValue == null || e.NewTextValue == null)
+            return;
+
+        int i = Convert.ToInt32(entry.ClassId);
+        Job.TagNames[i] = entry.Text;
     }
 
     private void e_textChanged(object sender, TextChangedEventArgs e)

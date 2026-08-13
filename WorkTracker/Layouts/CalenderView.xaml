@@ -213,6 +213,9 @@
                                     <!-- direct debit requested, waiting for the money to come through -->
                                     <Label
                                     Text="{Binding PaymentPendingText}" TextColor="White" BackgroundColor="#6A1B9A" IsVisible="{Binding PaymentPending}" Padding="6" FontAttributes="Bold" TranslationX="24"></Label>
+                                    <!-- what was different about this visit -->
+                                    <Label
+                                    Text="{Binding TagsText}" TextColor="White" BackgroundColor="#00838F" IsVisible="{Binding HaveTags}" Padding="6" FontAttributes="Bold" TranslationX="28" LineBreakMode="TailTruncation"></Label>
                                 </HorizontalStackLayout>
 
                                 <!-- grid (not stack) so the notes label is width-bounded and
