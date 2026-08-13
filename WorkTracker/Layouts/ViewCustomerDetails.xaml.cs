@@ -103,20 +103,75 @@ public partial class ViewCustomerDetails : ContentPage
 
     }
 
+    //  Tapping the number or the address on this page is somebody wanting a
+    //  word with this customer - the gate was locked, they are running late,
+    //  they have asked a question. It is not the night before notice, so both
+    //  open the messaging app with nothing written in and leave what to say
+    //  to whoever is sending it.
+    //
+    //  They are deliberately not put through TextCustomers/EmailCustomers
+    //  either. Those fill the message in with the night before wording and
+    //  then mark the job as having been told, and a job marked as told is
+    //  left out of the next round of notices - so a quick word here would
+    //  have quietly cost that customer the message that actually matters.
+
+    /// <summary>a blank email to this customer</summary>
     private async void l_emailClicked(object sender, EventArgs e)
     {
-        List<Job> jobs = new List<Job>();
-        jobs.Add(CurrentJob);
-        //this customer was picked on purpose, so their night before setting
-        //should not decide whether the email goes
-        await WorkPlanner.EmailCustomers(jobs, DateTime.Now, string.Empty, this, false);
+        Customer c = CurrentJob == null ? null : CurrentJob.GetCustomer();
+
+        if (c == null || string.IsNullOrWhiteSpace(c.Email))
+        {
+            await DisplayAlert("No Email", "There is no email address on this customer.", "Ok");
+            return;
+        }
+
+        try
+        {
+            //a subject, because an email with none of that reads as junk, and
+            //nothing else
+            EmailMessage message = new EmailMessage
+            {
+                Subject = "Window Cleaning",
+                Body = string.Empty,
+                To = new List<string> { c.Email },
+            };
+
+            await Email.ComposeAsync(message);
+        }
+        catch (FeatureNotSupportedException)
+        {
+            await DisplayAlert("Failed", "Email is not supported on this device.", "Ok");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Failed", ex.Message, "Ok");
+        }
     }
 
+    /// <summary>a blank text to this customer</summary>
     private async void l_phoneClicked(object sender, EventArgs e)
     {
-        List<Job> jobs = new List<Job>();
-        jobs.Add(CurrentJob);
-        await WorkPlanner.TextCustomers(jobs, DateTime.Now, string.Empty, this, false);
+        Customer c = CurrentJob == null ? null : CurrentJob.GetCustomer();
+
+        if (c == null || string.IsNullOrWhiteSpace(c.Phone))
+        {
+            await DisplayAlert("No Number", "There is no phone number on this customer.", "Ok");
+            return;
+        }
+
+        try
+        {
+            await Sms.ComposeAsync(new SmsMessage(string.Empty, new List<string> { c.Phone }));
+        }
+        catch (FeatureNotSupportedException)
+        {
+            await DisplayAlert("Failed", "Sms is not supported on this device.", "Ok");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Failed", ex.Message, "Ok");
+        }
     }
 
     private void tbi_EditDetails_Clicked(object sender, EventArgs e)

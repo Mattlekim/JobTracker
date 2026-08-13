@@ -169,6 +169,12 @@ Bcc rather than To for the same reason the texts go one at a time.
 `HaveBeenText`/`HaveBeenEmailed` record that the message was *put in front of somebody* — neither app tells us
 whether it was actually sent.
 
+Tapping the number or the email on `Layouts/ViewCustomerDetails` is **not** either of those. It is somebody
+wanting a word — the gate was locked, they are running late — so it opens the messaging app with nothing written
+in and composes directly rather than going through `TextCustomers`/`EmailCustomers`. Those two fill in the night
+before wording and then mark the job as told, and a job marked as told is left out of the next round of notices,
+so a quick word from this page would have quietly cost that customer the message that actually matters.
+
 ## Quotes
 
 A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never
