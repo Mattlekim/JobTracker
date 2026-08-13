@@ -50,13 +50,16 @@ public partial class Stats : ContentPage
     }
 
     /// <summary>
-    /// The same figures a round at a time.
+    /// What each round is, rather than how it is going.
     ///
-    /// A round is a patch of the work, so the totals above say nothing about
-    /// how any one of them is doing: half a day left is a different thing
-    /// again depending on whether it is all in one village or spread over
-    /// three. Only the figures that mean something per round are here - the
-    /// months are the round's takings as a whole and stay in one place.
+    /// The cards above are the work in hand - what is left today, what is
+    /// overdue, what has been done. A round is not asked about like that: it
+    /// is a patch of the work you either have or you do not, so what is worth
+    /// knowing about one is how big it is. How many houses, how long they
+    /// take, what they come to and what is owed on them.
+    ///
+    /// Nothing here counts what is due today or what has been done, so these
+    /// figures do not move about as the week is worked.
     /// </summary>
     private void BuildRounds()
     {
@@ -73,7 +76,7 @@ public partial class Stats : ContentPage
         List<RoundStats> rounds = RoundStats.ByRound(Months);
 
         brd_rounds.IsVisible = rounds.Count > 0;
-        l_roundsNote.Text = "What is still to do on each, and what each is worth in a month.";
+        l_roundsNote.Text = "Each round in full: how many houses are on it, how long they all take, what they come to and what is owed on them.";
 
         foreach (RoundStats round in rounds)
             vsl_rounds.Add(RoundRow(round));
@@ -102,9 +105,11 @@ public partial class Stats : ContentPage
             VerticalOptions = LayoutOptions.Center,
         }, 0);
 
+        //what the whole round comes to, which is the figure somebody means
+        //when they ask what a round is worth
         top.Add(new Label()
         {
-            Text = $"{Money(round.ValueLeft)} left",
+            Text = Money(round.ValueOfTheRound),
             FontAttributes = FontAttributes.Bold,
             FontSize = 15,
             TextColor = Color.FromArgb("#2E7D32"),
@@ -113,16 +118,9 @@ public partial class Stats : ContentPage
 
         rows.Add(top);
 
-        //the houses left, how long they will take and what the round is
-        //worth a month, in one line under the name
-        string houses = round.HousesLeft == 1 ? "1 house" : $"{round.HousesLeft} houses";
-        string line = $"{houses} · {round.FormattedTimeLeft} · {Money(round.ValuePerMonth)} a month";
-
-        if (round.HousesOverdue > 0)
-            line += $" · {round.HousesOverdue} overdue";
-
-        if (round.MoneyOwed > 0)
-            line += $" · {Money(round.MoneyOwed)} owed";
+        //how many houses, how long they all take, and what is owed on them
+        string houses = round.HousesOnTheRound == 1 ? "1 house" : $"{round.HousesOnTheRound} houses";
+        string line = $"{houses} · {round.FormattedTimeForTheRound} · {Money(round.MoneyOwed)} owed";
 
         rows.Add(new Label()
         {
