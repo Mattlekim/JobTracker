@@ -235,6 +235,14 @@
                             <Button Grid.Column="1" Text="Help?" Padding="8,2" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=#1E88E5, Dark=#64B5F6}" Clicked="bnt_existingCustomerHelp_Clicked"></Button>
                         </Grid>
 
+                        <!-- the number and the email come off the phone's own
+                             contacts rather than being read out and typed in.
+                             the address is not offered by the contacts api,
+                             so that is still typed -->
+                        <Button x:Name="bnt_fromContacts" Text="Fill From Contacts" Clicked="bnt_FromContacts"
+                                BackgroundColor="Transparent" BorderColor="Orange" TextColor="Orange" BorderWidth="2"
+                                HorizontalOptions="Start"></Button>
+
                         <VerticalStackLayout Spacing="2">
                             <Label Text="Link to existing customer (optional)" Style="{StaticResource Caption}" />
                             <Picker x:Name="p_customer" SelectedIndexChanged="p_customerSelected"></Picker>

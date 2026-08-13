@@ -47,6 +47,13 @@ public partial class NewJob : ContentPage
 
         cb_differentAddress.CheckedChanged += Cb_differentAddress_CheckedChanged;
 
+        //the arrow in the nav bar has to ask as well, not just the phone's own
+        //back button: a form filled in and left is lost the same either way
+        Shell.SetBackButtonBehavior(this, new BackButtonBehavior
+        {
+            Command = new Command(() => AskThenLeave())
+        });
+
         WireAddressSuggestions();
 
         SetZindexLables();
@@ -536,6 +543,10 @@ public partial class NewJob : ContentPage
         {
             DisplayAlert("Error", ex.Message, "Ok");
         }
+
+        //once the form says what is already written down, anything that
+        //changes from here is something that would be lost by walking away
+        WatchForChanges();
     }
 
     private void bnt_Clicked(object sender, EventArgs e)
@@ -580,32 +591,32 @@ public partial class NewJob : ContentPage
         }
     }
 
-    private async Task SaveJob()
+    private async Task<bool> SaveJob()
     {
         if (t_houseNumberName.Text == null || t_houseNumberName.Text == String.Empty)
         {
             await DisplayAlert(CannotSaveTitle, "There is no address. A house number and a street are the least of it.", "Ok");
-            return;
+            return false;
         }
 
         if (t_street.Text == null || t_street.Text == String.Empty)
         {
             await DisplayAlert(CannotSaveTitle, "There is no address. A house number and a street are the least of it.", "Ok");
-            return;
+            return false;
         }
 
         if (cb_tnb.IsChecked || cb_tfc.IsChecked)
             if (t_customerPhone.Text == null || t_customerPhone.Text == String.Empty)
             {
                 await DisplayAlert(CannotSaveTitle, "No phone number added. You can not have texting option enabled without a phone number.", "Ok");
-                return;
+                return false;
             }
 
         if (cb_enb.IsChecked || cb_eac.IsChecked)
             if (t_customerEmail.Text == null || t_customerEmail.Text == String.Empty)
             {
                 await DisplayAlert(CannotSaveTitle, "No email added. You can not have email option enabled without a email address.", "Ok");
-                return;
+                return false;
             }
 
         if (cb_alternativePrice.IsChecked)
@@ -614,14 +625,14 @@ public partial class NewJob : ContentPage
 
             {
                 await DisplayAlert(CannotSaveTitle, "You must set a name for the alterative price", "Ok");
-                return;
+                return false;
             }
 
             if (e_alterativePrice.Text == null || e_alterativePrice.Text == string.Empty)
 
             {
                 await DisplayAlert(CannotSaveTitle, "You must set a price for the alterative price", "Ok");
-                return;
+                return false;
             }
 
 
@@ -653,7 +664,7 @@ public partial class NewJob : ContentPage
             catch
             {
                 await DisplayAlert(CannotSaveTitle, "Invalid price on alternative price", "Ok");
-                return;
+                return false;
             }
         }
         else
@@ -672,21 +683,21 @@ public partial class NewJob : ContentPage
         if (!TryRead(t_price, out price))
         {
             await DisplayAlert(CannotSaveTitle, "The price is not a number.", "Ok");
-            return;
+            return false;
         }
 
         float duration;
         if (!TryRead(e_estimatedDruation, out duration))
         {
             await DisplayAlert(CannotSaveTitle, "The estimated duration is not a number.", "Ok");
-            return;
+            return false;
         }
 
         float balance;
         if (!TryRead(e_startingBallence, out balance))
         {
             await DisplayAlert(CannotSaveTitle, "The balance is not a number.", "Ok");
-            return;
+            return false;
         }
         balance = Math.Abs(balance);
 
@@ -728,6 +739,12 @@ public partial class NewJob : ContentPage
 
         if (customer != null)
         {
+            //the job goes on the customer picked for it. a new job for
+            //somebody already on the round got as far as remembering who and
+            //then never wrote it down, because the new Job above is not the
+            //object the picker had set it on
+            JobToAdd.CustomerId = customer.Id;
+
             customer.Email = t_customerEmail.Text;
             customer.FName = t_customerName.Text;
             customer.Phone = t_customerPhone.Text;
@@ -799,6 +816,8 @@ public partial class NewJob : ContentPage
                 OnJobUpdated(JobToAdd);
         Job.Save();
 
+        //it is written down: there is nothing left to lose by leaving now
+        _dirty = false;
 
         if (AddNewJob)
         {
@@ -827,6 +846,10 @@ public partial class NewJob : ContentPage
                 JobToAdd = new Job();
                 customer = null;
                 sv_mainScrole.ScrollToAsync(0, 0, true);
+
+                //emptying the form is not somebody filling it in: a blank
+                //form has nothing to lose
+                _dirty = false;
             }
             else
                 Navigation.PopToRootAsync();
@@ -834,6 +857,7 @@ public partial class NewJob : ContentPage
         else
             Navigation.PopToRootAsync();
 
+        return true;
     }
 
     private Customer customer;
@@ -857,9 +881,12 @@ public partial class NewJob : ContentPage
         List<Customer> cust = Customer.Query("id", custId);
         if (cust.Count <= 0)
             return;
+        //picking somebody used to point the job at them there and then, before
+        //anything had been saved - so backing out of the form left the job on
+        //whoever was last tapped in the list. the picked customer is only
+        //remembered here; Save is what the job is pointed at them by, like
+        //everything else on this form
         customer = cust[0];
-
-        JobToAdd.CustomerId = customer.Id;
 
         bool autoFillInAddress = true;
         if (t_houseNumberName.Text != null && t_houseNumberName.Text != String.Empty)
@@ -914,6 +941,33 @@ public partial class NewJob : ContentPage
         }
 
       
+    }
+
+    /// <summary>
+    /// fills the customer's number and email in from the phone's own
+    /// contacts, so a number does not have to be read out and typed in.
+    ///
+    /// The name is only filled in when there is nothing there yet. Unlike the
+    /// two forms that only ever add somebody, this one is also how an
+    /// existing customer is edited - and somebody going to their contacts to
+    /// put a number on a customer they already have does not mean to have the
+    /// name they gave them replaced by whatever the contact is filed under.
+    /// A field the contact has nothing for is left as it stands either way.
+    /// </summary>
+    private async void bnt_FromContacts(object sender, EventArgs e)
+    {
+        ContactFill.Details picked = await ContactFill.PickAsync(this);
+        if (picked == null)
+            return;
+
+        if (!string.IsNullOrWhiteSpace(picked.Name) && string.IsNullOrWhiteSpace(t_customerName.Text))
+            t_customerName.Text = picked.Name;
+
+        if (!string.IsNullOrWhiteSpace(picked.Phone))
+            t_customerPhone.Text = picked.Phone;
+
+        if (!string.IsNullOrWhiteSpace(picked.Email))
+            t_customerEmail.Text = picked.Email;
     }
 
     /// <summary>
@@ -988,4 +1042,135 @@ public partial class NewJob : ContentPage
     {
         DisplayAlert("Existing Customer", "You would use this option if an existing customer requests that you do an extra job. Maybe a different property or different work on the same propertiy.", "Ok");
     }
+
+    //  ------------------------------------------  leaving without saving
+    //
+    //  Nothing on this form is written down until Save is pressed - the
+    //  customer picker was the one thing that did not wait, and it pointed
+    //  the job at whoever was tapped whether or not the form was ever saved.
+    //
+    //  That makes leaving the dangerous thing instead: a form filled in and
+    //  backed out of loses the lot, and on a phone the back arrow and the
+    //  swipe from the edge are far too easy to hit for that to happen
+    //  silently.
+
+    /// <summary>something has been changed since the form was filled in</summary>
+    private bool _dirty = false;
+
+    private bool _watching = false;
+
+    /// <summary>true once leaving has been agreed to, so it only happens once</summary>
+    private bool _leaving = false;
+
+    /// <summary>
+    /// watches every box on the form, so leaving can say whether there is
+    /// anything to lose.
+    ///
+    /// Worked out from the page rather than from a list of names: this form
+    /// has thirty odd fields and gains more, and one added later that nobody
+    /// remembered to add to a list here would be quietly lost on the way out.
+    /// </summary>
+    private void WatchForChanges()
+    {
+        if (_watching)
+            return;
+
+        _watching = true;
+
+        foreach (object o in sv_mainScrole.GetVisualTreeDescendants())
+        {
+            Entry entry = o as Entry;
+            if (entry != null)
+            {
+                entry.TextChanged += Something_Changed;
+                continue;
+            }
+
+            Editor editor = o as Editor;
+            if (editor != null)
+            {
+                editor.TextChanged += Something_Changed;
+                continue;
+            }
+
+            CheckBox check = o as CheckBox;
+            if (check != null)
+            {
+                check.CheckedChanged += Something_Changed;
+                continue;
+            }
+
+            Picker picker = o as Picker;
+            if (picker != null)
+            {
+                picker.SelectedIndexChanged += Something_Changed;
+                continue;
+            }
+
+            DatePicker date = o as DatePicker;
+            if (date != null)
+                date.DateSelected += Something_Changed;
+        }
+    }
+
+    private void Something_Changed(object sender, EventArgs e)
+    {
+        _dirty = true;
+    }
+
+    /// <summary>
+    /// the phone's own back button, and the swipe from the edge with it
+    /// </summary>
+    protected override bool OnBackButtonPressed()
+    {
+        if (!_dirty || _leaving)
+            return base.OnBackButtonPressed();
+
+        AskThenLeave();
+
+        //we are dealing with going back ourselves
+        return true;
+    }
+
+    private async void AskThenLeave()
+    {
+        await LeaveAsync();
+    }
+
+    /// <summary>
+    /// asks before walking away from something not written down. saving from
+    /// here goes through the same Save the button does, validation and all,
+    /// so a form that cannot be saved keeps the page rather than losing it
+    /// </summary>
+    private async Task LeaveAsync()
+    {
+        if (_leaving)
+            return;
+
+        if (_dirty)
+        {
+            string what = _asQuote ? "quote" : "job";
+
+            string answer = await DisplayActionSheet(
+                $"This {what} has not been saved.",
+                "Stay Here", null,
+                SaveItOption, LeaveOption);
+
+            if (answer == null || answer == "Stay Here")
+                return;
+
+            if (answer == SaveItOption)
+            {
+                //a save that goes through leaves the page itself
+                await SaveJob();
+                return;
+            }
+        }
+
+        _leaving = true;
+        await Navigation.PopAsync();
+    }
+
+    private const string SaveItOption = "Save It";
+    private const string LeaveOption = "Leave Without Saving";
 }

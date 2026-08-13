@@ -137,6 +137,20 @@ Three things keep that from coming back, and all three are needed:
 Alerts go through `Say`/`Confirm`, which do nothing when the page has gone. An alert put up on a page that has been
 navigated away from never returns, and that would hang the caller — the very thing being fixed.
 
+## Filling a number and an email in from the phone's contacts
+
+`WorkTracker/ContactFill.cs` opens the phone's own contact picker and hands back the name, number and email, so a
+customer taken down on the doorstep is not typed in twice. A contact with more than one number or email is asked
+about rather than guessed at, and a field the contact has nothing for is left as it stands, so it can be used to
+top up somebody half filled in. The contacts API offers no postal address, so the address is still typed (or
+taken from where the phone is standing, above). It needs `READ_CONTACTS` in the Android manifest, and it says so
+plainly when the device cannot pick a contact at all — Windows cannot.
+
+It is on **`Layouts/NewCustomer`**, **`Layouts/QuickAddCustomer`** and **`Layouts/NewJob`**. On the job form the
+name is only filled in when there is nothing there yet: unlike the other two, that form is also how an existing
+customer is edited, and going to your contacts to put a number on somebody you already have does not mean asking
+for the name you gave them to be replaced by whatever the contact is filed under.
+
 ## Quotes
 
 A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never
@@ -218,6 +232,29 @@ list's booking summary row gets one too, and it says the whole day, because `Boo
 `JobDuration.Apply` follows `JobNextId` **forwards** from the job it was given. The job being looked at is as
 likely as not one already done, and changing it there while the next clean kept the old figure would be no use;
 a visit already written up keeps what it was worked to, and another job at the same house is a different job.
+
+## Saving the job form
+
+`Layouts/NewJob` — which is what **Edit Details** opens as well as Add Job — writes nothing until Save is
+pressed. Everything typed sits in the boxes and `SaveJob` is the only thing that puts it on the job, on the
+customer and on disk.
+
+The customer picker was the exception: it pointed the job at whoever was tapped there and then, so backing out of
+a form left the job moved anyway. It now only remembers who was picked (`customer`), and `SaveJob` sets
+`CustomerId` from it. That is also where a **new** job for somebody already on the round got its link back — the
+picker had set the id on the job object that the `if (AddNewJob) JobToAdd = new Job()` in the save then threw
+away, and nothing set it on the new one.
+
+Because nothing is written as you go, leaving is what loses work, so leaving asks. `WatchForChanges` hooks every
+Entry, Editor, CheckBox, Picker and DatePicker under `sv_mainScrole` once the form has been filled in — worked out
+from the tree rather than a list of names, because this form has thirty odd fields and a new one nobody added to
+such a list would be silently lost. Anything changed after that sets `_dirty`.
+
+Both ways out have to ask, and they are different things: `OnBackButtonPressed` is the phone's own back button and
+the swipe from the edge, and the arrow in the nav bar is a `BackButtonBehavior` command set in the constructor.
+The prompt offers Save It, which goes through the same `SaveJob` the button does — validation and all, so a form
+that cannot be saved keeps the page instead of losing it. `SaveJob` returns whether it saved for that reason, and
+clears `_dirty` itself.
 
 ## Duplicate customers
 
