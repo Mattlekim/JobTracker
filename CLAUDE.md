@@ -292,6 +292,12 @@ Two things narrow `Layouts/WorkPlanner`, and they are not the same kind of thing
   test off the job that was tapped rather than the words off its label, which is what a tag filter is: everything
   else like *this one*.
 
+The filter panel is the work list's `CollectionView.Header`, not a pinned row above it: it is a big thing to
+leave taking up a phone screen, so scrolling takes it out of the way. That is also why opening it scrolls back to
+the top (`ScrollToTheTop`) — a panel at the top of the list's content is off screen if the list is scrolled, and
+the button would look like it had done nothing. The small bars — the tag bar, what is selected, and what is being
+filtered by — stay pinned, because those have to be on screen to be any use.
+
 `FilterSource` is what a tag filter picks from, and it is deliberately **not** `MasterFilter`: it is the whole
 round, minus what is finished. Tapping High Street to be shown three of its twelve houses, because the rest are
 not due for a fortnight, is not what anybody means by tapping it.

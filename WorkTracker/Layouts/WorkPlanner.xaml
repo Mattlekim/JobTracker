@@ -86,67 +86,6 @@
                 </Grid>
             </Border>
 
-            <!-- the filter panel, opened from the Filters toolbar item -->
-            <Border x:Name="g_filter" IsVisible="false" StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="8,6" Padding="14"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
-                <VerticalStackLayout Spacing="14">
-
-                    <Label Text="Filters" FontAttributes="Bold" FontSize="16"></Label>
-
-                    <!--  WHAT THE LIST IS KEPT TO  -->
-                    <VerticalStackLayout Spacing="6">
-                        <HorizontalStackLayout Spacing="6">
-                            <CheckBox x:Name="cb_filterDates" IsChecked="true" CheckedChanged="cb_UpdateMasterFilter" VerticalOptions="Center"></CheckBox>
-                            <Label Text="Only the work in hand" FontAttributes="Bold" VerticalOptions="Center"></Label>
-                        </HorizontalStackLayout>
-                        <Label Text="Work due up to the second date, and anything finished since the first. Turn it off to see the whole round. Work already booked in has its own page and is not on this list either way."
-                               FontSize="12" TextColor="{StaticResource MidGray}"></Label>
-                        <Grid x:Name="g_dateRange" ColumnSpacing="6" RowSpacing="4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                <ColumnDefinition Width="*"></ColumnDefinition>
-                                <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                <ColumnDefinition Width="*"></ColumnDefinition>
-                            </Grid.ColumnDefinitions>
-                            <Label Grid.Column="0" Text="From" VerticalOptions="Center" FontSize="12"></Label>
-                            <DatePicker Grid.Column="1" x:Name="dp_StartSearchDate" DateSelected="UpdateMasterFileterStart" FontSize="13"></DatePicker>
-                            <Label Grid.Column="2" Text="To" VerticalOptions="Center" FontSize="12"></Label>
-                            <DatePicker Grid.Column="3" x:Name="dp_EndSearchDate" DateSelected="UpdateMasterFileterEnd" FontSize="13"></DatePicker>
-                        </Grid>
-                    </VerticalStackLayout>
-
-                    <!--  THE TAG FILTER  -->
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Narrow it down" FontAttributes="Bold"></Label>
-                        <Label Text="Tap any tag on a job - what it is, the price, the street, the town or what is owed - and the list drops to the work that matches it, right across the round."
-                               FontSize="12" TextColor="{StaticResource MidGray}"></Label>
-                        <HorizontalStackLayout x:Name="hsl_tagFilter" Spacing="8" IsVisible="false">
-                            <Label x:Name="l_filterBy" TextColor="White" BackgroundColor="#00838F" Padding="8,3" FontSize="12" FontAttributes="Bold" VerticalOptions="Center"></Label>
-                            <Button Text="Clear" Clicked="bnt_ClearTagFilter_Clicked" FontSize="12" Padding="12,2" CornerRadius="8"
-                                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="#E53935" TextColor="#E53935" VerticalOptions="Center"></Button>
-                        </HorizontalStackLayout>
-                    </VerticalStackLayout>
-
-                    <!--  CANCELLED WORK  -->
-                    <HorizontalStackLayout Spacing="6">
-                        <CheckBox x:Name="cb_showCancelled" IsChecked="false" CheckedChanged="cb_showCancelled_Changed" VerticalOptions="Center"></CheckBox>
-                        <Label Text="Show cancelled jobs" VerticalOptions="Center"></Label>
-                    </HorizontalStackLayout>
-
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"></ColumnDefinition>
-                            <ColumnDefinition Width="*"></ColumnDefinition>
-                        </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Text="Reset" Clicked="bnt_Clear_Filter_Clicked" Padding="14,6" CornerRadius="8"
-                                ToolTipProperties.Text="Puts every filter back to how the page opens: the fortnight either side of today, no tag filter, cancelled work hidden"
-                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="{StaticResource MidGray}" TextColor="{StaticResource MidGray}"></Button>
-                        <Button Grid.Column="1" Text="Done" Clicked="bnt_hideFilter" Padding="14,6" CornerRadius="8"
-                                BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold"></Button>
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
-
             <!-- Viewing booking stuff-->
             <Grid>
                 <Grid.RowDefinitions>
@@ -280,6 +219,76 @@
 
         <CollectionView Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                     x:Name="lv_Jobs" SelectionMode="Single" SelectionChanged="lv_Jobs_SelectionChanged" VerticalOptions="FillAndExpand" RemainingItemsThreshold="0">
+            <!-- The filter panel rides at the top of the list's own content
+                 rather than being pinned above it, so scrolling takes it out
+                 of the way and gives the screen back to the work. Opening it
+                 scrolls back to the top - see ScrollToTheTop.
+
+                 The small bars above the list stay pinned: while a tag filter
+                 or a selection is on, what says so has to stay on screen. -->
+            <CollectionView.Header>
+                <!-- the filter panel, opened from the Filters toolbar item -->
+                <Border x:Name="g_filter" IsVisible="false" StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="8,6" Padding="14"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+                    <VerticalStackLayout Spacing="14">
+
+                        <Label Text="Filters" FontAttributes="Bold" FontSize="16"></Label>
+
+                        <!--  WHAT THE LIST IS KEPT TO  -->
+                        <VerticalStackLayout Spacing="6">
+                            <HorizontalStackLayout Spacing="6">
+                                <CheckBox x:Name="cb_filterDates" IsChecked="true" CheckedChanged="cb_UpdateMasterFilter" VerticalOptions="Center"></CheckBox>
+                                <Label Text="Only the work in hand" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                            </HorizontalStackLayout>
+                            <Label Text="Work due up to the second date, and anything finished since the first. Turn it off to see the whole round. Work already booked in has its own page and is not on this list either way."
+                                   FontSize="12" TextColor="{StaticResource MidGray}"></Label>
+                            <Grid x:Name="g_dateRange" ColumnSpacing="6" RowSpacing="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                    <ColumnDefinition Width="*"></ColumnDefinition>
+                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                    <ColumnDefinition Width="*"></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <Label Grid.Column="0" Text="From" VerticalOptions="Center" FontSize="12"></Label>
+                                <DatePicker Grid.Column="1" x:Name="dp_StartSearchDate" DateSelected="UpdateMasterFileterStart" FontSize="13"></DatePicker>
+                                <Label Grid.Column="2" Text="To" VerticalOptions="Center" FontSize="12"></Label>
+                                <DatePicker Grid.Column="3" x:Name="dp_EndSearchDate" DateSelected="UpdateMasterFileterEnd" FontSize="13"></DatePicker>
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <!--  THE TAG FILTER  -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Narrow it down" FontAttributes="Bold"></Label>
+                            <Label Text="Tap any tag on a job - what it is, the price, the street, the town or what is owed - and the list drops to the work that matches it, right across the round."
+                                   FontSize="12" TextColor="{StaticResource MidGray}"></Label>
+                            <HorizontalStackLayout x:Name="hsl_tagFilter" Spacing="8" IsVisible="false">
+                                <Label x:Name="l_filterBy" TextColor="White" BackgroundColor="#00838F" Padding="8,3" FontSize="12" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                                <Button Text="Clear" Clicked="bnt_ClearTagFilter_Clicked" FontSize="12" Padding="12,2" CornerRadius="8"
+                                        BackgroundColor="Transparent" BorderWidth="2" BorderColor="#E53935" TextColor="#E53935" VerticalOptions="Center"></Button>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+
+                        <!--  CANCELLED WORK  -->
+                        <HorizontalStackLayout Spacing="6">
+                            <CheckBox x:Name="cb_showCancelled" IsChecked="false" CheckedChanged="cb_showCancelled_Changed" VerticalOptions="Center"></CheckBox>
+                            <Label Text="Show cancelled jobs" VerticalOptions="Center"></Label>
+                        </HorizontalStackLayout>
+
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Text="Reset" Clicked="bnt_Clear_Filter_Clicked" Padding="14,6" CornerRadius="8"
+                                    ToolTipProperties.Text="Puts every filter back to how the page opens: the fortnight either side of today, no tag filter, cancelled work hidden"
+                                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="{StaticResource MidGray}" TextColor="{StaticResource MidGray}"></Button>
+                            <Button Grid.Column="1" Text="Done" Clicked="bnt_hideFilter" Padding="14,6" CornerRadius="8"
+                                    BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold"></Button>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </CollectionView.Header>
+
             <CollectionView.ItemTemplate>
                 <DataTemplate >
 
