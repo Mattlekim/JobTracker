@@ -2336,16 +2336,48 @@ public partial class WorkPlanner : ContentPage
             return;
 
         Job j = lv_Jobs.SelectedItem as Job;
+        lv_Jobs.SelectedItem = null;
+
+        RowTapped(j);
+    }
+
+    /// <summary>
+    /// The row's own tap.
+    ///
+    /// Android only delivers touches to a view that is handling them, and a
+    /// row carrying nothing but the hold's pointer recogniser was never given
+    /// a finger to time - which is why holding a row on this list did nothing
+    /// while the same code worked on the booked work page, where the row has
+    /// a tap recogniser as well.
+    ///
+    /// So the row takes the tap, and the list's selection is left to hand it
+    /// on for whichever platform delivers it that way instead.
+    /// </summary>
+    private void job_Row_Tapped(object sender, TappedEventArgs e)
+    {
+        RowTapped(e.Parameter as Job);
+    }
+
+    private DateTime _rowTappedAt = DateTime.MinValue;
+
+    private void RowTapped(Job j)
+    {
+        if (j == null)
+            return;
+
+        //the finger coming up off a hold arrives as a tap, and would put
+        //straight back what the hold had just picked
+        if (HoldJustHappened)
+            return;
+
+        //the row and the list can both report the same tap. one is enough
+        if ((DateTime.Now - _rowTappedAt).TotalMilliseconds < 400)
+            return;
+
+        _rowTappedAt = DateTime.Now;
 
         if (_selectingJobs)
         {
-            lv_Jobs.SelectedItem = null;
-
-            //the finger coming up off a hold arrives here as a tap, and would
-            //put straight back what the hold had just picked
-            if (HoldJustHappened)
-                return;
-
             //tapping anywhere on the row picks the job while selecting
             ToggleSelected(j);
             return;
@@ -2371,9 +2403,6 @@ public partial class WorkPlanner : ContentPage
 
             RefreshPage();
         }
-        lv_Jobs.SelectedItem = null;
-
-        
     }
 
     private void HideSelectBookingJobs()

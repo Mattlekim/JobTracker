@@ -382,6 +382,12 @@ as likely as not to be behind the ... menu, which is no use as the way out of a 
 Holding a row starts picking jobs out with that row already picked, the same half second hold as `BookedWork`.
 The finger coming up off a hold arrives as a tap too, which is what `HoldJustHappened` is there to swallow.
 
+**A row that holds needs a `TapGestureRecognizer` on it as well as the `PointerGestureRecognizer`**, or the hold
+never happens: Android only delivers touches to a view that is handling them, and the pointer recogniser alone
+does not count. That is why the same hold code worked on `BookedWork` — whose row has always had a tap on it —
+and did nothing on the work list until the row was given one. The row's tap and the list's `SelectionChanged`
+both land in `RowTapped`, which ignores the second of two reports of the same tap.
+
 ## Screenshot mode
 
 `Kernel/ScreenshotMode.cs` swaps the road, town, area and postcode on screen for made up ones, so the round can be
