@@ -67,7 +67,20 @@
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <ViewCell>
-                                        <Entry Text="{Binding Name}" ClassId="{Binding Index}" TextChanged="e_textChanged"></Entry>
+                                        <!-- the cross takes it off the list it is
+                                             picked from, and only when nothing is
+                                             carrying it -->
+                                        <Grid ColumnSpacing="4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                            </Grid.ColumnDefinitions>
+                                            <Entry Grid.Column="0" Text="{Binding Name}" ClassId="{Binding Index}" TextChanged="e_textChanged"></Entry>
+                                            <Button Grid.Column="1" Text="✕" ClassId="{Binding Index}" Clicked="bnt_deleteJobType" FontAttributes="Bold"
+                                                    BackgroundColor="Transparent" TextColor="#C62828" BorderColor="#C62828" BorderWidth="2"
+                                                    CornerRadius="8" Padding="10,0" MinimumWidthRequest="40" VerticalOptions="Center"
+                                                    ToolTipProperties.Text="Take this job type off the list"></Button>
+                                        </Grid>
                                     </ViewCell>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
@@ -89,7 +102,20 @@
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <ViewCell>
-                                        <Entry Text="{Binding Name}" ClassId="{Binding Index}" TextChanged="e_tagTextChanged"></Entry>
+                                        <!-- the cross takes it off the list it is
+                                             picked from, and only when nothing is
+                                             carrying it -->
+                                        <Grid ColumnSpacing="4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                            </Grid.ColumnDefinitions>
+                                            <Entry Grid.Column="0" Text="{Binding Name}" ClassId="{Binding Index}" TextChanged="e_tagTextChanged"></Entry>
+                                            <Button Grid.Column="1" Text="✕" ClassId="{Binding Index}" Clicked="bnt_deleteTag" FontAttributes="Bold"
+                                                    BackgroundColor="Transparent" TextColor="#C62828" BorderColor="#C62828" BorderWidth="2"
+                                                    CornerRadius="8" Padding="10,0" MinimumWidthRequest="40" VerticalOptions="Center"
+                                                    ToolTipProperties.Text="Take this tag off the list"></Button>
+                                        </Grid>
                                     </ViewCell>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
@@ -110,7 +136,20 @@
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <ViewCell>
-                                        <Entry Text="{Binding Name}" ClassId="{Binding Index}" TextChanged="e_roundTextChanged"></Entry>
+                                        <!-- the cross takes it off the list it is
+                                             picked from, and only when nothing is
+                                             carrying it -->
+                                        <Grid ColumnSpacing="4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                            </Grid.ColumnDefinitions>
+                                            <Entry Grid.Column="0" Text="{Binding Name}" ClassId="{Binding Index}" TextChanged="e_roundTextChanged"></Entry>
+                                            <Button Grid.Column="1" Text="✕" ClassId="{Binding Index}" Clicked="bnt_deleteRound" FontAttributes="Bold"
+                                                    BackgroundColor="Transparent" TextColor="#C62828" BorderColor="#C62828" BorderWidth="2"
+                                                    CornerRadius="8" Padding="10,0" MinimumWidthRequest="40" VerticalOptions="Center"
+                                                    ToolTipProperties.Text="Take this round off the list"></Button>
+                                        </Grid>
                                     </ViewCell>
                                 </DataTemplate>
                             </ListView.ItemTemplate>

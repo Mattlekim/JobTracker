@@ -522,21 +522,7 @@ public partial class SettingLayout : ContentPage
     {
         ShowTidyCustomers();
 
-        List<JobNamesSettingData> jnsd
-            = new List<JobNamesSettingData>();
-        int index = 0;
-        foreach (string s in Job.JobNames)
-        {
-            jnsd.Add(new JobNamesSettingData()
-            {
-                Name = s,
-                Index = index,
-            });
-            index++;
-        }
-
-        l_jobNames.ItemsSource = jnsd;
-
+        ShowJobNames();
         ShowTagNames();
         ShowRoundNames();
 
@@ -803,17 +789,15 @@ public partial class SettingLayout : ContentPage
         DisplayAlert("Reset", "Import settings have been reset", "Ok");
     }
 
-    private void bnt_addJobType(object sender, EventArgs e)
+    /// <summary>
+    /// the job types to pick from. the type is on the job, so taking one off
+    /// here only stops it being offered
+    /// </summary>
+    private void ShowJobNames()
     {
-        List<JobNamesSettingData> jnsd
-            = new List<JobNamesSettingData>();
+        List<JobNamesSettingData> jnsd = new List<JobNamesSettingData>();
 
         int index = 0;
-        if (Job.JobNames.Contains(string.Empty))
-            return;
-
-        Job.JobNames.Add(string.Empty);
-
         foreach (string s in Job.JobNames)
         {
             jnsd.Add(new JobNamesSettingData()
@@ -826,8 +810,17 @@ public partial class SettingLayout : ContentPage
 
         l_jobNames.ItemsSource = null;
         l_jobNames.ItemsSource = jnsd;
+    }
 
+    private void bnt_addJobType(object sender, EventArgs e)
+    {
+        //one blank row at a time: a second would have nothing to tell it
+        //apart from the first
+        if (Job.JobNames.Contains(string.Empty))
+            return;
 
+        Job.JobNames.Add(string.Empty);
+        ShowJobNames();
     }
 
     /// <summary>
@@ -929,6 +922,134 @@ public partial class SettingLayout : ContentPage
 
         int i = Convert.ToInt32(entry.ClassId);
         Job.JobNames[i] = entry.Text;
+    }
+
+    //  ---------------------------------  taking one off one of these lists
+    //
+    //  All three lists are only what is offered when something is picked -
+    //  the type, the tag and the round itself all live on the job. So taking
+    //  one off here cannot undo any work, but it can leave work labelled with
+    //  something that is not on any list, and nothing can put that right
+    //  afterwards because there is no way left to pick it. That is why one
+    //  that is in use is not deleted, and why saying so has to say where it
+    //  is being used rather than only refusing.
+
+    /// <summary>the entry a delete button belongs to, or -1</summary>
+    private static int IndexOf(object sender, List<string> list)
+    {
+        Button button = sender as Button;
+        if (button == null || list == null)
+            return -1;
+
+        int index;
+        if (!int.TryParse(button.ClassId, out index))
+            return -1;
+
+        return index >= 0 && index < list.Count ? index : -1;
+    }
+
+    /// <summary>
+    /// asks, then takes it off the list and writes the settings.
+    /// </summary>
+    /// <param name="what">"job type", "tag" or "round", for the wording</param>
+    /// <param name="used">how many jobs are carrying it</param>
+    /// <param name="carrying">how that reads: "jobs are this type" and so on</param>
+    private async Task<bool> DeleteFromList(List<string> list, int index, string what, int used, string carrying)
+    {
+        if (index < 0)
+            return false;
+
+        string name = list[index];
+
+        //a blank row was never anything, so it goes without a word
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            list.RemoveAt(index);
+            Settings.Save();
+            return true;
+        }
+
+        if (used > 0)
+        {
+            await DisplayAlert($"{name} is in use",
+                $"{used} {carrying}.\n\nTaking it off this list would leave them labelled with something that cannot be picked again. "
+                + $"Change them to something else first, and then this {what} can go.",
+                "Ok");
+            return false;
+        }
+
+        if (!await DisplayAlert($"Delete {name}?",
+                $"It is not on any work, so nothing changes except that it stops being offered as a {what}.",
+                "Delete", "Keep"))
+            return false;
+
+        list.RemoveAt(index);
+        Settings.Save();
+        return true;
+    }
+
+    private async void bnt_deleteJobType(object sender, EventArgs e)
+    {
+        int index = IndexOf(sender, Job.JobNames);
+        if (index < 0)
+            return;
+
+        //something has to be the job type: Job.DefaultJobName is the first of
+        //them, and work read off the file with no type is given it
+        if (Job.JobNames.Count == 1 && !string.IsNullOrWhiteSpace(Job.JobNames[0]))
+        {
+            await DisplayAlert("The last job type",
+                "There has to be at least one job type - it is what work with nothing else set on it is called. Add another one first.",
+                "Ok");
+            return;
+        }
+
+        string name = Job.JobNames[index];
+        int used = Job.UsingJobType(name);
+
+        if (await DeleteFromList(Job.JobNames, index, "job type", used,
+                used == 1 ? "job is this type" : "jobs are this type"))
+            ShowJobNames();
+    }
+
+    private async void bnt_deleteTag(object sender, EventArgs e)
+    {
+        int index = IndexOf(sender, Job.TagNames);
+        if (index < 0)
+            return;
+
+        string name = Job.TagNames[index];
+
+        //the tag bar puts this tag on everything marked done, so it is in use
+        //whether or not any visit has it yet
+        if (!string.IsNullOrWhiteSpace(name) && Job.AutoTags.Exists(
+                x => string.Equals(x, name, StringComparison.CurrentCultureIgnoreCase)))
+        {
+            await DisplayAlert($"{name} is in use",
+                "It is set on the tag bar, so it is going on to everything marked done. Take it off the bar first, and then it can go from this list.",
+                "Ok");
+            return;
+        }
+
+        int used = Job.UsingTag(name);
+
+        if (await DeleteFromList(Job.TagNames, index, "tag", used,
+                used == 1 ? "visit is tagged with it" : "visits are tagged with it"))
+            ShowTagNames();
+    }
+
+    private async void bnt_deleteRound(object sender, EventArgs e)
+    {
+        int index = IndexOf(sender, Job.RoundNames);
+        if (index < 0)
+            return;
+
+        string name = Job.RoundNames[index];
+        int used = Job.UsingRound(name);
+
+        if (await DeleteFromList(Job.RoundNames, index, "round", used,
+                used == 1 ? "job is on it" : "jobs are on it"))
+            ShowRoundNames();
     }
 
     /// <summary>
