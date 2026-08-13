@@ -81,7 +81,9 @@
                      handed with wet hands. Threshold is deliberately left unset -
                      on Android it clamps how far the row opens, so the actions
                      only peeked out instead of appearing -->
-                <SwipeView>
+                <!-- the swipe takes a held finger before anything else can see
+                     it, so the hold is read back off the swipe itself -->
+                <SwipeView SwipeStarted="swip_started" SwipeEnded="swip_ended">
                     <SwipeView.LeftItems>
                         <SwipeItems>
                             <SwipeItem Text="{Binding DoneActionText}" IconImageSource="tick.png" CommandParameter="{Binding .}" BackgroundColor="#4CAF50" Invoked="On_Job_Compleated"/>

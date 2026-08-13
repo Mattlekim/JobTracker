@@ -58,6 +58,13 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     public ToolbarItem bnt_cancelSelection;
     public ToolbarItem bnt_setRound;
 
+    /// <summary>
+    /// Select All on the toolbar as well as on the bar. The bar is where the
+    /// eye is, but the toolbar is where somebody looks for a thing that acts
+    /// on the whole list - and it says the words rather than just "All".
+    /// </summary>
+    public ToolbarItem tbi_selectAll;
+
     /// <summary>what the page is doing, which is what the toolbar says</summary>
     private enum ToolBarMode
     {
@@ -99,6 +106,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         if (_toolBarMode == ToolBarMode.SelectingJobs)
         {
             this.ToolbarItems.Add(bnt_cancelSelection);
+            this.ToolbarItems.Add(tbi_selectAll);
             this.ToolbarItems.Add(bnt_bookInWork);
             this.ToolbarItems.Add(bnt_setRound);
             this.ToolbarItems.Add(bnt_textCustomers);
@@ -184,6 +192,10 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         bnt_cancelSelection = new ToolbarItem();
         bnt_cancelSelection.Text = "Cancel Select Jobs";
         bnt_cancelSelection.Clicked += Bnt_cancelSelection_Clicked;
+
+        tbi_selectAll = new ToolbarItem();
+        tbi_selectAll.Text = "Select All";
+        tbi_selectAll.Clicked += Bnt_selectAllToolbar_Clicked;
 
         //putting a round together is picking the houses on it, so it belongs
         //with the other things done to a handful of jobs at once
@@ -295,6 +307,70 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             1 => "1 job picked",
             _ => $"{_selectedJobs.Count} jobs picked",
         };
+
+        //the same button does both, and says which it is about to do
+        bnt_selectAll.Text = EverythingPicked ? "None" : "All";
+    }
+
+    /// <summary>the work on the list that can actually be picked</summary>
+    private List<Job> Pickable()
+    {
+        List<Job> pickable = new List<Job>();
+
+        if (_sourceJobs == null)
+            return pickable;
+
+        foreach (Job j in _sourceJobs)
+            if (j != null && j.CustomerId != -1)
+                pickable.Add(j);
+
+        return pickable;
+    }
+
+    /// <summary>true while every job on the list is picked</summary>
+    private bool EverythingPicked
+    {
+        get
+        {
+            List<Job> pickable = Pickable();
+            return pickable.Count > 0 && _selectedJobs.Count >= pickable.Count;
+        }
+    }
+
+    /// <summary>
+    /// Picks everything on the list, or puts it all back.
+    ///
+    /// It is the list as it stands, filter and all - booking a whole street
+    /// in is tapping the street's tag and then this, and picking twenty
+    /// houses one at a time is not something anybody would do twice.
+    ///
+    /// The booking summary rows are left out because they are not work.
+    /// </summary>
+    private void SelectAllOrNone()
+    {
+        bool putBack = EverythingPicked;
+
+        foreach (Job j in Pickable())
+        {
+            if (j.IsSelected == !putBack)
+                continue;
+
+            //through the same toggle as a tap, so nothing can disagree about
+            //what is picked
+            ToggleSelected(j);
+        }
+
+        ShowSelectionBar();
+    }
+
+    private void bnt_selectAll_Clicked(object sender, EventArgs e)
+    {
+        SelectAllOrNone();
+    }
+
+    private void Bnt_selectAllToolbar_Clicked(object sender, EventArgs e)
+    {
+        SelectAllOrNone();
     }
 
     /// <summary>
@@ -964,6 +1040,11 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         if (j == null)
             j = GetJobForSwipe(sv.RightItems[0]);
 
+        //a finger put down on a row and held is taken by the swipe before
+        //anything else can see it - see HoldWasReallyASwipe
+        _swipeStartedAt = DateTime.Now;
+        _swipeJob = j;
+
         //a job already marked has nothing to gain from Done or Done & Paid
         //again - what is wanted then is to clear it, or open it up
         SwipeItem si = sv.LeftItems[0] as SwipeItem;
@@ -1347,9 +1428,45 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         {
             g_more.IsVisible = false;
             UpdateMoreInfoLayout();
+            return;
         }
-       
 
+        //nothing was opened, so this may have been a hold rather than a swipe
+        HoldWasReallyASwipe();
+    }
+
+    /// <summary>when the swipe on a row began, and what it was on</summary>
+    private DateTime _swipeStartedAt = DateTime.MinValue;
+    private Job _swipeJob;
+
+    /// <summary>
+    /// A press held on a row, arriving as a swipe.
+    ///
+    /// The rows are SwipeViews, and the swipe takes the finger the moment it
+    /// moves at all - which a finger held on a phone always does. The press
+    /// is then somebody else's gesture: the long press android would have
+    /// raised is cancelled, and nothing on the row ever hears about it. That
+    /// is why holding a row did nothing however it was hooked up.
+    ///
+    /// So the swipe is read instead of fought. A swipe that ran for as long
+    /// as a hold and opened nothing is not a swipe - it is somebody holding
+    /// the row - and that is what starts picking jobs out.
+    /// </summary>
+    private void HoldWasReallyASwipe()
+    {
+        Job j = _swipeJob;
+        DateTime started = _swipeStartedAt;
+
+        _swipeJob = null;
+        _swipeStartedAt = DateTime.MinValue;
+
+        if (j == null || started == DateTime.MinValue)
+            return;
+
+        if ((DateTime.Now - started).TotalMilliseconds < HoldMilliseconds)
+            return;
+
+        HoldToSelect(j);
     }
 
     private void On_Job_More(object sender, EventArgs e)
