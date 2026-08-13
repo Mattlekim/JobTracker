@@ -105,10 +105,16 @@ public partial class JobStatus : ContentPage
     /// </summary>
     private List<string> _tags;
 
+    /// <summary>the tags the visit already had when this page opened</summary>
+    private List<string> _tagsAtOpen;
+
     private void ShowTags()
     {
         if (_tags == null)
+        {
             _tags = new List<string>(_job.Tags);
+            _tagsAtOpen = new List<string>(_job.Tags);
+        }
 
         vsl_tags.Clear();
 
@@ -549,7 +555,14 @@ public partial class JobStatus : ContentPage
 
         int known = Job.TagNames.Count;
 
-        _job.Tags.Clear();
+        //only what was taken off here comes off, rather than writing the
+        //page's list over the top: ticking the job done in this same save
+        //puts the tag bar's tags on it, and clearing the lot first would
+        //take those straight back off again
+        foreach (string tag in _tagsAtOpen)
+            if (!_tags.Exists(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)))
+                _job.RemoveTag(tag);
+
         foreach (string tag in _tags)
             _job.AddTag(tag);
 

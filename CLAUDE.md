@@ -290,6 +290,11 @@ of the job, so it starts with no tags and the finished visit keeps the ones it w
 makes the customer's history on `Layouts/ViewCustomerDetails` able to say which visits were like that — the whole
 point of the feature. **Do not add `Tags` to `DeepCopy`**, or every visit from then on inherits the last one's.
 
+They show on the job rows in the work list, the calendar and the booked work page, on the day heading of a booked
+day, and in the customer's history. On the paper view they go under the note in the record's own colour rather
+than as a filled tag — a column of filled tags down that page reads as ink blots — and they come off
+`PaperItem.JobI3`, the visit whose mark is in the record column, which is the one that row is writing up.
+
 `Job.TagNames` is the list offered when something is tagged, edited on the settings page and saved with the
 settings exactly like `Job.JobNames`. It is only the list to pick from: taking a tag off it never changes a day
 already worked. A tag typed in rather than picked is added to it (`Job.RememberTag`), so it only has to be typed
@@ -305,7 +310,28 @@ tags on the day heading in `Layouts/BookedWork` because its jobs are carrying th
 `Layouts/TagPicker` is the one place that asks which tag to put on, so tagging one house and tagging a whole day
 ask the same question in the same words, and it saves whatever it changes. It is used from the booking form,
 the booked work page and the work list. `Layouts/JobStatus` is the exception: it edits its own copy of the tags
-and writes them on Save, like everything else on that page, so Cancel really does leave the visit alone.
+and writes them on Save, like everything else on that page. It takes off only what was taken off *there* rather
+than writing its list over the top, because ticking the job done in the same save puts the tag bar's tags on it
+and clearing the lot first would take those straight back off.
+
+### The tag bar
+
+Tagging house by house will not happen while you are stood at a gate with wet hands, and a day is usually all the
+same anyway — everything front only because of the weather, a whole street with nobody in. `Job.AutoTags` is what
+the tag bar is set to, and **`Job.MarkJobDone` puts them on**. That is deliberately in the kernel rather than in
+each of the places work can be marked done — the swipes, the paper view, the job's own window, the calendar — so
+none of them can be the one that forgets. `UnMarkJobDone` takes them back off again, so clearing a job swiped by
+mistake really is an undo.
+
+`Controles/TagBar` is the bar itself, one control used by `WorkPlanner`, `BookedWork`, `CalenderView` and
+`PaperView` rather than the same row written four times. It folds away to a single small button while nothing is
+set, because most days nothing is — but once something *is* set the tags stay on show whether it is folded or
+not. **Do not let it fold away over a tag that is still going on everything marked done**: that is the one thing
+it must not do, and it is also what makes it safe to keep `AutoTags` in the settings file so the setting survives
+the app being closed mid-round. All four bars show the same setting, so a change on one tells the others.
+
+On the calendar the bar is pinned above the list instead of riding along in its header, where it would scroll off
+the top of the page while it was being worked from.
 
 ## Versioning
 

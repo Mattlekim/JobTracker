@@ -23,6 +23,10 @@
         </Grid.ColumnDefinitions>
         <VerticalStackLayout x:Name="vsl_header" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
 
+            <!-- the tags to put on work as it is marked done. folded away
+                 while nothing is set -->
+            <controls:TagBar></controls:TagBar>
+
             <!-- filters as it is typed into, so a house can be found without
                  scrolling the whole round -->
             <Grid Padding="8,6" ColumnSpacing="6" x:Name="g_search" IsVisible="false">

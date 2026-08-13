@@ -40,6 +40,13 @@ public struct SettingsData
     /// </summary>
     public List<string> TagNames;
 
+    /// <summary>
+    /// the tags the tag bar is set to put on work as it is marked done. kept
+    /// so a round is not left half tagged by the app being closed part way
+    /// through the day
+    /// </summary>
+    public List<string> AutoTags;
+
     public int DefaultFrequence;
     public FrequenceType DefalutFrequenceType;
 
@@ -116,6 +123,9 @@ public class Settings
         sd.TagNames = new List<string>();
         Job.TagNames.Remove(string.Empty);
         sd.TagNames.AddRange(Job.TagNames);
+
+        sd.AutoTags = new List<string>();
+        sd.AutoTags.AddRange(Job.AutoTags);
 
         sd.DefaultJobDuration = DefaultJobDuration;
         sd.HaveShowenJobIntro = HaveShowenJobIntro;
@@ -216,6 +226,10 @@ public class Settings
                     Job.TagNames.Clear();
                     Job.TagNames.AddRange(sd.TagNames);
                 }
+
+                Job.AutoTags.Clear();
+                if (sd.AutoTags != null)
+                    Job.AutoTags.AddRange(sd.AutoTags);
             }
         }
         catch

@@ -88,6 +88,40 @@ namespace Kernel
         };
 
         /// <summary>
+        /// The tags every job picks up as it is marked done, set on the tag
+        /// bar at the top of the pages work is written up from.
+        ///
+        /// A day is usually all the same: everything front only because of
+        /// the weather, or every house on a street with nobody in. Saying so
+        /// once and having it go on as the work is marked off is the only way
+        /// it will actually get recorded on a round.
+        ///
+        /// Kept with the settings so it survives the app being closed
+        /// mid-round. That is safe because the bar shows what it is set to
+        /// whenever anything is set - it can only be folded away while it is
+        /// empty, so it can never quietly tag a round nobody asked it to.
+        /// </summary>
+        public static List<string> AutoTags = new List<string>();
+
+        public static bool AddAutoTag(string tag)
+        {
+            tag = TidyTag(tag);
+            if (tag.Length == 0
+                || AutoTags.Exists(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)))
+                return false;
+
+            AutoTags.Add(tag);
+            RememberTag(tag);
+            return true;
+        }
+
+        public static bool RemoveAutoTag(string tag)
+        {
+            tag = TidyTag(tag);
+            return AutoTags.RemoveAll(x => string.Equals(x, tag, StringComparison.CurrentCultureIgnoreCase)) > 0;
+        }
+
+        /// <summary>
         /// tags are compared and stored trimmed, because a tag typed with a
         /// space on the end is the same tag
         /// </summary>
@@ -1013,6 +1047,14 @@ namespace Kernel
             HaveSkipped = false;
             DateSkipped = UsfulFuctions.DateBase;
             DateCompleated = date;
+
+            //whatever the tag bar is set to goes on as the work is written
+            //up. it is done here rather than in each of the places work can
+            //be marked done - the swipes, the paper view, the job's own
+            //window - so none of them can be the one that forgets
+            foreach (string tag in AutoTags)
+                AddTag(tag);
+
             if (Frequence > 0)
                 JobNextId = GenerateNextDueDate();
 
@@ -1046,6 +1088,13 @@ namespace Kernel
 
             IsCompleted = false;
             DateCompleated = new DateTime();
+
+            //the tags that came with the done mark go back off with it, so
+            //clearing a job swiped by mistake really does put it back as it
+            //was. marking it done again brings them straight back
+            foreach (string tag in AutoTags)
+                RemoveTag(tag);
+
             _Jobs.RemoveAll(x => x.Id == JobNextId); //remove the next instance of the job
 
             MatchCustomer();

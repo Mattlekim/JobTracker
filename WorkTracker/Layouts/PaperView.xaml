@@ -1,6 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:UiInterface.Controles"
              x:Class="UiInterface.Layouts.PaperView"
              Title="Job List">
     
@@ -16,6 +17,10 @@
     </ContentPage.ToolbarItems>
     <StackLayout>
         <DatePicker x:Name="dp_DoneDate" IsVisible="false"></DatePicker>
+
+        <!-- the tags to put on work as it is marked done. folded away while
+             nothing is set -->
+        <controls:TagBar></controls:TagBar>
             <!-- filters as it is typed into, so a house can be found without
                  scrolling the whole round -->
             <Grid Padding="8,6" ColumnSpacing="6" x:Name="g_search" IsVisible="false">
@@ -150,7 +155,14 @@
                             </ContentView.GestureRecognizers>
                         </ContentView>
                         <ContentView BackgroundColor="Transparent" Grid.Column="3" Grid.Row="0">
-                            <Label Text="{Binding Notes}"  IsVisible="{Binding ShowJobDetails}"  IsEnabled="{Binding ShowJobDetails}" Padding="2"  FontSize="12" VerticalOptions="Center"></Label>
+                            <!-- the tags sit under the note, in the record's
+                                 own colour rather than as a filled tag: this
+                                 is the paper round book, and a row of them
+                                 down the page would read as ink blots -->
+                            <VerticalStackLayout VerticalOptions="Center">
+                                <Label Text="{Binding Notes}"  IsVisible="{Binding ShowJobDetails}"  IsEnabled="{Binding ShowJobDetails}" Padding="2"  FontSize="12"></Label>
+                                <Label Text="{Binding TagsText}" IsVisible="{Binding HaveTags}" Padding="2,0,2,2" FontSize="10" FontAttributes="Bold" TextColor="#00838F" LineBreakMode="TailTruncation" MaxLines="1"></Label>
+                            </VerticalStackLayout>
                             <ContentView.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="grid_Job_Tapped" CommandParameter="{Binding BaseJob}"></TapGestureRecognizer>
                             </ContentView.GestureRecognizers>

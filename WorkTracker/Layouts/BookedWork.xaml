@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:UiInterface.Controles"
              x:Class="UiInterface.Layouts.BookedWork"
              Title="Booked In Work">
 
@@ -8,18 +9,23 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- the tags to put on work as it is marked done. folded away while
+             nothing is set -->
+        <controls:TagBar Grid.Row="0"></controls:TagBar>
+
         <!-- one button per booked day, so a week planned out can be looked
              at a day at a time instead of as one long list -->
-        <ScrollView Grid.Row="0" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" x:Name="sv_dayPicker">
+        <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" x:Name="sv_dayPicker">
             <HorizontalStackLayout x:Name="hsl_dayPicker" Padding="8,6" Spacing="6"></HorizontalStackLayout>
         </ScrollView>
 
         <!-- the day being moved and the date it is going to. stays hidden
              until a day's 'Change Date' is used -->
-        <VerticalStackLayout x:Name="vsl_moveDay" Grid.Row="1" IsVisible="False" Padding="12,8" Spacing="6"
+        <VerticalStackLayout x:Name="vsl_moveDay" Grid.Row="2" IsVisible="False" Padding="12,8" Spacing="6"
                              BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
             <Label x:Name="l_moveDay" FontAttributes="Bold"/>
             <HorizontalStackLayout Spacing="8">
@@ -29,7 +35,7 @@
             </HorizontalStackLayout>
         </VerticalStackLayout>
 
-        <CollectionView x:Name="cv_bookings" Grid.Row="2" IsGrouped="True">
+        <CollectionView x:Name="cv_bookings" Grid.Row="3" IsGrouped="True">
         <CollectionView.EmptyView>
             <Label Text="No work booked in.&#10;&#10;Select jobs in the Work list and use 'Bookin Work' to plan a day."
                    Padding="20" HorizontalTextAlignment="Center" VerticalOptions="Center" FontSize="16"

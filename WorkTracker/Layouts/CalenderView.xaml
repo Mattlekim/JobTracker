@@ -1,13 +1,27 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:controls="clr-namespace:UiInterface.Controles"
              x:Class="UiInterface.Layouts.CalenderView"
              Title="Calendar">
+    <!-- the tag bar is pinned above the list rather than riding along in its
+         header: it is set while working through the day, and would be no use
+         scrolled off the top of the page -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <!-- the tags to put on work as it is marked done. folded away while
+             nothing is set -->
+        <controls:TagBar Grid.Row="0"></controls:TagBar>
+
     <!-- The calendar, the day totals and the job list scroll as one page.
          They ride along as the list's header rather than sitting above it,
          because a ScrollView around the lot would put one scroll inside
          another and cost the list its virtualisation. -->
-    <CollectionView x:Name="lv_Jobs" SelectionMode="None" RemainingItemsThreshold="0">
+    <CollectionView Grid.Row="1" x:Name="lv_Jobs" SelectionMode="None" RemainingItemsThreshold="0">
         <CollectionView.Header>
             <VerticalStackLayout>
                 <HorizontalStackLayout HorizontalOptions="Center" x:Name="hsl_monthSelector">
@@ -237,4 +251,5 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
     </CollectionView>
+    </Grid>
 </ContentPage>
