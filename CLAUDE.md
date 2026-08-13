@@ -130,8 +130,11 @@ The second kind is the one that matters: a backup off an email or out of Drive l
 reason, a backup saved with *Save To This Device* is written as `application/octet-stream` rather than left for
 the phone to guess at — that is what makes it openable again from where it landed.
 
-`MainActivity` is `SingleTop` so a file opened while the app is running reaches `OnNewIntent` rather than starting
-a second copy of the app. What arrives is somebody else's `content://` uri, readable only while that intent lives
+`MainActivity` is **`SingleTask`** so a file opened while the app is running reaches `OnNewIntent` rather than
+starting a second copy of the app. It must not be `SingleTop`: a MAUI app has one window and it belongs to one
+activity, so a second one takes the app down with *"This window is already associated with an active Activity"* —
+and `SingleTop` only reuses the activity when the intent lands on the task it is already on top of, which a file
+opened from a file manager does not. What arrives is somebody else's `content://` uri, readable only while that intent lives
 and with no real path behind it, so it is copied into our cache first — on a background thread, because a backup
 carries the receipt photos and can be big.
 

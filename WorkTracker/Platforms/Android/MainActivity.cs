@@ -5,10 +5,24 @@ using Android.OS;
 
 namespace WorkTracker
 {
-    //  SingleTop so that opening a .rbf while Work Tracker is already running
-    //  hands the file to the app that is there (OnNewIntent) instead of
-    //  starting a second copy of it on top of the first.
-    [Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+    //  SingleTask, so that a .rbf opened while Work Tracker is already
+    //  running is handed to the app that is there (OnNewIntent) rather than
+    //  starting a second copy of it.
+    //
+    //  It has to be SingleTask and not SingleTop. There is one window in a
+    //  MAUI app and it belongs to one activity, so a second activity kills
+    //  the app on the spot:
+    //
+    //      This window is already associated with an active Activity
+    //      (WorkTracker.MainActivity)
+    //
+    //  SingleTop only reuses the activity when the new intent lands on the
+    //  task it is already sitting on top of. A file opened from a file
+    //  manager does not: it comes in on that app's task, so android built a
+    //  second one, and the app went down before the backup could be offered.
+    //  SingleTask is what says there is only ever one of these - android
+    //  finds it wherever it is, brings it back and delivers the intent to it.
+    [Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTask, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 
     //  Opening a backup with Work Tracker.
     //
