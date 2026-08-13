@@ -183,6 +183,9 @@ public class CalenderDay: INotifyPropertyChanged
 	//how a day is filled: work still to do, work all done, and work left behind
 	private static Color BookedColour = Color.FromArgb("EF6C00"), CompletedColour = Color.FromArgb("2E7D32");
 	private static Color OverdueColour = Color.FromArgb("C62828");
+
+	//work still to come that nobody has said when they are doing
+	private static Color UnarrangedColour = Color.FromArgb("BF360C");
 	private static Color ColourCurrentDay = Color.FromArgb("00477A");
     private static Color MyGray = Color.FromArgb("1E1E1E");
 
@@ -252,8 +255,10 @@ public class CalenderDay: INotifyPropertyChanged
         //all - a week of finished work was a row of green squares with
         //nothing legible in them.
         //
-        //The overdue red is the only fill dark enough to want white on it.
-        TextColor = past && !AllDone ? Colors.White : Colors.Black;
+        //The two fills that are there to warn - the overdue red and the dark
+        //orange red on work nobody has arranged - are dark enough to want
+        //white on them. The working orange and the done green take black.
+        TextColor = (past && !AllDone) || UnarrangedWork ? Colors.White : Colors.Black;
 
         //the work colour owns the fill, so today is marked with a ring instead
         //of losing the thing the fill is there to say
@@ -269,6 +274,11 @@ public class CalenderDay: INotifyPropertyChanged
     /// do, green once it is all done, and a blend of the two part way through so
     /// a day reads as more done the greener it gets. Work still outstanding on a
     /// day that has already gone is overdue, and goes red instead.
+    ///
+    /// Work still to come that has no day arranged for it starts from a dark
+    /// orange red rather than the orange, so a week ahead shows at a glance
+    /// which of its days have actually been planned and which are just work
+    /// falling due.
     /// </summary>
     private Color WorkColour(bool past)
     {
@@ -285,7 +295,34 @@ public class CalenderDay: INotifyPropertyChanged
             if (j.IsCompleted)
                 done++;
 
-        return LerpColour(BookedColour, CompletedColour, (float)done / Jobs.Count);
+        Color from = UnarrangedWork ? UnarrangedColour : BookedColour;
+
+        return LerpColour(from, CompletedColour, (float)done / Jobs.Count);
+    }
+
+    /// <summary>
+    /// this day has work still to come on it that nobody has said when they
+    /// are doing.
+    ///
+    /// Only the days still ahead: today's work is being done rather than
+    /// arranged, and a day already gone has its own colour for work that was
+    /// missed. Booked work is shown on the day it is booked for rather than
+    /// the day it fell due, so anything sat here unbooked really is work with
+    /// no day against it.
+    /// </summary>
+    private bool UnarrangedWork
+    {
+        get
+        {
+            if (UsfulFuctions.DifferenceSigned(Date, DateNow) <= 0)
+                return false;
+
+            foreach (Job j in Jobs)
+                if (!j.IsCompleted && !j.IsBookedIn)
+                    return true;
+
+            return false;
+        }
     }
 
     /// <summary>
