@@ -321,6 +321,20 @@ as likely as not to be behind the ... menu, which is no use as the way out of a 
 Holding a row starts picking jobs out with that row already picked, the same half second hold as `BookedWork`.
 The finger coming up off a hold arrives as a tap too, which is what `HoldJustHappened` is there to swallow.
 
+## Toolbar icons
+
+The toolbar items everybody already knows the picture for carry one: Search is a magnifier, Filters a funnel,
+and anything that adds is a plus (`Resources/Images/search.svg`, `filter.svg`, `add.svg`). They are Feather style
+24×24 like the rest of the icons, and referenced as `search.png` — `MauiImage` turns the svg into a png at build.
+
+They are stroked **white**, unlike the icons used on the swipe actions and the tab bar, because the toolbar is the
+Shell nav bar: green in the light theme and nearly black in the dark one. A black stroked icon disappears into
+both.
+
+Every item keeps its `Text` alongside the icon. Android shows that text on a long press and reads it out in the
+... menu, so an icon never leaves somebody guessing — and an item that goes to Secondary is text only anyway.
+Only put an icon on something whose picture is genuinely obvious; the rest say what they do in words.
+
 ## Tooltips
 
 `ToolTipProperties.Text` works on Android — it comes up on a **long press** — and on hover on Windows. That makes

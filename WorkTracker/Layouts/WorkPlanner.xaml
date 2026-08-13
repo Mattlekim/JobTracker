@@ -4,8 +4,11 @@
              xmlns:controls="clr-namespace:UiInterface.Controles"
              x:Class="UiInterface.Layouts.WorkPlanner"
              Title="WorkPlanner">
+    <!-- the toolbar items keep their Text as well as the icon: it is what
+         Android shows on a long press and what the ... menu reads, so an
+         icon never leaves somebody guessing -->
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Search" Clicked="tbi_Search_Clicked"></ToolbarItem>
+        <ToolbarItem Text="Search" IconImageSource="search.png" Clicked="tbi_Search_Clicked"></ToolbarItem>
     </ContentPage.ToolbarItems>
 
 

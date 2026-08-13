@@ -87,12 +87,17 @@ public partial class WorkPlanner : ContentPage
 
         int jCount = Job.Query().Count;
 
+        //a funnel and a plus say what these are to anybody. the Text stays on
+        //them: Android puts it up on a long press and reads it out in the ...
+        //menu, so the icon never leaves somebody guessing
         bnt_Filters = new ToolbarItem();
         bnt_Filters.Text = "Filters";
+        bnt_Filters.IconImageSource = "filter.png";
         bnt_Filters.Clicked += l_filterText_Clicked;
 
         bnt_addNewJob = new ToolbarItem();
         bnt_addNewJob.Text = "Add Job";
+        bnt_addNewJob.IconImageSource = "add.png";
         bnt_addNewJob.Clicked += bnt_addJob_Clicked;
 
         bnt_selectJobs = new ToolbarItem();

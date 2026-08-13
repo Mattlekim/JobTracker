@@ -5,7 +5,7 @@
              Title="Quotes">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="New Quote" Clicked="bnt_newQuote_Clicked"></ToolbarItem>
+        <ToolbarItem Text="New Quote" IconImageSource="add.png" Clicked="bnt_newQuote_Clicked"></ToolbarItem>
     </ContentPage.ToolbarItems>
 
     <ContentPage.Resources>

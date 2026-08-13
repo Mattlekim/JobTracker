@@ -7,7 +7,7 @@
     
     <ContentPage.ToolbarItems>
        
-        <ToolbarItem Text="Search" Clicked="tbi_Search_Clicked"></ToolbarItem>
+        <ToolbarItem Text="Search" IconImageSource="search.png" Clicked="tbi_Search_Clicked"></ToolbarItem>
         <ToolbarItem Text="Option" Clicked="tbi_ShowOptions_Clicked" Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="New Job" Clicked="bnt_newJob_Clicked" Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="New Quote"  Clicked="bnt_newQuote_Clicked" Order="Secondary"></ToolbarItem>
