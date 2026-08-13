@@ -246,6 +246,15 @@ public class CalenderDay: INotifyPropertyChanged
 
         BgColour = WorkColour(past);
 
+        //A day already gone is only dimmed while it has nothing on it. Once
+        //it is filled with a work colour the text has to be read against that
+        //fill instead, and the grey above on the done green cannot be read at
+        //all - a week of finished work was a row of green squares with
+        //nothing legible in them.
+        //
+        //The overdue red is the only fill dark enough to want white on it.
+        TextColor = past && !AllDone ? Colors.White : Colors.Black;
+
         //the work colour owns the fill, so today is marked with a ring instead
         //of losing the thing the fill is there to say
         if (today)
@@ -263,12 +272,7 @@ public class CalenderDay: INotifyPropertyChanged
     /// </summary>
     private Color WorkColour(bool past)
     {
-        int done = 0;
-        foreach (Job j in Jobs)
-            if (j.IsCompleted)
-                done++;
-
-        if (done == Jobs.Count)
+        if (AllDone)
             return CompletedColour;
 
         //cancelled jobs are dropped before they ever reach a day, so anything
@@ -276,7 +280,29 @@ public class CalenderDay: INotifyPropertyChanged
         if (past)
             return OverdueColour;
 
+        int done = 0;
+        foreach (Job j in Jobs)
+            if (j.IsCompleted)
+                done++;
+
         return LerpColour(BookedColour, CompletedColour, (float)done / Jobs.Count);
+    }
+
+    /// <summary>
+    /// everything on the day is done. a day with nothing on it is not work
+    /// finished, so it does not count - both callers have already dealt with
+    /// the empty days by the time they ask
+    /// </summary>
+    private bool AllDone
+    {
+        get
+        {
+            foreach (Job j in Jobs)
+                if (!j.IsCompleted)
+                    return false;
+
+            return Jobs.Count > 0;
+        }
     }
 
     /// <summary>straight blend between two colours, amount 0 gives from, 1 gives to</summary>
