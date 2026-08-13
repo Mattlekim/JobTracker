@@ -606,34 +606,74 @@ namespace Kernel
         [XmlIgnore]
         public object Data;
 
-        private static bool _selectionMode = false;
+        /// <summary>
+        /// The work list is picking jobs out rather than working through them.
+        /// It is one switch for the whole round - either every row has a tick
+        /// box or none of them do.
+        ///
+        /// It used to be set through a property on the job, which read a
+        /// static behind the scenes but only told the one job it was set on
+        /// that anything had changed. Rows built after that - the list is
+        /// virtualised, so that is any row scrolled into view - read the
+        /// static and drew a tick box while the rest of the list had none.
+        /// That is where the boxes appearing on their own came from, and why
+        /// they could not be got rid of: whichever rows were never told took
+        /// no notice of being switched off either.
+        ///
+        /// So it is set through <see cref="SetSelectionMode"/>, which is the
+        /// only thing that can change it and tells the whole round at once.
+        /// </summary>
+        public static bool SelectionMode { get; private set; }
 
-        private static double _gridLengthCheckBoxWidth = 0;
+        /// <summary>
+        /// turns the tick boxes on or off for the whole list, clearing
+        /// whatever was picked on the way out
+        /// </summary>
+        public static void SetSelectionMode(bool on)
+        {
+            SelectionMode = on;
+
+            foreach (Job j in _Jobs)
+            {
+                if (!on)
+                    j.IsSelected = false;
+
+                j.RaisePropertyChanged("SelectionModeEnabled");
+                j.RaisePropertyChanged("GridLengthCheckBoxWidth");
+            }
+        }
+
+        /// <summary>nothing picked, with the tick boxes left as they are</summary>
+        public static void ClearSelection()
+        {
+            foreach (Job j in _Jobs)
+                if (j.IsSelected)
+                    j.IsSelected = false;
+        }
+
+        /// <summary>everything with its tick in</summary>
+        public static List<Job> Selected()
+        {
+            return _Jobs.FindAll(x => x.IsSelected);
+        }
+
+        /// <summary>
+        /// worked out rather than stored, so a row built at any point reads
+        /// the same answer as every other row.
+        ///
+        /// the booking summary rows are not work and cannot be picked, so
+        /// they never show a box whatever the list is doing
+        /// </summary>
+        [XmlIgnore]
+        public bool SelectionModeEnabled
+        {
+            get { return SelectionMode && CustomerId != -1; }
+        }
+
+        [XmlIgnore]
         public double GridLengthCheckBoxWidth
         {
-            get
-            {
-                return _gridLengthCheckBoxWidth;
-            }
-            set
-            {
-                _gridLengthCheckBoxWidth = value;
-                RaisePropertyChanged("GridLengthCheckBoxWidth");
-            }
-            
-        }
-        public bool SelectionModeEnabled 
-        {
-            get { return _selectionMode; }
-            set
-            {
-                _selectionMode = value;
-                if (_selectionMode)
-                    GridLengthCheckBoxWidth =0.3;
-                else
-                    GridLengthCheckBoxWidth = 0;
-                RaisePropertyChanged("SelectionModeEnabled");
-            }
+            get { return SelectionModeEnabled ? 0.3 : 0; }
         }
 
 

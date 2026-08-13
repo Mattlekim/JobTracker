@@ -303,6 +303,33 @@ of it, with a Clear, whether the filter panel is open or not. **Do not let a fil
 saying so.** The bar's Clear takes off the tag filter only; the panel's Reset puts everything back, dates
 included.
 
+## Picking jobs out of the work list
+
+`Job.SelectionMode` is one switch for the whole round — either every row on `Layouts/WorkPlanner` has a tick box
+or none of them do — and **`Job.SetSelectionMode` is the only thing that may change it**, because it is also what
+tells every job the answer has changed.
+
+It used to be set through a property on the job that read a static behind the scenes while only raising
+`PropertyChanged` on the one job it was set on. The list is virtualised, so any row built afterwards — anything
+scrolled into view — read the static and drew a tick box while the rest of the list had none, and the rows that
+were never told took no notice of being switched off either. That is where tick boxes appearing on their own came
+from. `SelectionModeEnabled` is now worked out rather than stored, so a row built at any point gives the same
+answer as every other row, and the booking summary rows never show one because they are not work.
+
+The way out is the bar across the top of the list, not just the toolbar item: on a phone the toolbar's Cancel is
+as likely as not to be behind the ... menu, which is no use as the way out of a mode you did not mean to be in.
+Holding a row starts picking jobs out with that row already picked, the same half second hold as `BookedWork`.
+The finger coming up off a hold arrives as a tap too, which is what `HoldJustHappened` is there to swallow.
+
+## Tooltips
+
+`ToolTipProperties.Text` works on Android — it comes up on a **long press** — and on hover on Windows. That makes
+it worth putting on anything with no words of its own: the info button on a job row, the tag bar's buttons, and
+so on. It is not worth relying on for anything a user has to know, because nobody long presses a control to ask
+what it is. **Never put one on a row that has a hold gesture** (the work list and booked work rows), where the
+long press already means something else. Anything genuinely not obvious gets a line of grey text under it
+instead, the way the filter panel explains itself.
+
 ## Job tags
 
 A tag says what *this time* of doing the job was like — front only, nobody in, the gate was locked. It is not

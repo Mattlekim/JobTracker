@@ -2,6 +2,8 @@
 using System.Diagnostics;
 using Kernel;
 using System.Collections.ObjectModel;
+//the hold that starts picking jobs out is timed with one of these
+using Microsoft.Maui.Dispatching;
 /*#if ANDROID
 using Android.Telephony;
 using AndroidX.AppCompat.App;
@@ -176,12 +178,13 @@ public partial class WorkPlanner : ContentPage
 
     private void CancelSelectingJobs()
     {
-     
-        _selectingJobs = false;
-        //Job.SelectionModeEnabled = _selectingJobs;
-        foreach (Job j in _tmpJobs)
-            j.SelectionModeEnabled = _selectingJobs;
 
+        _selectingJobs = false;
+
+        //one switch for the whole list, which also clears what was picked
+        Job.SetSelectionMode(false);
+        _selectedJobs.Clear();
+        ShowSelectionBar();
 
         var vt = lv_Jobs.GetVisualTreeDescendants();
         CheckBox cb;
@@ -195,6 +198,52 @@ public partial class WorkPlanner : ContentPage
             }
         }
         UpdateToolBarNoraml();
+    }
+
+    /// <summary>
+    /// The bar across the top while jobs are being picked out: how many are
+    /// picked, and the way back out.
+    ///
+    /// The toolbar has a Cancel on it as well, but on a phone it is as
+    /// likely as not to be behind the ... menu, and a mode you did not mean
+    /// to be in needs a way out that is actually on the screen.
+    /// </summary>
+    private void ShowSelectionBar()
+    {
+        brd_selecting.IsVisible = _selectingJobs;
+
+        if (!_selectingJobs)
+            return;
+
+        l_selectedCount.Text = _selectedJobs.Count switch
+        {
+            0 => "Tap the jobs you want",
+            1 => "1 job picked",
+            _ => $"{_selectedJobs.Count} jobs picked",
+        };
+    }
+
+    /// <summary>
+    /// picks a job, or puts it back. the tick boxes, the row taps and the
+    /// hold all come through here so they cannot disagree about what is
+    /// picked
+    /// </summary>
+    private void ToggleSelected(Job j)
+    {
+        if (j == null || j.CustomerId == -1)
+            return;
+
+        j.IsSelected = !j.IsSelected;
+
+        if (j.IsSelected)
+        {
+            if (!_selectedJobs.Contains(j.Id))
+                _selectedJobs.Add(j.Id);
+        }
+        else
+            _selectedJobs.Remove(j.Id);
+
+        ShowSelectionBar();
     }
     private void Bnt_cancelSelection_Clicked(object sender, EventArgs e)
     {
@@ -215,6 +264,12 @@ public partial class WorkPlanner : ContentPage
             Settings.Save();
             return;
         }
+
+        //the tick boxes are one switch for the whole round, so coming back to
+        //the page puts it back to whatever this page is actually doing rather
+        //than trusting what it was left as
+        Job.SetSelectionMode(_selectingJobs);
+        ShowSelectionBar();
 
         RefreshPage();
     }
@@ -847,33 +902,8 @@ public partial class WorkPlanner : ContentPage
 
     private async void bnt_addJob_Clicked(object sender, EventArgs e)
     {
-    /*    if (_selectingJobs)
-        {
-            Update/ToolBarNoraml();
-            _selectingJobs = false;
-            foreach (Job j in _tmpJobs)
-                j.SelectionModeEnabled = true;
-            _selectedJobs.Clear();
-            foreach (Job j in _sourceJobs)
-                j.IsSelected = false;
-            var vt = lv_Jobs.GetVisualTreeDescendants();
-            CheckBox cb;
-            SwipeView sv;
-            foreach (object o in vt)
-            {
-                cb = o as CheckBox;
-                if (cb != null)
-                    cb.IsVisible = false;
-                sv = o as SwipeView;
-                if (sv != null)
-                {
-                    sv.IsEnabled = true;
-                }
-            }
-
-           
-            return;
-        }*/
+        //(the commented out block that used to sit here turned the tick boxes
+        //off a job at a time. that is one switch now - Job.SetSelectionMode)
         NewJob.JobToAdd = new Job();
         NewJob.AddNewJob = true;
        
@@ -1654,30 +1684,123 @@ public partial class WorkPlanner : ContentPage
     }
 
     public List<int> _selectedJobs = new List<int>();
+
+    /// <summary>
+    /// the tick box on a row. it only follows what the box now says, so
+    /// nothing here can argue with a tick that has just been put in
+    /// </summary>
     private void cb_streetSelected(object sender, CheckedChangedEventArgs e)
     {
         CheckBox ck = sender as CheckBox;
+        Job j = ck?.BindingContext as Job;
 
+        if (j == null || j.CustomerId == -1)
+            return;
 
-        int id = Convert.ToInt32(ck.ClassId);
+        j.IsSelected = ck.IsChecked;
+
         if (ck.IsChecked)
         {
-            if (!_selectedJobs.Contains(id))
-            {
-                _selectedJobs.Add(id);
-                Job j = _sourceJobs.FirstOrDefault(x => x.Id == id);
-                if (j != null)
-                    j.IsSelected = true;
-            }
-
+            if (!_selectedJobs.Contains(j.Id))
+                _selectedJobs.Add(j.Id);
         }
         else
+            _selectedJobs.Remove(j.Id);
+
+        ShowSelectionBar();
+    }
+
+    //  -----------------------------------------------------  hold to select
+    //
+    //  There is no long press gesture of its own, so the hold is timed from
+    //  the finger going down: it counts once it has stayed put for half a
+    //  second, and a scroll or a swipe calls it off. Same as the booked work
+    //  page, so a hold means the same thing on both.
+
+    private const int HoldMilliseconds = 500;
+    private const double HoldMoveTolerance = 20;
+
+    private IDispatcherTimer _holdTimer;
+    private Job _holdJob;
+    private Point _holdFrom;
+
+    /// <summary>
+    /// when the hold last picked something. the finger coming up off a hold
+    /// is a tap as well, and that tap would put straight back what the hold
+    /// had just picked
+    /// </summary>
+    private DateTime _heldAt = DateTime.MinValue;
+
+    private void Job_PointerPressed(object sender, PointerEventArgs e)
+    {
+        Element row = sender as Element;
+        _holdJob = row?.BindingContext as Job;
+        if (_holdJob == null)
+            return;
+
+        _holdFrom = e.GetPosition(row) ?? Point.Zero;
+
+        if (_holdTimer == null)
         {
-            _selectedJobs.Remove(id);
-            Job j = _sourceJobs.FirstOrDefault(x => x.Id == id);
-            if (j!= null)
-                j.IsSelected = false;
+            _holdTimer = Dispatcher.CreateTimer();
+            _holdTimer.Interval = TimeSpan.FromMilliseconds(HoldMilliseconds);
+            _holdTimer.IsRepeating = false;
+            _holdTimer.Tick += (s, a) => HoldToSelect();
         }
+
+        _holdTimer.Stop();
+        _holdTimer.Start();
+    }
+
+    private void Job_PointerMoved(object sender, PointerEventArgs e)
+    {
+        if (_holdJob == null)
+            return;
+
+        Point? now = e.GetPosition(sender as Element);
+        if (now == null)
+            return;
+
+        if (Math.Abs(now.Value.X - _holdFrom.X) > HoldMoveTolerance
+            || Math.Abs(now.Value.Y - _holdFrom.Y) > HoldMoveTolerance)
+            CancelHold();
+    }
+
+    private void Job_PointerReleased(object sender, PointerEventArgs e)
+    {
+        CancelHold();
+    }
+
+    private void CancelHold()
+    {
+        _holdTimer?.Stop();
+        _holdJob = null;
+    }
+
+    /// <summary>
+    /// holding a row starts picking jobs out with that one already picked,
+    /// and holding another one after that picks that too
+    /// </summary>
+    private void HoldToSelect()
+    {
+        Job j = _holdJob;
+        CancelHold();
+
+        if (j == null || j.CustomerId == -1)
+            return;
+
+        _heldAt = DateTime.Now;
+
+        if (_selectingJobs)
+            ToggleSelected(j);
+        else
+            StartSelectingJobs(j);
+    }
+
+    /// <summary>true while the tap that ended a hold is still coming</summary>
+    private bool HoldJustHappened
+    {
+        get { return (DateTime.Now - _heldAt).TotalMilliseconds < 1000; }
     }
 
     private bool _selectingJobs = false;
@@ -1696,10 +1819,12 @@ public partial class WorkPlanner : ContentPage
             UpdateToolBarNoraml();
 
 
+            //the ids of what was picked are read below, so they are left
+            //alone here - it is the tick boxes that are being put away
             _selectingJobs = false;
-            //Job.SelectionMode = _selectingJobs;
-            foreach (Job j in _tmpJobs)
-                j.SelectionModeEnabled = _selectingJobs;
+            Job.SetSelectionMode(false);
+            ShowSelectionBar();
+
             var vt = lv_Jobs.GetVisualTreeDescendants();
 
             CheckBox cb;
@@ -1769,27 +1894,30 @@ public partial class WorkPlanner : ContentPage
             return;
         }
        
-        CheckBox cb;
+        StartSelectingJobs();
+    }
+
+    /// <summary>
+    /// turns the tick boxes on, with the job that was held already picked
+    /// when it was a hold that started it
+    /// </summary>
+    private void StartSelectingJobs(Job first = null)
+    {
         SwipeView sv;
-     
-
-
 
         _selectingJobs = true;
-        ColumnDefinition cd;
 
-
-
-        //Job.SelectionMode = _selectingJobs;
-        foreach (Job j in _tmpJobs)
-            j.SelectionModeEnabled = _selectingJobs;
-       // g_jobList.TranslationX = 0;
-        UpdateToolBarSelectJobs();
-      
-    
+        //nothing carried over from the last time
         _selectedJobs.Clear();
-        foreach (Job j in _sourceJobs)
-            j.IsSelected = false;
+        Job.SetSelectionMode(true);
+
+        UpdateToolBarSelectJobs();
+
+        if (first != null)
+            ToggleSelected(first);
+
+        ShowSelectionBar();
+
         var v = lv_Jobs.GetVisualTreeDescendants();
 
     
@@ -2079,18 +2207,14 @@ public partial class WorkPlanner : ContentPage
         if (_selectingJobs)
         {
             lv_Jobs.SelectedItem = null;
-            //clicking anywhere on the row toggles the job while selecting
-            if (j != null && j.CustomerId != -1)
-            {
-                j.IsSelected = !j.IsSelected;
-                if (j.IsSelected)
-                {
-                    if (!_selectedJobs.Contains(j.Id))
-                        _selectedJobs.Add(j.Id);
-                }
-                else
-                    _selectedJobs.Remove(j.Id);
-            }
+
+            //the finger coming up off a hold arrives here as a tap, and would
+            //put straight back what the hold had just picked
+            if (HoldJustHappened)
+                return;
+
+            //tapping anywhere on the row picks the job while selecting
+            ToggleSelected(j);
             return;
         }
 
@@ -2124,14 +2248,11 @@ public partial class WorkPlanner : ContentPage
         bnt_cancel_booking.IsVisible = false;
         bnt_reschedule_booking.IsVisible = false;
           _selectingJobs = false;
-        //Job.SelectionMode = _selectingJobs;
-        foreach (Job j in _tmpJobs)
-            j.SelectionModeEnabled = _selectingJobs;
+        Job.SetSelectionMode(false);
         UpdateToolBarNoraml();
 
             _selectedJobs.Clear();
-            foreach (Job j in _sourceJobs)
-                j.IsSelected = false;
+            ShowSelectionBar();
         var vt = lv_Jobs.GetVisualTreeDescendants();
             CheckBox cb;
             SwipeView sv;
