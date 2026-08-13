@@ -251,6 +251,16 @@ The month by month figures come off `DateCompleated`, not `DueDate`: they are wh
 jobs stay in `_Jobs` alongside the next visit they generated, so anything counting the round itself must skip
 `IsCompleted` or it counts the same house twice.
 
+`RoundStats.ByRound` runs the same sums a round at a time, which is the **By round** card on the page: half a day
+left means one thing in one village and another spread over three. Both go through `Build`, so a round's figures
+and the totals above them cannot be worked out differently. The card hides itself when no work is on a round,
+where it would only repeat the cards above it.
+
+What is owed is the one figure that is not simply split up: a balance belongs to a customer, not to a job. The
+round as a whole counts **every** customer in debt, because somebody who owes money with no work left still owes
+it; a single round counts the customers with work on that round, each once however many houses of theirs are on
+it. The month by month figures are the round's takings as a whole and are not broken up at all.
+
 ## Booking a day in from the calendar
 
 Tapping a day on `Layouts/CalenderView` picks it; double tapping opens the day's action sheet. Nobody double taps a
@@ -457,7 +467,20 @@ that.
 file. The other way round, work with no type gets the first *built in* type rather than the first of this round's
 own. Only what is in memory is changed — the file catches up on the next save, like the other tidy ups done on load.
 
-## Rounds
+## Deleting a job type, a tag or a round
+
+All three are only the list of what is *offered* — the type, the tag and the round itself live on the job — so a
+cross beside each one on the settings page takes it off that list, and **only while nothing is carrying it**.
+Deleting one that is in use could not undo any work, but it would leave jobs labelled with something that is not
+on any list and cannot be picked again, which nothing can put right afterwards.
+
+`Job.UsingJobType`, `Job.UsingTag` and `Job.UsingRound` do the counting, in the kernel with the data, and they
+count the **quotes** as well as the work — a quote carries a type and a round like anything else. Refusing says
+how many are carrying it and what to do about it, because a refusal with no reason reads as a broken button.
+
+Two extra guards: the **last** job type cannot go, since `Job.DefaultJobName` is what work with no type of its own
+is called; and a tag that is set on the tag bar (`Job.AutoTags`) counts as in use even when no visit carries it
+yet, because it is going on to everything marked done. A blank row is not a name and is deleted without asking.
 
 A round is a patch of the work — a village, a day of the week, whatever it is actually split into. `Job.Round`
 is a plain string on the job (blank for work that is not on one) with `Job.RoundNames` as the list to pick from,
@@ -647,7 +670,8 @@ than as a filled tag — a column of filled tags down that page reads as ink blo
 
 `Job.TagNames` is the list offered when something is tagged, edited on the settings page and saved with the
 settings exactly like `Job.JobNames`. It is only the list to pick from: taking a tag off it never changes a day
-already worked. A tag typed in rather than picked is added to it (`Job.RememberTag`), so it only has to be typed
+already worked — which is exactly why an entry **in use cannot be deleted**. See *Deleting a job type, a tag or a
+round* below. A tag typed in rather than picked is added to it (`Job.RememberTag`), so it only has to be typed
 once — which is why anything that tags something saves the settings if the list has grown. Settings written
 before tags existed have no `TagNames` element at all and read back as null, which keeps the built in list; an
 empty list is a round that has deleted the lot on purpose and is left empty.

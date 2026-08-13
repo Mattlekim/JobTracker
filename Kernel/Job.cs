@@ -707,6 +707,71 @@ namespace Kernel
             get { return SpellMinutes(Minutes); }
         }
 
+        //  ------------------------------------------  what is still in use
+        //
+        //  A job type, a tag or a round can be taken off the list it is
+        //  picked from, but only while nothing is carrying it. Taking one off
+        //  that is in use does not undo the work - the type, the tag and the
+        //  round all live on the job - it just leaves a job labelled with
+        //  something that is not on any list, which nothing can put right
+        //  afterwards because there is no way left to pick it.
+        //
+        //  The quotes are counted as well as the work: a quote is priced up
+        //  work, and it carries a type and a round like anything else.
+
+        /// <summary>how many jobs and quotes are of this type</summary>
+        public static int UsingJobType(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return 0;
+
+            int used = 0;
+
+            foreach (Job j in _Jobs)
+                if (string.Equals(j.Name ?? string.Empty, name, StringComparison.CurrentCultureIgnoreCase))
+                    used++;
+
+            foreach (Job j in _Quotes)
+                if (string.Equals(j.Name ?? string.Empty, name, StringComparison.CurrentCultureIgnoreCase))
+                    used++;
+
+            return used;
+        }
+
+        /// <summary>how many visits are carrying this tag</summary>
+        public static int UsingTag(string tag)
+        {
+            if (string.IsNullOrWhiteSpace(tag))
+                return 0;
+
+            int used = 0;
+
+            foreach (Job j in _Jobs)
+                if (j.HasTag(tag))
+                    used++;
+
+            return used;
+        }
+
+        /// <summary>how many jobs and quotes are on this round</summary>
+        public static int UsingRound(string round)
+        {
+            if (string.IsNullOrWhiteSpace(round))
+                return 0;
+
+            int used = 0;
+
+            foreach (Job j in _Jobs)
+                if (string.Equals(j.Round ?? string.Empty, round, StringComparison.CurrentCultureIgnoreCase))
+                    used++;
+
+            foreach (Job j in _Quotes)
+                if (string.Equals(j.Round ?? string.Empty, round, StringComparison.CurrentCultureIgnoreCase))
+                    used++;
+
+            return used;
+        }
+
         /// <summary>minutes as somebody would say them</summary>
         public static string SpellMinutes(int minutes)
         {
