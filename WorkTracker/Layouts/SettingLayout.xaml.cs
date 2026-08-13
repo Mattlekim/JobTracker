@@ -976,9 +976,48 @@ public partial class SettingLayout : ContentPage
             $"Backed up {result.FormattedYears}, with {result.Receipts} receipt photo(s) and {result.Statements} bank statement(s).",
             "Ok");
 
-        ShareFile sf = new ShareFile(result.Path);
-        await Share.RequestAsync(new ShareFileRequest(shareTitle, sf));
+        //the backup is written to the cache, which nothing else can see, so it
+        //has to be sent somewhere before it counts as backed up at all
+        if (!DeviceFileSaver.CanSave)
+        {
+            await Share.RequestAsync(new ShareFileRequest(shareTitle, new ShareFile(result.Path)));
+            return;
+        }
+
+        string choice = await DisplayActionSheet(shareTitle, "Cancel", null, "Save To This Device", "Share");
+
+        if (choice == "Share")
+        {
+            await Share.RequestAsync(new ShareFileRequest(shareTitle, new ShareFile(result.Path)));
+            return;
+        }
+
+        if (choice != "Save To This Device")
+            return;
+
+        try
+        {
+            //saved as its own kind of file rather than left for the phone to
+            //guess at, so tapping it in the downloads list offers Work Tracker
+            //back again - which is the whole point of it being openable
+            string saved = await DeviceFileSaver.SaveAsync(result.Path,
+                System.IO.Path.GetFileName(result.Path), BackupMimeType);
+
+            await DisplayAlert("Saved", $"Saved to {saved}.\n\nOpening it from there puts it back.", "Ok");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Save Failed", ex.Message, "Ok");
+        }
     }
+
+    /// <summary>
+    /// what a .rbf is saved as. there is no type of its own for one, and this
+    /// is what the phone calls a file it has no type for - the same thing the
+    /// intent filter listens for, so a backup saved here can be opened from
+    /// the downloads list
+    /// </summary>
+    private const string BackupMimeType = "application/octet-stream";
 
     private void bnt_createBackup_Clicked(object sender, EventArgs e)
     {
