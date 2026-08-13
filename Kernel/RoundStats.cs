@@ -182,7 +182,9 @@ namespace Kernel
 
                 stats.HousesLeft++;
                 stats.ValueLeft += j.EffectivePrice;
-                stats.MinutesLeft += j.EstimatedTime;
+                //a house with no estimate of its own still takes the round's
+                //usual, which is what the calendar counts it as
+                stats.MinutesLeft += j.Minutes;
 
                 if (j.DueDate.Date < today.Date)
                     stats.HousesOverdue++;

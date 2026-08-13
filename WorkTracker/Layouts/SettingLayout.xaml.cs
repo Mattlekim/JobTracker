@@ -79,7 +79,19 @@ public class Settings
 
     private static string _FilePath = "settings.txt";
 
-    public static int DefaultJobDuration = 0;
+    /// <summary>
+    /// how long a job with no estimate of its own takes.
+    ///
+    /// It is kept on Job rather than here, and this is a way in to the same
+    /// figure rather than a second copy of it: every page that shows work
+    /// asks the job how long it is, and a job cannot see the settings.
+    /// </summary>
+    public static int DefaultJobDuration
+    {
+        get { return Job.DefaultDuration; }
+        set { Job.DefaultDuration = value; }
+    }
+
     public static bool HaveShowenJobIntro = false;
 
     public static void Save(string dir = null)

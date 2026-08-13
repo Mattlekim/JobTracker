@@ -201,10 +201,19 @@ put right, each with a **Change** beside it rather than a trip through the job f
 - **Time For Job** — `Layouts/JobDuration`. How long the job takes is what the day is planned off, and it is
   noticed to be wrong stood at the house.
 
-`JobDuration.MinutesFor` is the one definition of how long a job counts as taking — its own `EstimatedTime`, or
-`Settings.DefaultJobDuration` when it has none — used by the calendar and the booked work page as well, so the
-day's figures cannot disagree about it. `Describe` says which of the two a figure is, because a house showing the
-usual and a house that really is half an hour are not the same thing.
+`Job.Minutes` is the one definition of how long a job counts as taking — its own `EstimatedTime`, or the round's
+usual when it has none — so the tags, the day totals, the booking form and the round's figures cannot disagree
+about it. `JobDuration.MinutesFor` is a way in to the same thing; `Describe` says which of the two a figure is,
+because a house showing the usual and a house that really is half an hour are not the same thing.
+
+The round's usual lives on **`Job.DefaultDuration`**, and `Settings.DefaultJobDuration` is a property over it
+rather than a second copy: the settings own the figure, but a job cannot see the settings and every page that
+shows work asks a job how long it is.
+
+`Job.LengthText` is that length as a tag, shown on the job rows in the work list, the booked work page and the
+calendar (`HaveLength` keeps it off a round that has never timed anything). `Job.SpellMinutes` is the only place
+minutes are turned into words, so a row and the customer's page cannot word the same figure differently. The work
+list's booking summary row gets one too, and it says the whole day, because `Booking.Refresh` adds up `Minutes`.
 
 `JobDuration.Apply` follows `JobNextId` **forwards** from the job it was given. The job being looked at is as
 likely as not one already done, and changing it there while the next clean kept the old figure would be no use;

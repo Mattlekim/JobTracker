@@ -486,6 +486,9 @@
                                         </Label.GestureRecognizers>
                                     </Label>
                                     <Label Text="One off" TextColor="White" BackgroundColor="#546E7A" IsVisible="{Binding ShowOneOff}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
+                                    <!-- how long the job takes, its own estimate or
+                                         the round's usual - the day is planned off it -->
+                                    <Label Text="{Binding LengthText}" TextColor="White" BackgroundColor="#5D4037" IsVisible="{Binding HaveLength}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <Label Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="4,2" FontSize="12" FontAttributes="Bold"></Label>
                                     <!-- direct debit requested, waiting for the money to come through -->

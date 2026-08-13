@@ -20,15 +20,12 @@ public static class JobDuration
 {
     /// <summary>
     /// how long this job is counted as taking, its own estimate or the
-    /// round's usual. this is the same fallback the calendar, the booked work
-    /// page and the booking form all make
+    /// round's usual. <see cref="Job.Minutes"/> is where that is decided,
+    /// once, for the rows and the day totals alike
     /// </summary>
     public static int MinutesFor(Job j)
     {
-        if (j == null)
-            return 0;
-
-        return j.EstimatedTime > 0 ? j.EstimatedTime : Settings.DefaultJobDuration;
+        return j == null ? 0 : j.Minutes;
     }
 
     /// <summary>what the job's time says on screen</summary>
@@ -47,21 +44,13 @@ public static class JobDuration
             : "Not set";
     }
 
-    /// <summary>minutes as somebody would say them</summary>
+    /// <summary>
+    /// minutes as somebody would say them. the same words the tag on the job
+    /// rows uses, so the page and the row cannot word it differently
+    /// </summary>
     public static string Spell(int minutes)
     {
-        if (minutes <= 0)
-            return "Not set";
-
-        if (minutes < 60)
-            return $"{minutes} mins";
-
-        int hours = minutes / 60;
-        int rest = minutes % 60;
-
-        string said = hours == 1 ? "1 hr" : $"{hours} hrs";
-
-        return rest == 0 ? said : $"{said} {rest} mins";
+        return minutes <= 0 ? "Not set" : Job.SpellMinutes(minutes);
     }
 
     /// <summary>

@@ -317,7 +317,10 @@ namespace Kernel
             foreach (Job j in Jobs)
             {
                 amount += j.EffectivePrice;
-                minutes += j.EstimatedTime;
+
+                //what the job counts as taking, the round's usual included,
+                //so the summary row agrees with the day it stands for
+                minutes += j.Minutes;
             }
 
             BookingInfo.Price = amount;
