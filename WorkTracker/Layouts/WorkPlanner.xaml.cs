@@ -201,8 +201,10 @@ public partial class WorkPlanner : ContentPage
         CancelSelectingJobs();
     }
 
+    /// <summary>what the tag filter is matching, for saying so above the list</summary>
     private string FilterString;
-    private float FilterFloat;
+
+    /// <summary>the tag filter itself, or null while the list is the round</summary>
     private Func<List<Job>> Filter;
     private void WorkPlanner_NavigatedTo(object sender, NavigatedToEventArgs e)
     {
@@ -223,22 +225,14 @@ public partial class WorkPlanner : ContentPage
 
         List<Job> jobs;
 
-
-        Filter = null; //disable filters for now due to problems
+        //a tag filter narrows the round to one thing - a street, a price, a
+        //job type. it used to be thrown away here rather than run, because
+        //there was no way of telling it was on and no obvious way back out.
+        //what says so is ShowActiveFilter, and the Clear on the bar it puts up
         if (Filter != null)
-        {
-
             jobs = Filter();
-            l_filterResultsText.IsVisible = true;
-            l_filterResultsText.Text = $"Filtering Results By {SecondryFilter}";
-
-        }
         else
-        {
             jobs = MasterFilter();
-            l_filterResultsText.IsVisible = false;
-        }
-
 
         foreach (Job j in jobs)
             if (j.IsCompleted)
@@ -247,7 +241,10 @@ public partial class WorkPlanner : ContentPage
                 j.tmpDate = j.DueDate;
 
         jobs = jobs.OrderBy(x => x.tmpDate).ToList();
-        if (!ViewBooking)
+
+        //the booking summary rows are the round's diary, not work matching
+        //what was tapped, so they stay off a filtered list
+        if (!ViewBooking && Filter == null)
         foreach (Booking b in Booking.Bookings)
                 jobs.Insert(0,b.BookingInfo);
 
@@ -256,6 +253,10 @@ public partial class WorkPlanner : ContentPage
         //the booking summary rows are not jobs, so they go while searching
         if (!string.IsNullOrWhiteSpace(_searchText))
             jobs = jobs.FindAll(x => x.CustomerId != -1 && x.MatchesSearch(_searchText));
+
+        //counted after the search rather than before it, so the bar says how
+        //much work is actually on the list. the booking rows are not work
+        ShowActiveFilter(jobs.FindAll(x => x.CustomerId != -1).Count);
 
         //quotes are not on this list. they are not due and cannot be done, so
         //they have their own page under Work - see Layouts/Quotes
@@ -895,14 +896,159 @@ public partial class WorkPlanner : ContentPage
         StartFilterDate = StartFilterDate.AddDays(-7);
 
     }
+    /// <summary>
+    /// everything back to how the page opens: the fortnight either side of
+    /// today, no tag filter, cancelled work out of the way.
+    ///
+    /// It used to give up straight away unless a tag filter happened to be
+    /// on, so Reset did nothing at all to a date range that had been dragged
+    /// somewhere unhelpful - which is the thing most likely to need it.
+    /// </summary>
     private void bnt_Clear_Filter_Clicked(object sender, EventArgs e)
+    {
+        ResetDateFilter();
+        dp_StartSearchDate.Date = StartFilterDate;
+        dp_EndSearchDate.Date = EndFilterDate;
+
+        FilterDate = true;
+        cb_filterDates.IsChecked = true;
+        cb_showCancelled.IsChecked = false;
+
+        ClearTagFilter();
+        RefreshPage();
+    }
+
+    /// <summary>
+    /// the Clear on the bar above the list, and the one next to the tag in
+    /// the panel. it takes off what it is sat next to and nothing else - a
+    /// date range that has been set on purpose is not what was being cleared
+    /// </summary>
+    private void bnt_ClearTagFilter_Clicked(object sender, EventArgs e)
     {
         if (Filter == null)
             return;
-        ResetDateFilter();
-        SecondryFilter = SecondryFilterType.None;
-        l_filterBy.Text = $"{SecondryFilter}";
+
+        ClearTagFilter();
+        RefreshPage();
+    }
+
+    private void ClearTagFilter()
+    {
         Filter = null;
+        SecondryFilter = SecondryFilterType.None;
+        FilterString = string.Empty;
+    }
+
+    /// <summary>
+    /// What the list is being narrowed by, said in the bar above it whether
+    /// the filter panel is open or not, along with how much of the round is
+    /// left showing. A list quietly showing a fraction of the work with
+    /// nothing to say why is what had the tag filters switched off.
+    /// </summary>
+    private void ShowActiveFilter(int showing)
+    {
+        bool on = Filter != null;
+
+        brd_filterOn.IsVisible = on;
+        hsl_tagFilter.IsVisible = on;
+
+        if (!on)
+            return;
+
+        l_filterBy.Text = FilterDescription();
+        l_filterResultsText.Text = $"Showing only {FilterDescription()}";
+        l_filterResultsCount.Text = showing == 1
+            ? "1 job, from the whole round"
+            : $"{showing} jobs, from the whole round";
+    }
+
+    /// <summary>the tag filter in the words it would be described in</summary>
+    private string FilterDescription()
+    {
+        switch (SecondryFilter)
+        {
+            case SecondryFilterType.JobType:
+                return $"{FilterString} jobs";
+
+            case SecondryFilterType.JobPrice:
+                return $"work at {FilterString}";
+
+            case SecondryFilterType.Owed:
+                return "customers who owe money";
+
+            case SecondryFilterType.Credit:
+                return "customers in credit";
+
+            case SecondryFilterType.NothingOwed:
+                return "customers who owe nothing";
+        }
+
+        //the street, the town and the area say what they are on their own
+        return FilterString;
+    }
+
+    /// <summary>
+    /// the three money filters are a question about the customer rather than
+    /// a value off the job, so they have nothing to put in the description
+    /// and are the only ones allowed to set a filter without one
+    /// </summary>
+    private static bool NamesNoValue(SecondryFilterType type)
+    {
+        return type == SecondryFilterType.Owed
+            || type == SecondryFilterType.Credit
+            || type == SecondryFilterType.NothingOwed;
+    }
+
+    /// <summary>
+    /// What a tag filter picks from.
+    ///
+    /// The whole round rather than the date range the list is normally kept
+    /// to: tapping High Street and being shown three of its twelve houses,
+    /// because the rest are not due for a fortnight, is not what anybody
+    /// means by tapping it.
+    ///
+    /// Work that is finished is left out for the same reason - every visit
+    /// ever made to that street is a history, not a list of work to do - and
+    /// cancelled work follows the same tick as everywhere else on the page.
+    /// </summary>
+    private List<Job> FilterSource()
+    {
+        List<Job> jobs = new List<Job>(Job.Query());
+
+        jobs.RemoveAll(x => x.IsCompleted);
+
+        if (!cb_showCancelled.IsChecked)
+            jobs.RemoveAll(x => x.HaveCanceled);
+
+        return jobs;
+    }
+
+    /// <summary>
+    /// Puts a tag filter on: what is being matched, for saying so above the
+    /// list, and the test that decides what stays.
+    ///
+    /// The test is given the job that was tapped rather than the words off
+    /// its tag. Reading a tag back out of its own label is what put £8.50
+    /// through a whole-number parse and took the app down with it.
+    /// </summary>
+    private void SetTagFilter(SecondryFilterType type, string what, Func<Job, bool> keep)
+    {
+        //the money tags name no value of their own. everything else does, and
+        //a filter on a blank street, or on a job with no type, could only
+        //ever say "Showing only "
+        if (!NamesNoValue(type) && string.IsNullOrWhiteSpace(what))
+            return;
+
+        SecondryFilter = type;
+        FilterString = what ?? string.Empty;
+
+        Filter = () =>
+        {
+            List<Job> jobs = FilterSource();
+            jobs.RemoveAll(x => !keep(x));
+            return jobs;
+        };
+
         RefreshPage();
     }
 
@@ -924,22 +1070,11 @@ public partial class WorkPlanner : ContentPage
 
     private void Job_Type_Filter(object sender, EventArgs e)
     {
-        if (TaggedJob(sender) == null)
+        Job j = TaggedJob(sender);
+        if (j == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.JobType;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x=>x.Name != FilterString);
-            return jobs;
-            
-        };
-        RefreshPage();
-
+        SetTagFilter(SecondryFilterType.JobType, j.Name, x => x.Name == j.Name);
     }
 
 
@@ -954,7 +1089,9 @@ public partial class WorkPlanner : ContentPage
     private static List<Job> tmpJobList;
     private List<Job> MasterFilter()
     {
-        tmpJobList = Job.Query();
+        //a copy: Job.Query hands out one buffer it refills for everybody, and
+        //what follows here takes jobs out of it
+        tmpJobList = new List<Job>(Job.Query());
 
         if (!cb_showCancelled.IsChecked)
             tmpJobList.RemoveAll(x => x.HaveCanceled);
@@ -992,132 +1129,84 @@ public partial class WorkPlanner : ContentPage
 
     private void Job_Street_Filter(object sender, EventArgs e)
     {
-        if (TaggedJob(sender) == null)
+        Job j = TaggedJob(sender);
+        if (j?.Address == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.Street;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x => x.Address?.Street != FilterString);
-            return jobs;
-
-        };
-        RefreshPage();
+        SetTagFilter(SecondryFilterType.Street, j.Address.Street,
+            x => x.Address != null && x.Address.Street == j.Address.Street);
     }
 
     private void Job_City_Filter(object sender, EventArgs e)
     {
-        if (TaggedJob(sender) == null)
+        Job j = TaggedJob(sender);
+        if (j?.Address == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.City;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x => x.Address?.City != FilterString);
-            return jobs;
-
-        };
-        RefreshPage();
+        SetTagFilter(SecondryFilterType.City, j.Address.City,
+            x => x.Address != null && x.Address.City == j.Address.City);
     }
 
     private void Job_Area_Filter(object sender, EventArgs e)
     {
-        if (TaggedJob(sender) == null)
+        Job j = TaggedJob(sender);
+        if (j?.Address == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.Area;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            jobs.RemoveAll(x => x.Address?.Area != FilterString);
-            return jobs;
-
-        };
-        RefreshPage();
+        SetTagFilter(SecondryFilterType.Area, j.Address.Area,
+            x => x.Address != null && x.Address.Area == j.Address.Area);
     }
 
     private void Job_Price_Filter(object sender, EventArgs e)
     {
-        if (TaggedJob(sender) == null)
+        Job j = TaggedJob(sender);
+        if (j == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
-        FilterString = FilterString.Replace(Gloable.CurrenceSymbol,String.Empty);
-        FilterString = FilterString.Replace("Price", String.Empty); ;
-        FilterString = FilterString.Replace(" ", String.Empty); ;
-
-        //a price is money, not a whole number of pounds. this read the tag
-        //back as an int, so tapping the price on anything charged at £8.50
-        //threw and took the app down with it - on nothing worse than a tag
-        //being tapped
-        if (!float.TryParse(FilterString, out FilterFloat))
-            return;
-
-        Filter = () =>
-        {
-            SecondryFilter = SecondryFilterType.JobPrice;
-            l_filterBy.Text = $"{SecondryFilter}";
-            List<Job> jobs = MasterFilter();
-            //compared as money rather than as an exact float: the figure was
-            //read back off the tag, so a penny either way is the same price
-            jobs.RemoveAll(x => Math.Abs(x.Price - FilterFloat) > 0.005f);
-            return jobs;
-
-        };
-        RefreshPage();
+        //compared as money rather than as an exact float
+        SetTagFilter(SecondryFilterType.JobPrice, $"{Gloable.CurrenceSymbol}{j.Price}",
+            x => Math.Abs(x.Price - j.Price) < 0.005f);
     }
 
+    /// <summary>
+    /// the money tag asks about the customer behind the job, so tapping it
+    /// on somebody who owes turns up everybody who owes - which is the round
+    /// to knock on before the next one starts
+    /// </summary>
     private void Money_Owed_Filter(object sender, EventArgs e)
     {
-        if (TaggedJob(sender) == null)
+        Job j = TaggedJob(sender);
+        if (j == null)
             return;
 
-        Label l = sender as Label;
-        FilterString = l.Text;
+        Customer c = j.GetCustomer();
+        if (c == null)
+            return;
 
-        Filter = () =>
+        if (c.Balance > 0)
         {
-            List<Job> jobs = MasterFilter();
+            SetTagFilter(SecondryFilterType.Owed, null, x => Balance(x) > 0);
+            return;
+        }
 
-            if (FilterString.Contains("Owes"))
-            {
-                SecondryFilter = SecondryFilterType.Owed;
-                l_filterBy.Text = $"{SecondryFilter}";
-                jobs.RemoveAll(x => x.GetCustomer()?.Balance <= 0);
-                return jobs;
-            }
+        if (c.Balance < 0)
+        {
+            SetTagFilter(SecondryFilterType.Credit, null, x => Balance(x) < 0);
+            return;
+        }
 
-            if (FilterString.Contains("Credit"))
-            {
-                SecondryFilter = SecondryFilterType.Credit;
-                l_filterBy.Text = $"{SecondryFilter}";
-                jobs.RemoveAll(x => x.GetCustomer()?.Balance >= 0);
-                return jobs;
-            }
+        SetTagFilter(SecondryFilterType.NothingOwed, null, x => Balance(x) == 0);
+    }
 
-            if (FilterString.Contains("Nothing"))
-            {
-                SecondryFilter = SecondryFilterType.NothingOwed;
-                l_filterBy.Text = $"{SecondryFilter}";
-                jobs.RemoveAll(x => x.GetCustomer()?.Balance != 0);
-                return jobs;
-            }
-            return jobs;
-
-        };
-        RefreshPage();
+    /// <summary>
+    /// what the customer behind a job owes. work whose customer has gone
+    /// counts as owing nothing rather than dropping out of every one of the
+    /// three answers
+    /// </summary>
+    private static float Balance(Job j)
+    {
+        Customer c = j.GetCustomer();
+        return c == null ? 0 : c.Balance;
     }
 
     private void swip_ended(object sender, SwipeEndedEventArgs e)
@@ -1513,15 +1602,25 @@ public partial class WorkPlanner : ContentPage
         g_filter.IsVisible = false;
     }
 
+    /// <summary>
+    /// the Filters toolbar item. it opens and closes the panel rather than
+    /// only opening it, so the same button puts it away again
+    /// </summary>
     private void l_filterText_Clicked(object sender, EventArgs e)
     {
-        g_filter.IsVisible = true;
+        g_filter.IsVisible = !g_filter.IsVisible;
 
-        l_filterBy.Text = $"{SecondryFilter}";
+        if (!g_filter.IsVisible)
+            return;
 
+        //the panel is filled in from what is actually being filtered by, so
+        //it can never say one thing while the list is doing another
         dp_StartSearchDate.Date = StartFilterDate;
         dp_EndSearchDate.Date = EndFilterDate;
-        p_viewFilter.SelectedItem = "Jobs";
+        cb_filterDates.IsChecked = FilterDate;
+        g_dateRange.IsVisible = FilterDate;
+
+        ShowActiveFilter(_sourceJobs == null ? 0 : _sourceJobs.Count);
     }
 
     private void UpdateMasterFileterStart(object sender, DateChangedEventArgs e)
@@ -1548,6 +1647,9 @@ public partial class WorkPlanner : ContentPage
     {
         CheckBox cb = sender as CheckBox;
         FilterDate = cb.IsChecked;
+
+        //the two dates say nothing while the list is not being kept to them
+        g_dateRange.IsVisible = FilterDate;
         RefreshPage();
     }
 

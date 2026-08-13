@@ -39,66 +39,86 @@
                         BackgroundColor="Transparent" BorderWidth="2" BorderColor="#6B7280" TextColor="#6B7280" CornerRadius="8"/>
             </Grid>
 
-            <Label x:Name="l_filterResultsText" Text="Filtering Results" FontAttributes="Bold" FontSize="Medium" TextColor="White" BackgroundColor="#2E7D32" IsVisible="false" ></Label>
-            <!-- Filter stuff-->
-            <Grid x:Name="g_filter" BackgroundColor="Transparent" IsVisible="false">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="0.6*"></RowDefinition>
-                    <RowDefinition></RowDefinition>
-                    <RowDefinition Height="0.6*"></RowDefinition>
-                    <RowDefinition></RowDefinition>
-                    <RowDefinition></RowDefinition>
+            <!-- What the list is being narrowed by, on show whether the panel
+                 below is open or not. A list quietly showing a third of the
+                 round with nothing to say why is how these came to be turned
+                 off in the first place. -->
+            <Border x:Name="brd_filterOn" IsVisible="false" StrokeThickness="0" StrokeShape="RoundRectangle 10"
+                    BackgroundColor="#2E7D32" Margin="8,6,8,0" Padding="12,8">
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"></ColumnDefinition>
+                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
+                        <Label x:Name="l_filterResultsText" TextColor="White" FontAttributes="Bold" FontSize="14"></Label>
+                        <Label x:Name="l_filterResultsCount" TextColor="#C8E6C9" FontSize="12"></Label>
+                    </VerticalStackLayout>
+                    <Button Grid.Column="1" Text="Clear" Clicked="bnt_ClearTagFilter_Clicked" FontSize="12" Padding="14,4"
+                            BackgroundColor="Transparent" BorderWidth="2" BorderColor="White" TextColor="White" CornerRadius="8"
+                            VerticalOptions="Center"></Button>
+                </Grid>
+            </Border>
 
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition></ColumnDefinition>
-                    <ColumnDefinition></ColumnDefinition>
-                    <ColumnDefinition></ColumnDefinition>
-                </Grid.ColumnDefinitions>
-                <Label Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"  Text="Primary Filter" FontAttributes="Bold" FontSize="Medium" TextColor="White" BackgroundColor="#2E7D32"></Label>
-                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BackgroundColor="#2E7D32">
-                    <Label Text="From" TextColor="White" VerticalOptions="Center"></Label>
-                    <DatePicker x:Name="dp_StartSearchDate" DateSelected="UpdateMasterFileterStart"></DatePicker>
-                    <Label Text="To" TextColor="White" VerticalOptions="Center"></Label>
-                    <DatePicker x:Name="dp_EndSearchDate" DateSelected="UpdateMasterFileterEnd"></DatePicker>
-                    <CheckBox IsChecked="true" BackgroundColor="#2E7D32" CheckedChanged="cb_UpdateMasterFilter"></CheckBox>
+            <!-- the filter panel, opened from the Filters toolbar item -->
+            <Border x:Name="g_filter" IsVisible="false" StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="8,6" Padding="14"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+                <VerticalStackLayout Spacing="14">
 
-                </HorizontalStackLayout>
-                <HorizontalStackLayout Grid.Row="1" Grid.Column="2" BackgroundColor="#2E7D32">
-                    <Label Text="View" TextColor="White" VerticalOptions="Center"></Label>
-                    <Picker MinimumWidthRequest="60" SelectedItem="Jobs" x:Name="p_viewFilter" IsEnabled="false">
-                        <Picker.Items>
-                            <x:String>Jobs</x:String>
-                            <x:String>Days</x:String>
-                        </Picker.Items>
-                    </Picker>
-                </HorizontalStackLayout>
-                <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" BackgroundColor="#2E7D32"  >
-                    <Label  Text="Secondry Filter" FontAttributes="Bold" FontSize="Medium" TextColor="White" ></Label>
-                </HorizontalStackLayout>
-                <HorizontalStackLayout Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" BackgroundColor="#2E7D32" >
-                    <Label Text="Filter By: " TextColor="White" VerticalOptions="Center"></Label>
-                    <Label x:Name="l_filterBy" Text="" TextColor="White" VerticalOptions="Center"></Label>
-                </HorizontalStackLayout>
+                    <Label Text="Filters" FontAttributes="Bold" FontSize="16"></Label>
 
-                <HorizontalStackLayout Grid.Row="2" Grid.Column="1" BackgroundColor="#2E7D32" >
-                    
-                    <Label Text="(Click on job tag to set)" VerticalOptions="Center" TextColor="#C8E6C9"></Label>
-                </HorizontalStackLayout>
+                    <!--  WHAT THE LIST IS KEPT TO  -->
+                    <VerticalStackLayout Spacing="6">
+                        <HorizontalStackLayout Spacing="6">
+                            <CheckBox x:Name="cb_filterDates" IsChecked="true" CheckedChanged="cb_UpdateMasterFilter" VerticalOptions="Center"></CheckBox>
+                            <Label Text="Only the work in hand" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                        </HorizontalStackLayout>
+                        <Label Text="Work due up to the second date, and anything finished since the first. Turn it off to see the whole round. Work already booked in has its own page and is not on this list either way."
+                               FontSize="12" TextColor="{StaticResource MidGray}"></Label>
+                        <Grid x:Name="g_dateRange" ColumnSpacing="6" RowSpacing="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Label Grid.Column="0" Text="From" VerticalOptions="Center" FontSize="12"></Label>
+                            <DatePicker Grid.Column="1" x:Name="dp_StartSearchDate" DateSelected="UpdateMasterFileterStart" FontSize="13"></DatePicker>
+                            <Label Grid.Column="2" Text="To" VerticalOptions="Center" FontSize="12"></Label>
+                            <DatePicker Grid.Column="3" x:Name="dp_EndSearchDate" DateSelected="UpdateMasterFileterEnd" FontSize="13"></DatePicker>
+                        </Grid>
+                    </VerticalStackLayout>
 
-                <HorizontalStackLayout Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
-                    <CheckBox x:Name="cb_showCancelled" IsChecked="false" CheckedChanged="cb_showCancelled_Changed"></CheckBox>
-                    <Label Text="Show cancelled jobs" VerticalOptions="Center"></Label>
-                </HorizontalStackLayout>
+                    <!--  THE TAG FILTER  -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Narrow it down" FontAttributes="Bold"></Label>
+                        <Label Text="Tap any tag on a job - what it is, the price, the street, the town or what is owed - and the list drops to the work that matches it, right across the round."
+                               FontSize="12" TextColor="{StaticResource MidGray}"></Label>
+                        <HorizontalStackLayout x:Name="hsl_tagFilter" Spacing="8" IsVisible="false">
+                            <Label x:Name="l_filterBy" TextColor="White" BackgroundColor="#00838F" Padding="8,3" FontSize="12" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                            <Button Text="Clear" Clicked="bnt_ClearTagFilter_Clicked" FontSize="12" Padding="12,2" CornerRadius="8"
+                                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="#E53935" TextColor="#E53935" VerticalOptions="Center"></Button>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
 
-                <HorizontalStackLayout Grid.Row="4" Grid.Column="2" HorizontalOptions="End">
-                    <Button Text="Reset" TranslationX="-4" Clicked="bnt_Clear_Filter_Clicked"></Button>
-                    <Button Text="Hide" Clicked="bnt_hideFilter"></Button>
-                </HorizontalStackLayout>
+                    <!--  CANCELLED WORK  -->
+                    <HorizontalStackLayout Spacing="6">
+                        <CheckBox x:Name="cb_showCancelled" IsChecked="false" CheckedChanged="cb_showCancelled_Changed" VerticalOptions="Center"></CheckBox>
+                        <Label Text="Show cancelled jobs" VerticalOptions="Center"></Label>
+                    </HorizontalStackLayout>
 
-
-
-            </Grid>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Text="Reset" Clicked="bnt_Clear_Filter_Clicked" Padding="14,6" CornerRadius="8"
+                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="{StaticResource MidGray}" TextColor="{StaticResource MidGray}"></Button>
+                        <Button Grid.Column="1" Text="Done" Clicked="bnt_hideFilter" Padding="14,6" CornerRadius="8"
+                                BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold"></Button>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
 
             <!-- Viewing booking stuff-->
             <Grid>

@@ -281,6 +281,28 @@ that.
 file. The other way round, work with no type gets the first *built in* type rather than the first of this round's
 own. Only what is in memory is changed — the file catches up on the next save, like the other tidy ups done on load.
 
+## Filtering the work list
+
+Two things narrow `Layouts/WorkPlanner`, and they are not the same kind of thing:
+
+- **What the list is kept to** — the date range on the filter panel, `MasterFilter`. Work due up to the end date
+  and anything finished since the start one, which is what makes the list the work in hand rather than the whole
+  round for ever. Booked work is not on this list at all; it has its own page.
+- **A tag filter** — tapping the type, price, street, town or money tag on a job row. `SetTagFilter` takes the
+  test off the job that was tapped rather than the words off its label, which is what a tag filter is: everything
+  else like *this one*.
+
+`FilterSource` is what a tag filter picks from, and it is deliberately **not** `MasterFilter`: it is the whole
+round, minus what is finished. Tapping High Street to be shown three of its twelve houses, because the rest are
+not due for a fortnight, is not what anybody means by tapping it.
+
+The tag filters were switched off for a long time — `GetJobs` set `Filter = null` before it ever ran one — because
+a list quietly showing a fraction of the round with no way back out is worse than no filter at all. That is what
+`ShowActiveFilter` is for: while a tag filter is on, the bar above the list says what is being shown and how much
+of it, with a Clear, whether the filter panel is open or not. **Do not let a filter be on with nothing on screen
+saying so.** The bar's Clear takes off the tag filter only; the panel's Reset puts everything back, dates
+included.
+
 ## Job tags
 
 A tag says what *this time* of doing the job was like — front only, nobody in, the gate was locked. It is not
