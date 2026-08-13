@@ -722,7 +722,9 @@ public partial class CalenderView : ContentPage
         else
             if (result.Contains("Cancel "))
         {
-            await WorkPlanner.CancelBooking(day.Jobs, this, DateTime.Now);
+            //the day being cancelled, not today: it is the day whose booking
+            //is taken off, and the day the question names
+            await WorkPlanner.CancelBooking(day.Jobs, this, day.Date);
             RefreshCalenderData();
             RefreshPageDate();
         }

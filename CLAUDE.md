@@ -180,6 +180,13 @@ totals — one tap on the day, one on the button. Today is deliberately left out
 arranged, and a day already gone cannot be booked at all. The button counts only work that is not done, not
 cancelled and not already booked, which is what `JobsToBookIn` returns.
 
+A booking can be taken off again from all three places it can be looked at: the booking summary row on the work
+list, the day's action sheet on the calendar, and the **Day ▾** menu on each day heading in `Layouts/BookedWork`
+(which also holds Tag The Work and Change The Date — three buttons across the top of a day leave the date itself
+nowhere to go on a phone). They all go through `WorkPlanner.CancelBooking`, which takes any list of jobs.
+Cancelling a booking is **not** cancelling the work: the jobs go back on the round, due as they were, and
+anything already done stays done.
+
 `BookJobFormcs.BookForDate` is how a caller says which day the form should open on — it is used once and resets to
 today, so a caller with no day in mind cannot pick up somebody else's. Without it the form opened on today and the
 date had to be typed in again, which is wrong every time the day is already known.
