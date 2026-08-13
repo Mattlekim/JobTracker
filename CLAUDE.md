@@ -504,6 +504,12 @@ They are stroked **white**, unlike the icons used on the swipe actions and the t
 Shell nav bar: green in the light theme and nearly black in the dark one. A black stroked icon disappears into
 both.
 
+`info.svg` is white for the same reason and it is not a toolbar icon: it sits on the blue disc of the info button
+on a job row, where it was black on blue and barely there. It is drawn as the **i on its own**, without Feather's
+ring around it — the button is already a circle, so the ring was a second circle inside the first, which at 30
+odd pixels reads as a smudge rather than as anything. The button is the same size on the work list as on the
+calendar; it is the same button, so it should not change between the two pages.
+
 Every item keeps its `Text` alongside the icon. Android shows that text on a long press and reads it out in the
 ... menu, so an icon never leaves somebody guessing — and an item that goes to Secondary is text only anyway.
 Only put an icon on something whose picture is genuinely obvious; the rest say what they do in words.
