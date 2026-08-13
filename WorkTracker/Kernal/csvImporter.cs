@@ -14,33 +14,71 @@ namespace Kernel
     public static class CSV
     {
 
-        private static int index;
-        private static int startChar;
-        private static List<String> tmpRow = new List<string>();
+        /// <summary>
+        /// One line of a csv into its columns.
+        ///
+        /// A field wrapped in quotes keeps whatever is inside it, commas
+        /// included, and the quotes themselves are not part of the value. Two
+        /// quotes together inside a quoted field are one quote.
+        ///
+        /// This used to cut the line at every comma it found. A statement
+        /// that quotes its fields - PayPal quotes all of them, and plenty of
+        /// banks quote the ones with a comma in - came out with the quotes
+        /// still stuck to the values, and one payer called "Smith, John" put
+        /// every column after it out by one for that row alone. A file with
+        /// no quotes in it reads exactly as it always did.
+        /// </summary>
         private static string[] ReadRow(string row)
         {
+            List<string> fields = new List<string>();
+            StringBuilder field = new StringBuilder();
+            bool inQuotes = false;
 
-            index = 0;
-            startChar = 0;
-            tmpRow.Clear();
-   
-
-            while (index != -1) //make sure we can find the correct index
+            for (int i = 0; i < row.Length; i++)
             {
-                index = row.IndexOf(',', startChar);
-                if (index == -1)
-                {
-                    if (startChar < row.Length)
-                        tmpRow.Add(row.Substring(startChar));
+                char c = row[i];
 
-                    return tmpRow.ToArray(); //return as end of row
+                if (inQuotes)
+                {
+                    if (c != '"')
+                    {
+                        field.Append(c);
+                        continue;
+                    }
+
+                    //a doubled quote is one quote, anything else ends the field
+                    if (i + 1 < row.Length && row[i + 1] == '"')
+                    {
+                        field.Append('"');
+                        i++;
+                    }
+                    else
+                        inQuotes = false;
+
+                    continue;
                 }
 
-                tmpRow.Add(row.Substring(startChar, index - startChar));
-                startChar = index + 1;
+                if (c == '"' && field.Length == 0)
+                {
+                    inQuotes = true;
+                    continue;
+                }
+
+                if (c == ',')
+                {
+                    fields.Add(field.ToString());
+                    field.Clear();
+                    continue;
+                }
+
+                field.Append(c);
             }
-           
-            return tmpRow.ToArray();
+
+            //the last field, even when it is empty: a line ending in a comma
+            //has one, and dropping it would shift nothing but hide a column
+            fields.Add(field.ToString());
+
+            return fields.ToArray();
         }
         public static CSVFile Import(string filePath)
         {

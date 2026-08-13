@@ -208,6 +208,20 @@
             </VerticalStackLayout>
 
             <!--  GOCARDLESS  -->
+            <!--  PAYPAL  -->
+            <Button Text="▸ PayPal" ClassId="sec_paypal" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
+            <VerticalStackLayout x:Name="sec_paypal" IsVisible="false" Padding="10,0,10,10">
+                <Label Text="Send a customer a link that opens PayPal with the amount already filled in. Nothing to connect and no keys to paste - just your paypal.me name." TextColor="Grey"></Label>
+                <Label></Label>
+                <HorizontalStackLayout Spacing="2">
+                    <Label Text="paypal.me/" VerticalOptions="Center" FontAttributes="Bold"></Label>
+                    <Entry x:Name="e_paypalHandle" Placeholder="your name" MinimumWidthRequest="160" TextChanged="e_paypalHandle_Changed"></Entry>
+                </HorizontalStackLayout>
+                <Label x:Name="l_paypalExample" FontSize="12" TextColor="{StaticResource MidGray}"></Label>
+                <Label></Label>
+                <Label Text="Set it up at paypal.me if you have not already. Sending the link does not mark anything as paid - the money is recorded when it lands, off your PayPal statement." FontSize="12" TextColor="{StaticResource MidGray}"></Label>
+            </VerticalStackLayout>
+
             <Button Text="▸ GoCardless (Experimental)" ClassId="sec_gocardless" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
             <VerticalStackLayout x:Name="sec_gocardless" IsVisible="false" Padding="10,0,10,10">
                 <Label Text="EXPERIMENTAL" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#EF6C00" Padding="8,2" HorizontalOptions="Start"></Label>

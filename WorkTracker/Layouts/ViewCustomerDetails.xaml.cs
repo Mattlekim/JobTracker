@@ -132,6 +132,77 @@ public partial class ViewCustomerDetails : ContentPage
         Navigation.PushAsync(nj);
     }
 
+    /// <summary>
+    /// Sends the customer a paypal.me link with the amount already in it.
+    ///
+    /// It does not mark anything paid: the link has been sent, that is all.
+    /// The money is recorded when it actually lands, off the PayPal statement
+    /// - marking a job paid before the money is there is how a round ends up
+    /// chasing people who have paid and not chasing people who have not.
+    /// </summary>
+    private async void tbi_PayPal_Clicked(object sender, EventArgs e)
+    {
+        Customer c = CurrentJob?.GetCustomer();
+        if (c == null)
+        {
+            await DisplayAlert("PayPal", "This job has no customer linked to it.", "Ok");
+            return;
+        }
+
+        if (!PayPal.IsSetUp)
+        {
+            await DisplayAlert("PayPal",
+                "Put your paypal.me name in on the settings page first, under PayPal. That is all it needs - there is nothing to connect.", "Ok");
+            return;
+        }
+
+        //what they owe, or this job's price when the account is clear
+        float suggested = c.Balance > 0 ? c.Balance : CurrentJob.EffectivePrice;
+
+        string amountText = await DisplayPromptAsync("Ask For Payment",
+            $"How much to ask {c.FName} {c.SName} for ({Gloable.CurrenceSymbol})", "Next", "Cancel",
+            initialValue: suggested.ToString("0.00"), keyboard: Keyboard.Numeric);
+        if (amountText == null)
+            return;
+
+        float amount;
+        try
+        {
+            amount = (float)Convert.ToDouble(amountText);
+        }
+        catch
+        {
+            await DisplayAlert("PayPal", "That is not a valid amount.", "Ok");
+            return;
+        }
+
+        //copying it covers everything else a round is sent on - WhatsApp,
+        //Messenger, or reading it out over the gate
+        string how = await DisplayActionSheet($"Send the link for {Gloable.CurrenceSymbol}{amount:0.00}", "Cancel", null,
+            "Text It", "Email It", "Copy The Link");
+        if (how == null || how == "Cancel")
+            return;
+
+        string message = PayPal.MessageFor(amount);
+        List<Job> jobs = new List<Job>() { CurrentJob };
+
+        switch (how)
+        {
+            case "Text It":
+                await WorkPlanner.TextCustomers(jobs, DateTime.Now, message, this, false);
+                break;
+
+            case "Email It":
+                await WorkPlanner.EmailCustomers(jobs, DateTime.Now, message, this, false);
+                break;
+
+            case "Copy The Link":
+                await Clipboard.Default.SetTextAsync(PayPal.LinkFor(amount));
+                await DisplayAlert("Copied", $"{PayPal.LinkFor(amount)}\n\nPaste it wherever you send them things.", "Ok");
+                break;
+        }
+    }
+
     private async void tbi_GoCardless_Clicked(object sender, EventArgs e)
     {
         Customer c = CurrentJob?.GetCustomer();

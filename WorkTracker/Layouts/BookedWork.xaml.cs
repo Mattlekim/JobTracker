@@ -1,4 +1,4 @@
-namespace UiInterface.Layouts;
+﻿namespace UiInterface.Layouts;
 
 using Kernel;
 using Microsoft.Maui.Dispatching;
@@ -275,12 +275,57 @@ public partial class BookedWork : ContentPage
     /// puts up the date bar for a day. the work is not moved until a date is
     /// picked and confirmed
     /// </summary>
-    private void On_Change_Day_Date(object sender, EventArgs e)
+    /// <summary>
+    /// Everything that can be done to a whole day, in one place.
+    ///
+    /// One button rather than three across the top of the day: the date and
+    /// how far through it you are is the thing that has to be readable, and
+    /// three buttons on a phone leave it nowhere to go.
+    /// </summary>
+    private async void On_Day_Options(object sender, EventArgs e)
     {
         BookingGroup g = (sender as Element)?.BindingContext as BookingGroup;
         if (g == null)
             return;
 
+        string result = await DisplayActionSheet($"{g.Date:ddd dd MMM yyyy}", "Close", null,
+            "Tag The Work", "Change The Date", "Cancel The Booking");
+
+        if (result == null)
+            return;
+
+        switch (result)
+        {
+            case "Tag The Work":
+                await TagDay(g);
+                break;
+            case "Change The Date":
+                ShowMoveDay(g);
+                break;
+            case "Cancel The Booking":
+                await CancelDay(g);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// takes the whole day's work off the booking. the jobs themselves are
+    /// not cancelled - they go back on the round to be done when they are
+    /// due, which is what makes this different from cancelling the work
+    /// </summary>
+    private async Task CancelDay(BookingGroup g)
+    {
+        if (!await WorkPlanner.CancelBooking(g, this, g.Date))
+            return;
+
+        //the bookings are a cache keyed on the day, so they are built again
+        //now that nothing is booked for this one
+        DataRefreshNotifier.RebuildBookings();
+        Reload();
+    }
+
+    private void ShowMoveDay(BookingGroup g)
+    {
         _dayToMove = g.Date.Date;
 
         //houses already done stay on the day they were done - say so here
@@ -304,12 +349,8 @@ public partial class BookedWork : ContentPage
     /// was done front only. the tag goes on each job on the day, because that
     /// is where it is any use afterwards
     /// </summary>
-    private async void On_Tag_Day(object sender, EventArgs e)
+    private async Task TagDay(BookingGroup g)
     {
-        BookingGroup g = (sender as Element)?.BindingContext as BookingGroup;
-        if (g == null)
-            return;
-
         if (await TagPicker.EditAsync(this, g, $"The Work On {g.Date:ddd dd MMM}"))
             Reload();
     }

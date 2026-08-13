@@ -2329,9 +2329,24 @@ public partial class WorkPlanner : ContentPage
         return false;
     }
 
-    public static async Task<bool> CancelBooking(ObservableCollection<Job> jobs, Page page, DateTime date)
+    /// <summary>
+    /// Takes a day's work off the booking it was on.
+    ///
+    /// The jobs are not cancelled: they go back on the round to be done when
+    /// they are due, which is what makes this different from cancelling the
+    /// work itself. Anything on the day that is already done stays done.
+    ///
+    /// Any list of jobs will do - the work list hands it the booking it is
+    /// looking at, the calendar a day's work, the booked work page one of
+    /// its days.
+    /// </summary>
+    /// <returns>true when the booking was cancelled</returns>
+    public static async Task<bool> CancelBooking(IEnumerable<Job> jobs, Page page, DateTime date)
     {
-        if (await page.DisplayAlert("Cancel Booking", "Are you sure you wish to cancel the booking? This cannot be undone!", "Yes", "No"))
+        if (await page.DisplayAlert("Cancel Booking",
+            $"Take all the work booked for {date:ddd dd MMM yyyy} off the booking?\n\n" +
+            "The jobs are not cancelled - they go back on the round and are due as they were. Anything already done stays done.",
+            "Cancel The Booking", "Leave It"))
         {
             bool customersToText = false;
             string textCustomers = "The following customers may be expecting you.\n";
@@ -2362,13 +2377,19 @@ public partial class WorkPlanner : ContentPage
             Booking.RemoveBooking(date);
           
 
-            Job.Save();  
+            Job.Save();
+            return true;
         }
-        return true;
+
+        //said no. the answer is handed back so a caller does not tear its
+        //page down over a booking that is still there
+        return false;
     }
     private async void bnt_cancel_booking_clicked(object sender, EventArgs e)
     {
-        await CancelBooking(_sourceJobs, this, ViewBookingAtDate);
+        if (!await CancelBooking(_sourceJobs, this, ViewBookingAtDate))
+            return;
+
         ViewBooking = false;
         ViewBookingAtDate = new DateTime(2000, 1, 1);
         jobOverviewBackground.IsVisible = false;

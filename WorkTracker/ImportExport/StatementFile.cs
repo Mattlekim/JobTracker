@@ -1,4 +1,4 @@
-namespace UiInterface.ImportExport;
+﻿namespace UiInterface.ImportExport;
 
 using Kernel;
 using UiInterface.Layouts;
@@ -19,7 +19,7 @@ public static class StatementFile
     {
         FileResult fr = await FilePicker.Default.PickAsync(new PickOptions
         {
-            PickerTitle = "Select a bank statement (.csv or .pdf)",
+            PickerTitle = "Select a statement (.csv or .pdf, bank or PayPal)",
         });
 
         if (fr == null)
@@ -35,6 +35,11 @@ public static class StatementFile
 
             StatmentViewer.SourceIsPdf = isPdf;
             StatmentViewer.CsvFile = file;
+
+            //a PayPal export names its own columns, so it is spotted here and
+            //never has them asked for. a bank's csv is left to the layout the
+            //user set up for it
+            StatmentViewer.SourceIsPayPal = !isPdf && PayPalStatement.Apply(file);
 
             //the picked file is kept to one side, because the statement is
             //filed away once the columns are known and by then the picker's

@@ -1,4 +1,4 @@
-namespace UiInterface.Layouts;
+﻿namespace UiInterface.Layouts;
 
 using Kernel;
 using UiInterface.ImportExport;
@@ -46,6 +46,9 @@ public struct SettingsData
     /// through the day
     /// </summary>
     public List<string> AutoTags;
+
+    /// <summary>the paypal.me name a payment link is built from</summary>
+    public string PayPalHandle;
 
     public int DefaultFrequence;
     public FrequenceType DefalutFrequenceType;
@@ -127,6 +130,8 @@ public class Settings
         sd.AutoTags = new List<string>();
         sd.AutoTags.AddRange(Job.AutoTags);
 
+        sd.PayPalHandle = PayPal.Handle;
+
         sd.DefaultJobDuration = DefaultJobDuration;
         sd.HaveShowenJobIntro = HaveShowenJobIntro;
 
@@ -199,6 +204,10 @@ public class Settings
 
                 DefaultJobDuration = sd.DefaultJobDuration;
                 HaveShowenJobIntro = sd.HaveShowenJobIntro;
+
+                //settings written before this existed read back as null,
+                //which is the same as never having set one
+                PayPal.Handle = sd.PayPalHandle;
 
                 PaperView.PaperItem.StringDone = sd.SymbolDone;
                 PaperView.PaperItem.StringPaid = sd.SymbolPaid;
@@ -509,6 +518,9 @@ public partial class SettingLayout : ContentPage
         //the app started
         cb_screenshotMode.IsChecked = ScreenshotMode.On;
 
+        e_paypalHandle.Text = PayPal.Handle;
+        ShowPayPalExample();
+
         e_DefaultTNB.Text = WorkPlanner.DefaultTNBMessage;
         e_DefaultTAC.Text = WorkPlanner.DefaultJobCompleateMessage;
         e_DefaultNotComming.Text = WorkPlanner.DefaultNotCommingMessage;
@@ -736,6 +748,27 @@ public partial class SettingLayout : ContentPage
         //only need telling to build themselves again
         Job.RefreshJobs();
         DataRefreshNotifier.NotifyDataChanged();
+    }
+
+    /// <summary>
+    /// the paypal.me name a payment link is built from. saved with the rest
+    /// of the settings when the page is left, like everything else here
+    /// </summary>
+    private void e_paypalHandle_Changed(object sender, TextChangedEventArgs e)
+    {
+        PayPal.Handle = e.NewTextValue == null ? string.Empty : e.NewTextValue.Trim();
+        ShowPayPalExample();
+    }
+
+    /// <summary>
+    /// the link as it will actually be sent, so a name typed wrong is
+    /// obvious before a customer gets it
+    /// </summary>
+    private void ShowPayPalExample()
+    {
+        l_paypalExample.Text = PayPal.IsSetUp
+            ? $"A {Gloable.CurrenceSymbol}10 job would be sent as {PayPal.LinkFor(10)}"
+            : "No name set, so there is nothing to send yet.";
     }
 
     private void bnt_resetImportBanking(object sender, EventArgs e)

@@ -1,4 +1,4 @@
-namespace UiInterface.Layouts;
+﻿namespace UiInterface.Layouts;
 using Kernel;
 using System.Globalization;
 public partial class StatmentViewer : ContentPage
@@ -24,6 +24,28 @@ public partial class StatmentViewer : ContentPage
     public static bool SourceIsPdf = false;
 
     /// <summary>
+    /// The file is a PayPal export rather than a bank's statement.
+    ///
+    /// PayPal names its columns the same way every time, so they are read off
+    /// the headings instead of being asked for - and they are never saved,
+    /// which is what stops a PayPal export overwriting the layout that was
+    /// set up for the bank. See ImportExport/PayPalStatement.
+    /// </summary>
+    public static bool SourceIsPayPal = false;
+
+    public static int PayPalDate = -1, PayPalRef = -1, PayPalAmount = -1;
+
+    /// <summary>
+    /// what money coming in on this statement was paid by. money off a PayPal
+    /// export came in through PayPal, and saying so is what makes the
+    /// payments list and the tax figures tell the truth about it
+    /// </summary>
+    public static PaymentMethod ImportedPaymentMethod
+    {
+        get { return SourceIsPayPal ? PaymentMethod.Paypal : PaymentMethod.Bank; }
+    }
+
+    /// <summary>
     /// the statement file itself, held to one side by StatementFile so a copy
     /// can be filed under its tax year once the columns are known
     /// </summary>
@@ -40,42 +62,49 @@ public partial class StatmentViewer : ContentPage
     private readonly bool _isPdf = SourceIsPdf;
     private bool _openMoneyOut = OpenMoneyOut;
 
+    //a PayPal export knows its own columns, so nothing here is ever asked
+    //for on one, and nothing is written back
+    private readonly bool _isPayPal = SourceIsPayPal;
+
     private int DateColumn
     {
-        get => _isPdf ? PdfDate : Date;
-        set { if (_isPdf) PdfDate = value; else Date = value; }
+        get => _isPayPal ? PayPalDate : _isPdf ? PdfDate : Date;
+        set { if (_isPayPal) PayPalDate = value; else if (_isPdf) PdfDate = value; else Date = value; }
     }
 
     private int RefColumn
     {
-        get => _isPdf ? PdfRef : Ref;
-        set { if (_isPdf) PdfRef = value; else Ref = value; }
+        get => _isPayPal ? PayPalRef : _isPdf ? PdfRef : Ref;
+        set { if (_isPayPal) PayPalRef = value; else if (_isPdf) PdfRef = value; else Ref = value; }
     }
 
     private int AmountColumn
     {
-        get => _isPdf ? PdfAmount : Amount;
-        set { if (_isPdf) PdfAmount = value; else Amount = value; }
+        get => _isPayPal ? PayPalAmount : _isPdf ? PdfAmount : Amount;
+        set { if (_isPayPal) PayPalAmount = value; else if (_isPdf) PdfAmount = value; else Amount = value; }
     }
 
     private int DebitColumn
     {
-        get => _isPdf ? PdfDebit : Debit;
-        set { if (_isPdf) PdfDebit = value; else Debit = value; }
+        get => _isPayPal ? -1 : _isPdf ? PdfDebit : Debit;
+        set { if (!_isPayPal) { if (_isPdf) PdfDebit = value; else Debit = value; } }
     }
 
     private bool AmountIncludesDebits
     {
-        get => _isPdf ? PdfDebitAndCreditTogether : DebitAndCreditTogether;
-        set { if (_isPdf) PdfDebitAndCreditTogether = value; else DebitAndCreditTogether = value; }
+        get => _isPayPal ? true : _isPdf ? PdfDebitAndCreditTogether : DebitAndCreditTogether;
+        set { if (!_isPayPal) { if (_isPdf) PdfDebitAndCreditTogether = value; else DebitAndCreditTogether = value; } }
     }
 
     //the columns of whichever statement is open, for pages that only read them
-    public static int ActiveDateColumn => SourceIsPdf ? PdfDate : Date;
-    public static int ActiveRefColumn => SourceIsPdf ? PdfRef : Ref;
-    public static int ActiveAmountColumn => SourceIsPdf ? PdfAmount : Amount;
-    public static int ActiveDebitColumn => SourceIsPdf ? PdfDebit : Debit;
-    public static bool ActiveAmountIncludesDebits => SourceIsPdf ? PdfDebitAndCreditTogether : DebitAndCreditTogether;
+    public static int ActiveDateColumn => SourceIsPayPal ? PayPalDate : SourceIsPdf ? PdfDate : Date;
+    public static int ActiveRefColumn => SourceIsPayPal ? PayPalRef : SourceIsPdf ? PdfRef : Ref;
+    public static int ActiveAmountColumn => SourceIsPayPal ? PayPalAmount : SourceIsPdf ? PdfAmount : Amount;
+
+    //PayPal signs its gross column, so money out sits in it alongside money
+    //in and there is no separate column for it
+    public static int ActiveDebitColumn => SourceIsPayPal ? -1 : SourceIsPdf ? PdfDebit : Debit;
+    public static bool ActiveAmountIncludesDebits => SourceIsPayPal ? true : SourceIsPdf ? PdfDebitAndCreditTogether : DebitAndCreditTogether;
 
     private bool _selectingCollums = false;
     private int _currentThingToSelect = 0;
@@ -734,11 +763,24 @@ public partial class StatmentViewer : ContentPage
         }
     }
 
+    /// <summary>said once per import, so a PayPal export is not a mystery</summary>
+    private bool _saidItIsPayPal = false;
+
     private void AskForColumnsIfNeeded()
     {
         if (ColumnsAreValid())
         {
             _selectingCollums = false;
+
+            if (_isPayPal && !_saidItIsPayPal)
+            {
+                _saidItIsPayPal = true;
+                DisplayAlert("PayPal Statement",
+                    "This is a PayPal export, so the columns have been read straight off it - the bank's own columns are left as they were.\n\n" +
+                    "Money in is matched to customers and goes down as paid by PayPal. PayPal's fees are in a column of their own and are not brought in, so put those in as an expense off the statement itself.",
+                    "Ok");
+            }
+
             return;
         }
 
@@ -767,7 +809,7 @@ public partial class StatmentViewer : ContentPage
                     continue;
 
                 bool customerFound;
-                Payment pay = Payment.AddToCustomer(line.Reference, line.Amount, line.Date, PaymentMethod.Bank, out customerFound);
+                Payment pay = Payment.AddToCustomer(line.Reference, line.Amount, line.Date, ImportedPaymentMethod, out customerFound);
 
                 if (pay != null)
                     payments.Add(pay);
