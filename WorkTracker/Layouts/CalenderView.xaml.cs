@@ -199,23 +199,44 @@ public class CalenderDay: INotifyPropertyChanged
 		Date = date;
     }
 
-    public void MoveDay(CalenderDay newDay)
+    /// <summary>
+    /// Moves this day's work on to another day.
+    ///
+    /// Work booked in is put on the calendar by the day it is booked for
+    /// rather than by the day it is due, so the booking has to be moved as
+    /// well as the due date. Moving the due date on its own looked right
+    /// until the page was built from the jobs again - the day dropped on
+    /// showed the work, and the next start put it back where it had been.
+    ///
+    /// A job already done stays where it is: it was done on the day it was
+    /// done, and that is what the month's takings are worked out from.
+    /// </summary>
+    /// <returns>how many jobs actually moved</returns>
+    public int MoveDay(CalenderDay newDay)
     {
+        List<Job> moving = new List<Job>();
+
         foreach (Job j in Jobs)
-        {
             if (!j.IsCompleted)
-            {
-                j.DueDate = newDay.Date;
-                if (!j.IsBookedIn)
-                    IsBookedIn = false;
-            }
+                moving.Add(j);
+
+        foreach (Job j in moving)
+        {
+            j.DueDate = newDay.Date;
+
+            if (j.IsBookedIn)
+                j.DateJobBookinFor = newDay.Date;
+            else
+                IsBookedIn = false;
+
+            Jobs.Remove(j);
             newDay.Jobs.Add(j);
         }
 
         newDay.CalculateDay();
-
-        Jobs.Clear();
         CalculateDay();
+
+        return moving.Count;
     }
 
     public void ResetColor()
@@ -361,7 +382,10 @@ public class CalenderDay: INotifyPropertyChanged
 			//what the job is actually worth: a job cleaned at a front only
 			//price counted as the full price here
 			Amount += j.EffectivePrice;
-			EstimatedDuration += j.EstimatedTime;
+
+			//what the job counts as taking, the round's usual included, so the
+			//day says the same as the rows on it
+			EstimatedDuration += j.Minutes;
         }
 
         if (Amount == 0)
@@ -828,45 +852,60 @@ public partial class CalenderView : ContentPage
             if (_calenderDays[startday].Jobs.Count == 0)
                 return;
 
-            if (await DisplayAlert("Merge?", "This day already has work scedualed. Would You like to mearge the days?", "Yes", "No"))
-            {
-
-                if (jobsText.Count > 0 || jobsEmail.Count > 0)
-                    if (await DisplayAlert("Notify Customers?", "Jobs for this day have been booked in. Whould you like to message customers to inform them of the change of date?", "Yes", "No"))
-                    {
-                        if (jobsText.Count > 0)
-                            await WorkPlanner.TextCustomers(jobsText, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
-                        if (jobsEmail.Count > 0)
-                            await WorkPlanner.EmailCustomers(jobsEmail, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
-                        return;
-                    }
-
-                _calenderDays[startday].MoveDay(_calenderDays[endDay]);
-                _selectedDay = _calenderDays[endDay];
-                RefreshPageDate();
-                //BuildPage();
-               // RefreshPageDate();
-                Job.Save();
+            if (!await DisplayAlert("Merge?", "This day already has work scheduled. Would you like to merge the days?", "Yes", "No"))
                 return;
-            }
+        }
 
+        await NotifyIfWanted(jobsText, jobsEmail, endDay);
+        await MoveTheWork(startday, endDay);
+    }
+
+    /// <summary>
+    /// offers to tell the customers booked in for the day that it is moving.
+    ///
+    /// Saying yes to this used to be the one way to move a day and have
+    /// nothing happen: the messages went out and the work was left where it
+    /// was, because the answer was taken as a reason to stop rather than as
+    /// something to do on the way.
+    /// </summary>
+    private async Task NotifyIfWanted(List<Job> toText, List<Job> toEmail, int endDay)
+    {
+        if (toText.Count == 0 && toEmail.Count == 0)
+            return;
+
+        if (!await DisplayAlert("Notify Customers?", "Jobs for this day have been booked in. Would you like to message customers to inform them of the change of date?", "Yes", "No"))
+            return;
+
+        if (toText.Count > 0)
+            await WorkPlanner.TextCustomers(toText, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
+
+        if (toEmail.Count > 0)
+            await WorkPlanner.EmailCustomers(toEmail, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
+    }
+
+    /// <summary>
+    /// puts one day's work on another day and writes it down.
+    ///
+    /// The booking cache is built from the jobs, so it has to be told: a day
+    /// moved here with the work list left holding a booking row for the day
+    /// it came off.
+    /// </summary>
+    private async Task MoveTheWork(int startday, int endDay)
+    {
+        int moved = _calenderDays[startday].MoveDay(_calenderDays[endDay]);
+
+        if (moved == 0)
+        {
+            await DisplayAlert("Nothing To Move",
+                "There is no work left on that day to move. Work that has already been done stays on the day it was done.", "Ok");
             return;
         }
 
-        if (jobsText.Count > 0 || jobsEmail.Count > 0)
-            if (await DisplayAlert("Notify Customers?", "Jobs for this day have been booked in. Whould you like to message customers to inform them of the change of date?", "Yes", "No"))
-            {
-                if (jobsText.Count > 0)
-                    await WorkPlanner.TextCustomers(jobsText, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
-                if (jobsEmail.Count > 0)
-                    await WorkPlanner.EmailCustomers(jobsEmail, _calenderDays[endDay].Date, WorkPlanner.DefaultRearangeMessage, this);
-                return;
-            }
-        _calenderDays[startday].MoveDay(_calenderDays[endDay]);
         _selectedDay = _calenderDays[endDay];
         RefreshPageDate();
+
         Job.Save();
-      //  BuildPage();
+        DataRefreshNotifier.NotifyDataChanged();
     }
     private void Dropgr_Drop(object sender, DropEventArgs e)
     {

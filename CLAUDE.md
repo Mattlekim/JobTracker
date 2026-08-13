@@ -205,6 +205,22 @@ anything already done stays done.
 today, so a caller with no day in mind cannot pick up somebody else's. Without it the form opened on today and the
 date had to be typed in again, which is wrong every time the day is already known.
 
+### Dragging a day on to another day
+
+`CalenderDay.MoveDay` moves the work, and **booked work is moved by `DateJobBookinFor`, not by `DueDate`** — the
+calendar puts a booked job on the day it is booked for, so moving only the due date looked right on screen and
+came back to where it started the next time the page was built from the jobs. That was reported as a merge that
+undid itself on a restart, and it is the thing to check first if it is ever seen again.
+
+Work already done stays on the day it was done — that day is what the month's takings are read off — so the move
+returns how many jobs actually went, and a day with nothing movable left on it says so rather than looking
+ignored. `Booking.Bookings` is built from the jobs, so the move ends with `DataRefreshNotifier.NotifyDataChanged`:
+without it the work list keeps a booking row for the day the work came off.
+
+Being asked whether to tell the customers is part of moving the day, not an alternative to it. Answering **Yes**
+used to send the messages and then stop, so the one case where everybody had been told the date had changed was
+the case where it had not.
+
 ## Changing things from the customer's page
 
 `Layouts/ViewCustomerDetails` is where a customer is looked at, so it is where the two figures that go wrong get
