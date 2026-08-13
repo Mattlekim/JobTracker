@@ -104,6 +104,32 @@ The global files go into every backup regardless. Restoring is unchanged — the
 a one-year backup puts that year back and leaves the others alone. Backup files are written to the cache folder,
 not next to the data.
 
+## Opening a backup
+
+A backup is a `.rbf` (a zip, built by `ImportExport/TaxYearBackup`). `ImportExport/BackupRestore` is the only
+thing that puts one back, from either of the two ways one is reached: the picker on the settings page, and the
+phone handing the app a file that has been **opened** — from a file manager, an email or the downloads list, which
+is how a backup normally reaches a new phone. Restoring replaces everything on the device, so it asks first, and
+it says to restart afterwards because the pages already built are still showing what was there before.
+
+The Android side is an `ACTION_VIEW` intent filter on `MainActivity`. There is no mime type for a `.rbf`, so it
+takes `*/*` and picks the file out by name. The pattern is written **three times**, once per possible dot in the
+path, because Android's pattern matching does not back up: `.*\.rbf` takes everything and then looks for the dot,
+so a path with a dot earlier in it never matches. They are three filters rather than one filter with three
+patterns because `DataPathPattern` is in every version of the binding.
+
+`MainActivity` is `SingleTop` so a file opened while the app is running reaches `OnNewIntent` rather than starting
+a second copy of the app. What arrives is somebody else's `content://` uri, readable only while that intent lives
+and with no real path behind it, so it is copied into our cache first — on a background thread, because a backup
+carries the receipt photos and can be big.
+
+A file can arrive before there is anywhere to ask: on a cold start it is what opened the app. `BackupRestore`
+holds it (`TakePending`) and `AppShell` offers it when it has a page — both when the file arrives and on the first
+navigation, with `_askingAboutBackup` making sure the same file is not offered twice.
+
+Windows cannot register a file type without an installer, so `CheckCommandLine` covers *Open With* instead.
+**iOS is not done**: it needs `CFBundleDocumentTypes` in `Info.plist` and an `OpenUrl` override in `AppDelegate`.
+
 ## Receipt photos
 
 `WorkTracker/ReceiptPhoto.cs` scales every receipt photo down and re-encodes it as a JPEG before it is written into

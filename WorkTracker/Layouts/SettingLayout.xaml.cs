@@ -985,60 +985,27 @@ public partial class SettingLayout : ContentPage
         CreateBackup();
     }
 
+    /// <summary>
+    /// Picks a backup and puts it back.
+    ///
+    /// The restoring itself is BackupRestore's, not this page's: a backup
+    /// opened from a file manager or an email has to do exactly the same
+    /// thing, and two of them would drift apart.
+    /// </summary>
     private async void bnt_restorBackup_Clicked(object sender, EventArgs e)
     {
-        
-
-     /*   var customFileType = new FilePickerFileType(
-                new Dictionary<DevicePlatform, IEnumerable<string>>
-                {
-                    { DevicePlatform.iOS, new[] { ".rbf" } }, // or general UTType values
-                    { DevicePlatform.Android, new[] { "rbf" } },
-                    { DevicePlatform.WinUI, new[] { ".rbf" } },
-                    { DevicePlatform.Tizen, new[] { ".rbf" } },
-                    { DevicePlatform.macOS, new[] { ".rbf" } }, // or general UTType values
-                });
-
-        PickOptions options = new()
+        //android has no type of its own for .rbf, so the picker is left
+        //showing everything there and the name is checked afterwards. giving
+        //it a made up mime type shows a picker with nothing in it at all
+        FileResult fr = await FilePicker.Default.PickAsync(new PickOptions
         {
-            PickerTitle = "Please select a comic file",
-            FileTypes = customFileType,
-        };
-     */
-        //FileResult fr = await FilePicker.Default.PickAsync(options);
-        FileResult fr = await FilePicker.Default.PickAsync();
-        if (fr != null)
-        {
-            if (fr.FileName.EndsWith("rbf", StringComparison.OrdinalIgnoreCase))
-            {
+            PickerTitle = "Select a Work Tracker backup (.rbf)",
+        });
 
-                try
-                {
-                    ZipFile.ExtractToDirectory(fr.FullPath, Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), true);
+        if (fr == null)
+            return;
 
-                    Customer.Load();
-                    Settings.Load();
-                    Job.Reset();
-                    Job.Load();
-                    Payment.Load();
-                    Expense.Load();
-                    ExpenseRule.Load();
-                    StatementRecord.Load();
-                    GoCardlessRequest.Load();
-                    DataRefreshNotifier.NotifyDataChanged();
-                    await DisplayAlert("Success", "Backup has be restored sucsessfuly. Application will now restart", "ok");
-                    
-                    
-                }
-                catch (Exception ex)
-                {
-                    await DisplayAlert("Error", "There was an error restoring backup. Please try again.", "ok");
-                }
-
-            }
-            else
-                await DisplayAlert("Unsupported File", "This is not a valid backup file. You need a rbf file", "ok");
-        }
+        await UiInterface.ImportExport.BackupRestore.RestoreAsync(fr.FullPath, fr.FileName, this);
     }
 
     private async void bnt_importXlsx_Clicked(object sender, EventArgs e)

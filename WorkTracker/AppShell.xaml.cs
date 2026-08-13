@@ -43,6 +43,17 @@ namespace WorkTracker
                 tab_work.CurrentItem = sc_workList;
             Navigated += AppShell_Navigated;
 
+            //a backup opened from a file manager, an email or the downloads
+            //list. it can land before this page exists - on a cold start it
+            //is what opened the app - so it is offered from here as well as
+            //when it arrives
+            UiInterface.ImportExport.BackupRestore.Opened += () =>
+                MainThread.BeginInvokeOnMainThread(OfferPendingBackup);
+
+            //a desktop opens a file by handing it to the app on the command
+            //line
+            UiInterface.ImportExport.BackupRestore.CheckCommandLine();
+
             _instance = this;
             UiInterface.DataRefreshNotifier.DataChanged += () =>
                 MainThread.BeginInvokeOnMainThread(RefreshBookedBadge);
@@ -80,6 +91,41 @@ namespace WorkTracker
                 Preferences.Set("WorkTabView", "list");
             else if (location.Contains("work_overview"))
                 Preferences.Set("WorkTabView", "overview");
+
+            //a backup that opened the app was handed over before there was
+            //anywhere to ask, so this is the first chance to
+            OfferPendingBackup();
+        }
+
+        private bool _askingAboutBackup;
+
+        /// <summary>
+        /// offers to put back a backup the phone has handed to the app.
+        ///
+        /// Only one question at a time: this is reached both when the file
+        /// arrives and on every navigation, and being asked twice about the
+        /// same file is how somebody ends up restoring it twice.
+        /// </summary>
+        private async void OfferPendingBackup()
+        {
+            if (_askingAboutBackup)
+                return;
+
+            string path = UiInterface.ImportExport.BackupRestore.TakePending();
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            _askingAboutBackup = true;
+
+            try
+            {
+                Page page = CurrentPage ?? this;
+                await UiInterface.ImportExport.BackupRestore.RestoreAsync(path, System.IO.Path.GetFileName(path), page);
+            }
+            finally
+            {
+                _askingAboutBackup = false;
+            }
         }
     }
 }
