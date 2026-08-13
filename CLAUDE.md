@@ -234,6 +234,29 @@ holds its own year's date range and transaction count alongside the whole file's
 off. It is copied once the date column is known — which is why `StatmentViewer.ArchiveStatement` runs there and not
 at the file picker. `Layouts/KeptStatements` lists them.
 
+`Kernal/csvImporter.cs` understands quoted fields: a field in quotes keeps its commas, the quotes are not part of
+the value, and `""` inside one is a single quote. It used to cut the line at every comma, which is fine for a bank
+that quotes nothing and wrong for PayPal, which quotes everything — one payer called `"Smith, John"` put every
+column after it out by one for that row.
+
+## PayPal
+
+Two separate things, neither of which needs an account connecting or a key pasting in:
+
+- **Asking for money.** `WorkTracker/PayPal.cs` builds a paypal.me link with the amount already in it, off the
+  round's own paypal.me name (settings page, saved with the settings). *Ask For Payment* on
+  `Layouts/ViewCustomerDetails` asks how much, then texts it, emails it, or copies it for WhatsApp. It
+  **does not mark anything paid** — the link has been sent, that is all. The money is recorded when it lands.
+- **Getting it back in.** `ImportExport/PayPalStatement` reads a PayPal activity export. A bank has its columns
+  pointed out once and remembered; PayPal names its own, so they are read off the headings every time and never
+  saved — which is what stops a PayPal export overwriting the layout set up for the bank. `SourceIsPayPal` is the
+  third layout alongside csv and pdf, and money in off one is recorded as `PaymentMethod.Paypal`
+  (`StatmentViewer.ImportedPaymentMethod`) rather than Bank.
+
+The amount taken is PayPal's **Gross** — what the customer actually sent — so a job paid by PayPal clears the
+balance to the penny. The fee is in a column of its own and is not brought in; the import says so. Taking the net
+instead would leave every customer a few pence short for ever.
+
 `Kernel/ExpenseRule.cs` is what makes recurring bills look after themselves: flagging an outgoing as an expense
 (or ignoring it) remembers the payee, and the next statement logs it automatically with the same category and
 note. Payee text is matched through `StatementText.PayeeKey`, which strips the reference numbers and the
