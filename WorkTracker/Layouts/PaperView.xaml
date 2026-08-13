@@ -5,15 +5,17 @@
              x:Class="UiInterface.Layouts.PaperView"
              Title="Job List">
     
+    <!-- the same three the work list leads with, in the same order and with
+         the same icons. this is the same round looked at another way, so
+         searching it, narrowing it and adding to it are not somewhere else.
+         Filters is this page's own View chooser - it has no dates of its own,
+         those are the Show All Jobs box under Option. -->
     <ContentPage.ToolbarItems>
-       
         <ToolbarItem Text="Search" IconImageSource="search.png" Clicked="tbi_Search_Clicked"></ToolbarItem>
+        <ToolbarItem Text="Filters" IconImageSource="filter.png" Clicked="bnt_View_Clicked"></ToolbarItem>
+        <ToolbarItem Text="Add Job" IconImageSource="add.png" Clicked="bnt_newJob_Clicked"></ToolbarItem>
         <ToolbarItem Text="Option" Clicked="tbi_ShowOptions_Clicked" Order="Secondary"></ToolbarItem>
-        <ToolbarItem Text="New Job" Clicked="bnt_newJob_Clicked" Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="New Quote"  Clicked="bnt_newQuote_Clicked" Order="Secondary"></ToolbarItem>
-        <ToolbarItem Text="__________"  Order="Secondary"></ToolbarItem>
-        <ToolbarItem Text="View"  Clicked="bnt_View_Clicked" Order="Secondary"></ToolbarItem>
-        
     </ContentPage.ToolbarItems>
     <StackLayout>
         <DatePicker x:Name="dp_DoneDate" IsVisible="false"></DatePicker>

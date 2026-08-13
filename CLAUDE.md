@@ -443,6 +443,24 @@ Every item keeps its `Text` alongside the icon. Android shows that text on a lon
 ... menu, so an icon never leaves somebody guessing — and an item that goes to Secondary is text only anyway.
 Only put an icon on something whose picture is genuinely obvious; the rest say what they do in words.
 
+The work list and the paper view **lead with the same three** — Search, Filters, Add Job, in that order. It is
+the same round looked at two ways, so what is on the bar does not move between them. The paper view's Filters is
+its own View chooser (All Jobs, City, Area, Round); it has no dates of its own, those are the *Show All Jobs* box
+under Option.
+
+### The work list's toolbar is built in code
+
+`WorkPlanner.UpdateToolBar` is the only thing that puts items on it, and it works them out again from scratch
+every time: on each change of mode (`UpdateToolBarNoraml`, `UpdateToolBarSelectJobs`, `UpdateToolBarViewBooking`,
+which now only set the mode) and on the way back to the page.
+
+**Nothing may be declared in `WorkPlanner.xaml`.** Every mode starts by emptying the collection, so an item put on
+in the xaml is thrown away by the first rebuild and never comes back — which is what happened to Search: picking
+jobs out once and coming back out of it lost it for the rest of the run. Filters and Select Jobs failed the other
+way round, added in the constructor only if the round had work *at that moment*, so a first run — or a page built
+before the jobs were loaded — kept a toolbar with nothing on it but Add Job. That is why the test for work is
+inside the rebuild rather than beside the `Add`.
+
 ## Tooltips
 
 `ToolTipProperties.Text` works on Android — it comes up on a **long press** — and on hover on Windows. That makes

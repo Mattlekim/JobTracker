@@ -47,6 +47,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     }
 
 
+    public ToolbarItem bnt_search;
     public ToolbarItem bnt_Filters;
     public ToolbarItem bnt_addNewJob;
     public ToolbarItem bnt_selectJobs;
@@ -57,30 +58,83 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     public ToolbarItem bnt_cancelSelection;
     public ToolbarItem bnt_setRound;
 
-    public void UpdateToolBarSelectJobs()
+    /// <summary>what the page is doing, which is what the toolbar says</summary>
+    private enum ToolBarMode
+    {
+        Normal,
+        SelectingJobs,
+        ViewingBooking
+    }
+
+    private ToolBarMode _toolBarMode = ToolBarMode.Normal;
+
+    /// <summary>
+    /// The one place the toolbar is built, from what the page is doing at the
+    /// time it is asked.
+    ///
+    /// Every mode used to build it for itself, and all three started by
+    /// emptying it - which threw away Search, because that one was put on in
+    /// the xaml and never put back. Picking jobs out once and coming back out
+    /// of it was enough to lose it for the rest of the run. Filters and Select
+    /// Jobs went the other way: they were added in the constructor if the
+    /// round had work at that moment, so a first run, or a page built before
+    /// the jobs were loaded, had a toolbar with nothing on it but Add Job and
+    /// no way of getting the rest back.
+    ///
+    /// So nothing is remembered here: the items are worked out again every
+    /// time, and this is called on the way back to the page as well as on
+    /// every change of mode.
+    /// </summary>
+    private void UpdateToolBar()
     {
         this.ToolbarItems.Clear();
-        this.ToolbarItems.Add(bnt_cancelSelection);
-        this.ToolbarItems.Add(bnt_bookInWork);
-        this.ToolbarItems.Add(bnt_setRound);
-        this.ToolbarItems.Add(bnt_textCustomers);
-        this.ToolbarItems.Add(bnt_CreateGroup);
+
+        //search is on every mode: finding a house is not something to be
+        //stopped from doing by what else the page happens to be showing
+        this.ToolbarItems.Add(bnt_search);
+
+        if (_toolBarMode == ToolBarMode.ViewingBooking)
+            return;
+
+        if (_toolBarMode == ToolBarMode.SelectingJobs)
+        {
+            this.ToolbarItems.Add(bnt_cancelSelection);
+            this.ToolbarItems.Add(bnt_bookInWork);
+            this.ToolbarItems.Add(bnt_setRound);
+            this.ToolbarItems.Add(bnt_textCustomers);
+            this.ToolbarItems.Add(bnt_CreateGroup);
+            return;
+        }
+
+        //filtering and picking out are about work that is there. asked again
+        //every time, so the first job added brings them with it
+        bool haveWork = Job.Query().Count > 0;
+
+        if (haveWork)
+            this.ToolbarItems.Add(bnt_Filters);
+
+        this.ToolbarItems.Add(bnt_addNewJob);
+
+        if (haveWork)
+            this.ToolbarItems.Add(bnt_selectJobs);
+    }
+
+    public void UpdateToolBarSelectJobs()
+    {
+        _toolBarMode = ToolBarMode.SelectingJobs;
+        UpdateToolBar();
     }
 
     public void UpdateToolBarNoraml()
     {
-
-        this.ToolbarItems.Clear();
-        this.ToolbarItems.Add(bnt_Filters);
-        this.ToolbarItems.Add(bnt_addNewJob);
-        this.ToolbarItems.Add(bnt_selectJobs);
-
-     
+        _toolBarMode = ToolBarMode.Normal;
+        UpdateToolBar();
     }
 
     public void UpdateToolBarViewBooking()
     {
-        this.ToolbarItems.Clear();
+        _toolBarMode = ToolBarMode.ViewingBooking;
+        UpdateToolBar();
     }
     public WorkPlanner()
     {
@@ -89,11 +143,14 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
         InitializeComponent();
 
-        int jCount = Job.Query().Count;
+        //a magnifier, a funnel and a plus say what these are to anybody. the
+        //Text stays on them: Android puts it up on a long press and reads it
+        //out in the ... menu, so the icon never leaves somebody guessing
+        bnt_search = new ToolbarItem();
+        bnt_search.Text = "Search";
+        bnt_search.IconImageSource = "search.png";
+        bnt_search.Clicked += tbi_Search_Clicked;
 
-        //a funnel and a plus say what these are to anybody. the Text stays on
-        //them: Android puts it up on a long press and reads it out in the ...
-        //menu, so the icon never leaves somebody guessing
         bnt_Filters = new ToolbarItem();
         bnt_Filters.Text = "Filters";
         bnt_Filters.IconImageSource = "filter.png";
@@ -135,11 +192,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         bnt_setRound.Clicked += bnt_setRound_Clicked;
         bnt_setRound.Order = ToolbarItemOrder.Secondary;
 
-        if (jCount > 0)
-            this.ToolbarItems.Add(bnt_Filters);
-        this.ToolbarItems.Add(bnt_addNewJob);
-        if (jCount > 0)
-            this.ToolbarItems.Add(bnt_selectJobs);
+        UpdateToolBar();
 
         ResetDateFilter();
         dp_StartSearchDate.Date = StartFilterDate;
@@ -291,6 +344,10 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         //than trusting what it was left as
         Job.SetSelectionMode(_selectingJobs);
         ShowSelectionBar();
+
+        //what is on the toolbar depends on there being work, and the first
+        //job may well have been added on the page just come back from
+        UpdateToolBar();
 
         RefreshPage();
     }

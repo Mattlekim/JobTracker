@@ -4,12 +4,10 @@
              xmlns:controls="clr-namespace:UiInterface.Controles"
              x:Class="UiInterface.Layouts.WorkPlanner"
              Title="WorkPlanner">
-    <!-- the toolbar items keep their Text as well as the icon: it is what
-         Android shows on a long press and what the ... menu reads, so an
-         icon never leaves somebody guessing -->
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Search" IconImageSource="search.png" Clicked="tbi_Search_Clicked"></ToolbarItem>
-    </ContentPage.ToolbarItems>
+    <!-- the toolbar is built in code (UpdateToolBar) rather than here,
+         because what is on it depends on what the page is doing and every
+         mode rebuilds it. an item put on here is thrown away by the first
+         rebuild and never comes back, which is what happened to Search. -->
 
 
     <Grid x:Name="g_root">
