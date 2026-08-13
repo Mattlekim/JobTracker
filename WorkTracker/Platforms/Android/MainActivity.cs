@@ -30,19 +30,19 @@ namespace WorkTracker
     [IntentFilter(new[] { Intent.ActionView },
         Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
         DataSchemes = new[] { "content", "file" },
-        DataHostPattern = "*",
+        DataHost = "*",
         DataMimeType = "*/*",
         DataPathPattern = ".*\\\\.rbf")]
     [IntentFilter(new[] { Intent.ActionView },
         Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
         DataSchemes = new[] { "content", "file" },
-        DataHostPattern = "*",
+        DataHost = "*",
         DataMimeType = "*/*",
         DataPathPattern = ".*\\\\..*\\\\.rbf")]
     [IntentFilter(new[] { Intent.ActionView },
         Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
         DataSchemes = new[] { "content", "file" },
-        DataHostPattern = "*",
+        DataHost = "*",
         DataMimeType = "*/*",
         DataPathPattern = ".*\\\\..*\\\\..*\\\\.rbf")]
     public class MainActivity : MauiAppCompatActivity
