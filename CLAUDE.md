@@ -321,6 +321,27 @@ as likely as not to be behind the ... menu, which is no use as the way out of a 
 Holding a row starts picking jobs out with that row already picked, the same half second hold as `BookedWork`.
 The finger coming up off a hold arrives as a tap too, which is what `HoldJustHappened` is there to swallow.
 
+## Screenshot mode
+
+`Kernel/ScreenshotMode.cs` swaps the road, town, area and postcode on screen for made up ones, so the round can be
+photographed for a listing or a help page without putting a customer's address in front of everybody. House
+numbers are left as they are. It is turned on under **Debug** on the settings page.
+
+The same real name always comes out as the same made up one, and no two real names share one. That is not just
+for looks: streets still group as streets and towns as towns, so a screenshot shows the app behaving exactly as
+it does on the real round.
+
+**It is display only, and the split is what makes that safe.** `Location.DisplayStreet` and friends are separate
+from `Location.Street` and friends: forms, saving, exports, statement matching and customer merging all read the
+real address, and only the places that put it on screen read the display ones. Mask the fields themselves and the
+next job edited would save a made up street. `PaperView.PaperItem` keeps `PropertyStreet` real for the same
+reason — rows are matched on it and a house added from a street heading is built out of it — and shows
+`DisplayStreet` instead.
+
+**The setting is deliberately not saved.** `ScreenshotMode.On` is a plain static that `Settings.Save` knows
+nothing about, so it is off again the next time the app starts. That is the only way to be sure a round is never
+quietly showing made up addresses weeks later.
+
 ## Toolbar icons
 
 The toolbar items everybody already knows the picture for carry one: Search is a magnifier, Filters a funnel,

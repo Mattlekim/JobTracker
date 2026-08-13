@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="UiInterface.Layouts.SettingLayout"
@@ -325,6 +325,24 @@
                             </Grid>
                             <Editor x:Name="e_DefaultNotComming" Margin="0,0,0,0" HorizontalOptions="StartAndExpand" VerticalTextAlignment="Start" MinimumHeightRequest="100" MinimumWidthRequest="300"></Editor>
                         </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <!--  DEBUG  -->
+            <Button Text="&#x25B8; Debug" ClassId="sec_debug" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
+            <VerticalStackLayout x:Name="sec_debug" IsVisible="false" Padding="10,0,10,10">
+                <Label Text="Screenshot Mode"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" Padding="4">
+                    <VerticalStackLayout Spacing="4">
+                        <HorizontalStackLayout Spacing="6">
+                            <CheckBox x:Name="cb_screenshotMode" IsChecked="false" CheckedChanged="cb_screenshotMode_Changed" VerticalOptions="Center"></CheckBox>
+                            <Label Text="Made up road and town names" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                        </HorizontalStackLayout>
+                        <Label Text="For photographing the round without putting a customer's address in front of everybody. House numbers stay as they are; every road, town, area and postcode is swapped for a made up one, the same one each time, so the round still reads as a round."
+                               FontSize="12" TextColor="{StaticResource MidGray}"></Label>
+                        <Label Text="It only changes what is on the screen - nothing saved, exported or sent to a customer is touched - and it is deliberately not remembered, so it is off again the next time the app starts."
+                               FontSize="12" TextColor="{StaticResource MidGray}"></Label>
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>

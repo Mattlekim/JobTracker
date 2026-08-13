@@ -117,7 +117,7 @@
                                      IsVisible="{Binding ShowCancelledRow}" IsEnabled="{Binding ShowCancelledRow}">
                             <HorizontalStackLayout Spacing="6" TranslationX="10">
                                 <Label Text="{Binding Title}" FontAttributes="Bold" TextDecorations="Strikethrough" VerticalOptions="Center"></Label>
-                                <Label Text="{Binding PropertyStreet}" TextDecorations="Strikethrough" VerticalOptions="Center" FontSize="12"></Label>
+                                <Label Text="{Binding DisplayStreet}" TextDecorations="Strikethrough" VerticalOptions="Center" FontSize="12"></Label>
                                 <Label Text="{Binding Price}" TextDecorations="Strikethrough" VerticalOptions="Center" FontSize="12"></Label>
                                 <Label Text="Cancelled" TextColor="White" BackgroundColor="#C62828" Padding="4,1" FontSize="11" FontAttributes="Bold" VerticalOptions="Center"></Label>
                             </HorizontalStackLayout>

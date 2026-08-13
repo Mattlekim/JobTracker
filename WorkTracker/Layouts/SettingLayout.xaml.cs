@@ -505,6 +505,10 @@ public partial class SettingLayout : ContentPage
 
         ShowTagNames();
 
+        //not read from a file - it is only ever whatever it was set to since
+        //the app started
+        cb_screenshotMode.IsChecked = ScreenshotMode.On;
+
         e_DefaultTNB.Text = WorkPlanner.DefaultTNBMessage;
         e_DefaultTAC.Text = WorkPlanner.DefaultJobCompleateMessage;
         e_DefaultNotComming.Text = WorkPlanner.DefaultNotCommingMessage;
@@ -709,6 +713,29 @@ public partial class SettingLayout : ContentPage
     {
         await Navigation.PushAsync(new TidyCustomers());
         ShowTidyCustomers();
+    }
+
+    /// <summary>
+    /// Swaps the road and town names on screen for made up ones, for
+    /// photographing the round.
+    ///
+    /// **Nothing is saved here on purpose.** ScreenshotMode.On is a plain
+    /// static that no part of Settings.Save writes down, so it is off again
+    /// the next time the app starts - which is the only way to be sure a
+    /// round is never quietly showing made up addresses weeks later.
+    /// </summary>
+    private void cb_screenshotMode_Changed(object sender, CheckedChangedEventArgs e)
+    {
+        CheckBox cb = sender as CheckBox;
+        if (cb == null)
+            return;
+
+        ScreenshotMode.On = cb.IsChecked;
+
+        //every address on screen is worked out from the job, so the pages
+        //only need telling to build themselves again
+        Job.RefreshJobs();
+        DataRefreshNotifier.NotifyDataChanged();
     }
 
     private void bnt_resetImportBanking(object sender, EventArgs e)

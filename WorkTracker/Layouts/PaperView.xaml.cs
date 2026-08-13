@@ -1,4 +1,4 @@
-namespace UiInterface.Layouts;
+﻿namespace UiInterface.Layouts;
 
 using Kernel;
 using System.Collections.ObjectModel;
@@ -51,10 +51,20 @@ public partial class PaperView : ContentPage
 
         public static string StringPaid = "/", StringDone = "\\", StringDonePaid = "X", StringSkipped = "O", StringCanceld = "-";
 		public string Title { get; set; } = " ";
+
+		//the real address. rows are matched on these, streets are grouped by
+		//them and a house added from a street heading is built out of them,
+		//so they are never the made up ones - see Kernel/ScreenshotMode.cs
 		public string PropertyStreet { get; set; }
 		public string PropertyCity { get; set; }
 		public string PropertyArea { get; set; }
 		public string PropertyNumber { get; set; }
+
+		/// <summary>the street as it should be shown, for the rows that show it</summary>
+		public string DisplayStreet
+		{
+			get { return ScreenshotMode.Street(PropertyStreet); }
+		}
 
 		public int GroupId = 0;
 		public DateTime StartDate { get; set; } = new DateTime(2000, 1, 1);
@@ -580,7 +590,7 @@ public partial class PaperView : ContentPage
 				_isSet = true;
 				if (j.Address != null)
 				{
-					Title = j.Address.Street;
+					Title = j.Address.DisplayStreet;
 					PropertyNumber = j.Address.PropertyNameNumber;
 					PropertyStreet = j.Address.Street;
 					PropertyCity = j.Address.City;
@@ -620,6 +630,16 @@ public partial class PaperView : ContentPage
             }
         }
     }
+
+	/// <summary>
+	/// the words over a street: the street, the town and the area as they are
+	/// shown. the same shape as the key the rows were grouped by, so with
+	/// screenshot mode off it comes out exactly as it always did
+	/// </summary>
+	private static string HeadingFor(PaperViewLocationInfo here)
+	{
+		return $"{ScreenshotMode.Street(here.Street)} {ScreenshotMode.Town(here.City)} {ScreenshotMode.Area(here.Area)}".ToLower();
+	}
 
 	public ObservableCollection<PaperItem> PaperItems = new ObservableCollection<PaperItem>();
 
@@ -838,12 +858,14 @@ public partial class PaperView : ContentPage
             //compared without case on both sides and safe against a half
             //filled address: area used to be compared with its case left on,
             //so anything with a capital in it never matched
+            //the heading over a street is read, so it is the shown address.
+            //everything under it keeps the real one
             PaperViewLocationInfo here = locationData[count];
             List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x =>
                 SameText(x.PropertyStreet, here.Street)
                 && SameText(x.PropertyArea, here.Area)
                 && SameText(x.PropertyCity, here.City));
-            char[] tmp = street.ToCharArray();
+            char[] tmp = HeadingFor(here).ToCharArray();
             tmp[0] = char.ToUpper(tmp[0]);
 
             for (int i = 1; i < tmp.Length; i++)

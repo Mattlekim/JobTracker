@@ -1296,7 +1296,7 @@ namespace Kernel
              //   RaisePropertyChanged("JobFormattedString");
                 if (Address == null)
                     return string.Empty;
-                return $"{Address.PropertyNameNumber} {Address.Street} {Address.City} {Address.Area}";
+                return $"{Address.PropertyNameNumber} {Address.DisplayStreet} {Address.DisplayCity} {Address.DisplayArea}";
 
             }
         }
@@ -1308,7 +1308,7 @@ namespace Kernel
              //   RaisePropertyChanged("JobFormattedStreet");
                 if (Address == null)
                     return string.Empty;
-                return $"{Address.PropertyNameNumber} {Address.Street}";
+                return $"{Address.PropertyNameNumber} {Address.DisplayStreet}";
 
             }
         }
@@ -1332,7 +1332,7 @@ namespace Kernel
               //  RaisePropertyChanged("JobFormattedStreetOnly");
                 if (Address == null)
                     return string.Empty;
-                return $"{Address.Street}";
+                return $"{Address.DisplayStreet}";
 
             }
         }
@@ -1485,7 +1485,7 @@ namespace Kernel
             //    RaisePropertyChanged("JobFormattedCity");
                 if (Address == null)
                     return string.Empty;
-                return $"{Address.City}";
+                return $"{Address.DisplayCity}";
 
             }
         }
@@ -1497,7 +1497,7 @@ namespace Kernel
               //  RaisePropertyChanged("JobFormattedArea");
                 if (Address == null)
                     return string.Empty;
-                return $"{Address.Area}";
+                return $"{Address.DisplayArea}";
 
             }
         }

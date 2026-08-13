@@ -1,4 +1,4 @@
-namespace UiInterface.Layouts;
+﻿namespace UiInterface.Layouts;
 
 using Kernel;
 public partial class ViewCustomerDetails : ContentPage
@@ -78,19 +78,21 @@ public partial class ViewCustomerDetails : ContentPage
         l_creditDebit.BindingContext = h;
        
         l_customerName.Text = $"{c.FName} {c.SName}";
-        l_customerAddressl1.Text = $"{c.Address.PropertyNameNumber} {c.Address.Street}";
-        l_customerAddressl2.Text = $"{c.Address.City}";
+        //the shown address: the house number as it is, and the road, town and
+        //postcode as screenshot mode leaves them
+        l_customerAddressl1.Text = $"{c.Address.PropertyNameNumber} {c.Address.DisplayStreet}";
+        l_customerAddressl2.Text = $"{c.Address.DisplayCity}";
         if (c.Address.Area == null || c.Address.Area == string.Empty)
             l_customerAddressl3.IsVisible = false;
         else
             l_customerAddressl3.IsVisible = true;
-        l_customerAddressl3.Text = $"{c.Address.Area}";
+        l_customerAddressl3.Text = $"{c.Address.DisplayArea}";
 
         if (c.Address.Postcode == null || c.Address.Postcode == string.Empty)
             l_customerAddressl4.IsVisible = false;
         else
             l_customerAddressl4.IsVisible = true;
-        l_customerAddressl4.Text = $"{c.Address.Postcode}";
+        l_customerAddressl4.Text = $"{c.Address.DisplayPostcode}";
 
         l_phone.Text = c.Phone;
         l_email.Text = c.Email;
