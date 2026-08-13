@@ -929,10 +929,14 @@ public partial class PaperView : ContentPage
 					{
 						//the street is repeated on the break so you can still
 						//see which one you are looking at further down, and it
-						//can be tapped to book that part of it in
+						//can be tapped to book that part of it in.
+						//
+						//the words are the shown street; PropertyStreet below
+						//stays real, because that is what a house added from
+						//here is built out of
 						string streetName = string.IsNullOrWhiteSpace(currentItem.PropertyStreet)
 							? "- - - - -"
-							: currentItem.PropertyStreet;
+							: currentItem.DisplayStreet;
 
 						PaperItem pai = new PaperItem()
 						{
@@ -1064,7 +1068,9 @@ public partial class PaperView : ContentPage
 				{
 					ShowJobInformation = false,
 					IsBookedRow = true,
-					Title = string.IsNullOrWhiteSpace(street.Key) ? "- - - - -" : street.Key,
+					//the shown street. the real one is carried below it, which
+					//is what a house added from this heading is built out of
+					Title = string.IsNullOrWhiteSpace(street.Key) ? "- - - - -" : ScreenshotMode.Street(street.Key),
 					PropertyStreet = first == null || first.Address == null ? string.Empty : first.Address.Street,
 					PropertyCity = first == null || first.Address == null ? string.Empty : first.Address.City,
 					PropertyArea = first == null || first.Address == null ? string.Empty : first.Address.Area,
@@ -1703,7 +1709,7 @@ public partial class PaperView : ContentPage
 	private async Task AddAllHouses(PaperItem pi)
 	{
 		string numbers = await DisplayPromptAsync("Add Range",
-			$"House numbers for {pi.PropertyStreet} (e.g. 1,3,5-11 - a range keeps to one side of the street):",
+			$"House numbers for {pi.DisplayStreet} (e.g. 1,3,5-11 - a range keeps to one side of the street):",
 			"Next", "Cancel");
 		if (string.IsNullOrWhiteSpace(numbers))
 			return;
@@ -1761,7 +1767,7 @@ public partial class PaperView : ContentPage
 		Job.Save();
 		FullPageLoad();
 
-		string summary = $"Added {added} house(s) on {pi.PropertyStreet}.";
+		string summary = $"Added {added} house(s) on {pi.DisplayStreet}.";
 		if (skipped > 0)
 			summary += $"\nSkipped {skipped} that already exist.";
 		await DisplayAlert("Add Range", summary, "Ok");
