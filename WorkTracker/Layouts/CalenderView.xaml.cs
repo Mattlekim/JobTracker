@@ -1384,7 +1384,7 @@ public partial class CalenderView : ContentPage
             }
 
             left++;
-            minutesLeft += j.EstimatedTime > 0 ? j.EstimatedTime : Settings.DefaultJobDuration;
+            minutesLeft += JobDuration.MinutesFor(j);
         }
 
         int total = done + left;

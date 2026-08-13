@@ -191,6 +191,25 @@ anything already done stays done.
 today, so a caller with no day in mind cannot pick up somebody else's. Without it the form opened on today and the
 date had to be typed in again, which is wrong every time the day is already known.
 
+## Changing things from the customer's page
+
+`Layouts/ViewCustomerDetails` is where a customer is looked at, so it is where the two figures that go wrong get
+put right, each with a **Change** beside it rather than a trip through the job form:
+
+- **Current Balance** — `Layouts/CustomerBalance`. A round taken over from somebody else starts with whatever was
+  owed written down somewhere else.
+- **Time For Job** — `Layouts/JobDuration`. How long the job takes is what the day is planned off, and it is
+  noticed to be wrong stood at the house.
+
+`JobDuration.MinutesFor` is the one definition of how long a job counts as taking — its own `EstimatedTime`, or
+`Settings.DefaultJobDuration` when it has none — used by the calendar and the booked work page as well, so the
+day's figures cannot disagree about it. `Describe` says which of the two a figure is, because a house showing the
+usual and a house that really is half an hour are not the same thing.
+
+`JobDuration.Apply` follows `JobNextId` **forwards** from the job it was given. The job being looked at is as
+likely as not one already done, and changing it there while the next clean kept the old figure would be no use;
+a visit already written up keeps what it was worked to, and another job at the same house is a different job.
+
 ## Duplicate customers
 
 `Layouts/TidyCustomers` and `Kernel/CustomerMerge.cs` exist to clear up after a bug rather than to add anything.

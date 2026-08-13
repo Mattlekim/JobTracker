@@ -105,7 +105,7 @@ public partial class BookedWork : ContentPage, IHoldRows
                 }
 
                 LeftCount++;
-                minutesLeft += j.EstimatedTime > 0 ? j.EstimatedTime : Settings.DefaultJobDuration;
+                minutesLeft += JobDuration.MinutesFor(j);
             }
 
             int total = DoneCount + LeftCount;

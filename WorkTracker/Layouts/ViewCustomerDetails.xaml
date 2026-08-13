@@ -50,6 +50,16 @@
                                 BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5"
                                 CornerRadius="8" VerticalOptions="Center"></Button>
                     </HorizontalStackLayout>
+                    <!-- how long the job takes, changed from here rather than
+                         through the job form: it is what the day is planned
+                         off, and it gets corrected stood at the house -->
+                    <HorizontalStackLayout Padding="8,0,8,8" HorizontalOptions="Center" Spacing="8">
+                        <Label Text="Time For Job " VerticalOptions="Center"></Label>
+                        <Label x:Name="l_jobDuration" VerticalOptions="Center"></Label>
+                        <Button Text="Change" Clicked="bnt_changeDuration_Clicked" FontSize="12" Padding="12,2"
+                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5"
+                                CornerRadius="8" VerticalOptions="Center"></Button>
+                    </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Border>
         </Grid>
