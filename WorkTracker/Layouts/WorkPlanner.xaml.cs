@@ -1168,7 +1168,7 @@ public partial class WorkPlanner : ContentPage
         if (j?.Address == null)
             return;
 
-        SetTagFilter(SecondryFilterType.Street, j.Address.Street,
+        SetTagFilter(SecondryFilterType.Street, j.Address.DisplayStreet,
             x => x.Address != null && x.Address.Street == j.Address.Street);
     }
 
@@ -1178,7 +1178,7 @@ public partial class WorkPlanner : ContentPage
         if (j?.Address == null)
             return;
 
-        SetTagFilter(SecondryFilterType.City, j.Address.City,
+        SetTagFilter(SecondryFilterType.City, j.Address.DisplayCity,
             x => x.Address != null && x.Address.City == j.Address.City);
     }
 
@@ -1188,7 +1188,7 @@ public partial class WorkPlanner : ContentPage
         if (j?.Address == null)
             return;
 
-        SetTagFilter(SecondryFilterType.Area, j.Address.Area,
+        SetTagFilter(SecondryFilterType.Area, j.Address.DisplayArea,
             x => x.Address != null && x.Address.Area == j.Address.Area);
     }
 
