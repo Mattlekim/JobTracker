@@ -41,7 +41,8 @@ public partial class WorkPlanner : ContentPage
         Credit,
         Street,
         City,
-        Area
+        Area,
+        Round
     }
 
 
@@ -53,12 +54,14 @@ public partial class WorkPlanner : ContentPage
     public ToolbarItem bnt_CreateGroup;
 
     public ToolbarItem bnt_cancelSelection;
+    public ToolbarItem bnt_setRound;
 
     public void UpdateToolBarSelectJobs()
     {
         this.ToolbarItems.Clear();
         this.ToolbarItems.Add(bnt_cancelSelection);
         this.ToolbarItems.Add(bnt_bookInWork);
+        this.ToolbarItems.Add(bnt_setRound);
         this.ToolbarItems.Add(bnt_textCustomers);
         this.ToolbarItems.Add(bnt_CreateGroup);
     }
@@ -123,6 +126,13 @@ public partial class WorkPlanner : ContentPage
         bnt_cancelSelection = new ToolbarItem();
         bnt_cancelSelection.Text = "Cancel Select Jobs";
         bnt_cancelSelection.Clicked += Bnt_cancelSelection_Clicked;
+
+        //putting a round together is picking the houses on it, so it belongs
+        //with the other things done to a handful of jobs at once
+        bnt_setRound = new ToolbarItem();
+        bnt_setRound.Text = "Put On A Round";
+        bnt_setRound.Clicked += bnt_setRound_Clicked;
+        bnt_setRound.Order = ToolbarItemOrder.Secondary;
 
         if (jCount > 0)
             this.ToolbarItems.Add(bnt_Filters);
@@ -305,7 +315,14 @@ public partial class WorkPlanner : ContentPage
             else
                 j.tmpDate = j.DueDate;
 
-        jobs = jobs.OrderBy(x => x.tmpDate).ToList();
+        //round first, then the date it is due or was done. work with no
+        //round goes last rather than first, so what nobody has organised is
+        //not the first thing on every page
+        jobs = jobs
+            .OrderBy(x => x.SortRoundFirst)
+            .ThenBy(x => x.SortRound, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(x => x.tmpDate)
+            .ToList();
 
         //the booking summary rows are the round's diary, not work matching
         //what was tapped, so they stay off a filtered list
@@ -1013,6 +1030,9 @@ public partial class WorkPlanner : ContentPage
             case SecondryFilterType.JobPrice:
                 return $"work at {FilterString}";
 
+            case SecondryFilterType.Round:
+                return $"the {FilterString} round";
+
             case SecondryFilterType.Owed:
                 return "customers who owe money";
 
@@ -1195,6 +1215,20 @@ public partial class WorkPlanner : ContentPage
 
         SetTagFilter(SecondryFilterType.Area, j.Address.DisplayArea,
             x => x.Address != null && x.Address.Area == j.Address.Area);
+    }
+
+    /// <summary>
+    /// everything on the same round as the job whose round was tapped. this
+    /// is the one people work by: a round is a day's work, or a patch
+    /// </summary>
+    private void Job_Round_Filter(object sender, EventArgs e)
+    {
+        Job j = TaggedJob(sender);
+        if (j == null || !j.HaveRound)
+            return;
+
+        SetTagFilter(SecondryFilterType.Round, j.Round,
+            x => string.Equals(x.Round ?? string.Empty, j.Round, StringComparison.CurrentCultureIgnoreCase));
     }
 
     private void Job_Price_Filter(object sender, EventArgs e)
@@ -1926,6 +1960,57 @@ public partial class WorkPlanner : ContentPage
             return;
         }
     }
+    /// <summary>
+    /// Puts everything picked on a round in one go.
+    ///
+    /// Without this a round is built by opening twenty houses one at a time,
+    /// which nobody is going to do - and a round that is never filled in is
+    /// a round that may as well not exist.
+    /// </summary>
+    private async void bnt_setRound_Clicked(object sender, EventArgs e)
+    {
+        List<Job> picked = new List<Job>();
+        foreach (int id in _selectedJobs)
+        {
+            Job j = Job.Query(QueryType.JobId, id).FirstOrDefault();
+            if (j != null && j.CustomerId != -1)
+                picked.Add(j);
+        }
+
+        if (picked.Count == 0)
+        {
+            await DisplayAlert("No Jobs", "Pick the jobs you want on a round first.", "Ok");
+            return;
+        }
+
+        string round = await RoundPicker.AskAsync(this, picked.Count == 1
+            ? "Put this job on which round?"
+            : $"Put these {picked.Count} jobs on which round?");
+
+        if (round == null)
+            return;
+
+        int known = Job.RoundNames.Count;
+
+        foreach (Job j in picked)
+            j.SetRound(round);
+
+        Job.Save();
+
+        //a round typed in rather than picked is new, and the list of rounds
+        //lives with the settings
+        if (Job.RoundNames.Count != known)
+            Settings.Save();
+
+        CancelSelectingJobs();
+        RefreshPage();
+
+        await DisplayAlert("Round",
+            round.Length == 0
+                ? $"{picked.Count} job(s) taken off their round."
+                : $"{picked.Count} job(s) put on {round}.", "Ok");
+    }
+
     private async void bnt_selectJobs_Clicked(object sender, EventArgs e)
     {
         if (ViewBooking)
@@ -2251,16 +2336,48 @@ public partial class WorkPlanner : ContentPage
             return;
 
         Job j = lv_Jobs.SelectedItem as Job;
+        lv_Jobs.SelectedItem = null;
+
+        RowTapped(j);
+    }
+
+    /// <summary>
+    /// The row's own tap.
+    ///
+    /// Android only delivers touches to a view that is handling them, and a
+    /// row carrying nothing but the hold's pointer recogniser was never given
+    /// a finger to time - which is why holding a row on this list did nothing
+    /// while the same code worked on the booked work page, where the row has
+    /// a tap recogniser as well.
+    ///
+    /// So the row takes the tap, and the list's selection is left to hand it
+    /// on for whichever platform delivers it that way instead.
+    /// </summary>
+    private void job_Row_Tapped(object sender, TappedEventArgs e)
+    {
+        RowTapped(e.Parameter as Job);
+    }
+
+    private DateTime _rowTappedAt = DateTime.MinValue;
+
+    private void RowTapped(Job j)
+    {
+        if (j == null)
+            return;
+
+        //the finger coming up off a hold arrives as a tap, and would put
+        //straight back what the hold had just picked
+        if (HoldJustHappened)
+            return;
+
+        //the row and the list can both report the same tap. one is enough
+        if ((DateTime.Now - _rowTappedAt).TotalMilliseconds < 400)
+            return;
+
+        _rowTappedAt = DateTime.Now;
 
         if (_selectingJobs)
         {
-            lv_Jobs.SelectedItem = null;
-
-            //the finger coming up off a hold arrives here as a tap, and would
-            //put straight back what the hold had just picked
-            if (HoldJustHappened)
-                return;
-
             //tapping anywhere on the row picks the job while selecting
             ToggleSelected(j);
             return;
@@ -2286,9 +2403,6 @@ public partial class WorkPlanner : ContentPage
 
             RefreshPage();
         }
-        lv_Jobs.SelectedItem = null;
-
-        
     }
 
     private void HideSelectBookingJobs()

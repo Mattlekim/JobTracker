@@ -16,6 +16,9 @@ public partial class PaperView : ContentPage
 		public string City;
 		public string Area;
 
+		/// <summary>the round this street's work is on, blank for none</summary>
+		public string Round;
+
 	}
 	public class JobInstance
 	{
@@ -59,6 +62,15 @@ public partial class PaperView : ContentPage
 		public string PropertyCity { get; set; }
 		public string PropertyArea { get; set; }
 		public string PropertyNumber { get; set; }
+
+		/// <summary>the round this work is on, blank for none</summary>
+		public string Round { get; set; } = string.Empty;
+
+		/// <summary>
+		/// the line naming a round, above its streets. it is not a street and
+		/// not a house, so nothing that walks the round's work touches it
+		/// </summary>
+		public bool IsRoundHeading { get; set; } = false;
 
 		/// <summary>the street as it should be shown, for the rows that show it</summary>
 		public string DisplayStreet
@@ -600,6 +612,7 @@ public partial class PaperView : ContentPage
 				BasePice = j.Price;
 				Notes = j.Notes;
 				TNB = j.TNB;
+				Round = j.Round ?? string.Empty;
             }
             if (j.JobNextId == -1) //ie no next job
             {
@@ -630,6 +643,28 @@ public partial class PaperView : ContentPage
             }
         }
     }
+
+	/// <summary>
+	/// The line over a round's work.
+	///
+	/// It is a heading like a street's, only bolder and with a rule under it,
+	/// so a page split into rounds reads as rounds rather than as one long
+	/// list. Work that is not on a round gets one too - that is the pile to
+	/// go through and put on one.
+	/// </summary>
+	private static PaperItem RoundHeading(string round)
+	{
+		return new PaperItem()
+		{
+			Title = string.IsNullOrWhiteSpace(round) ? "- No Round -" : $"{round.ToUpper()}",
+			FontAttri = FontAttributes.Bold,
+			RowSpan = 5,
+			ShowJobInformation = false,
+			IsRoundHeading = true,
+			Round = round ?? string.Empty,
+			TitlePadding = new Thickness(4, 22, 4, 2),
+		};
+	}
 
 	/// <summary>
 	/// the words over a street: the street, the town and the area as they are
@@ -837,7 +872,9 @@ public partial class PaperView : ContentPage
         string tmpString = string.Empty;
         foreach (Job j in jobs)
         {
-            tmpString = $"{j.Address.Street} {j.Address.City} {j.Address.Area}";
+            //the round is part of what makes a group: a street worked on two
+            //rounds is two lots of work, and they are not done together
+            tmpString = $"{j.Round}|{j.Address.Street} {j.Address.City} {j.Address.Area}";
             tmpString = tmpString.ToLower();
 			if (!location.Contains(tmpString))
             {
@@ -847,24 +884,48 @@ public partial class PaperView : ContentPage
 					Street = j.Address.Street ?? string.Empty,
 					City = j.Address.City ?? string.Empty,
 					Area = j.Address.Area ?? string.Empty,
+					Round = j.Round ?? string.Empty,
 				});
             }
         }
 
+        //round first, then street. work on no round goes last rather than
+        //first, so what nobody has put on a round is not the top of the page
+        locationData = locationData
+            .OrderBy(x => string.IsNullOrWhiteSpace(x.Round) ? 1 : 0)
+            .ThenBy(x => x.Round, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(x => x.Street, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        //headings only when there are rounds to name. a round nobody has set
+        //up would otherwise put "No Round" over every page and say nothing
+        bool showRounds = locationData.Exists(x => !string.IsNullOrWhiteSpace(x.Round));
+
         PaperItems.Clear();
-		int count = 0;
-        foreach (string street in location)
+        string roundShowing = null;
+        bool firstGroup = true;
+
+        foreach (PaperViewLocationInfo here in locationData)
         {
+            //a heading for each round as it comes up, so the page reads as one
+            //round after another rather than as a list that happens to be in
+            //an order
+            if (showRounds && (firstGroup || !SameText(roundShowing, here.Round)))
+                PaperItems.Add(RoundHeading(here.Round));
+
+            roundShowing = here.Round;
+            firstGroup = false;
+
             //compared without case on both sides and safe against a half
             //filled address: area used to be compared with its case left on,
             //so anything with a capital in it never matched
             //the heading over a street is read, so it is the shown address.
             //everything under it keeps the real one
-            PaperViewLocationInfo here = locationData[count];
             List<PaperItem> jobsToAdd = tmpPaperwork.FindAll(x =>
                 SameText(x.PropertyStreet, here.Street)
                 && SameText(x.PropertyArea, here.Area)
-                && SameText(x.PropertyCity, here.City));
+                && SameText(x.PropertyCity, here.City)
+                && SameText(x.Round, here.Round));
             char[] tmp = HeadingFor(here).ToCharArray();
             tmp[0] = char.ToUpper(tmp[0]);
 
@@ -878,9 +939,10 @@ public partial class PaperView : ContentPage
                 FontAttri = FontAttributes.Bold,
                 RowSpan = 5,
                 ShowJobInformation = false,
-				PropertyStreet = locationData[count].Street,
-                PropertyArea = locationData[count].Area,
-                PropertyCity = locationData[count].City,
+				PropertyStreet = here.Street,
+                PropertyArea = here.Area,
+                PropertyCity = here.City,
+                Round = here.Round,
                 TitlePadding = new Thickness(4, 18, 4, 4), //spacer between streets
             });
             if (jobsToAdd != null && jobsToAdd.Count > 0)
@@ -895,7 +957,6 @@ public partial class PaperView : ContentPage
                     PaperItems.Add(paperItem);
                 }
             }
-			count++;
         }
 
         //now check the dates
@@ -1537,6 +1598,11 @@ public partial class PaperView : ContentPage
 		if (pi.Title == " ")
 			return;
 
+		//the line naming a round is not a street: there is no address on it to
+		//add a house to, and everything else on this sheet belongs to a street
+		if (pi.IsRoundHeading)
+			return;
+
 		List<string> options = new List<string>();
 		options.Add("Quick Add");
 		options.Add("Add Range");
@@ -1821,6 +1887,7 @@ public partial class PaperView : ContentPage
 		options.Add("All Jobs");
         options.Add("City");
         options.Add("Area");
+        options.Add("Round");
         options.Add("Group");
         string result = await DisplayActionSheet("Select View", null, null, options.ToArray());
         if (result == null)
@@ -1837,6 +1904,9 @@ public partial class PaperView : ContentPage
 				break;
 			case "Area":
 				SetFilter(new AreaFilter(Job.Query()));
+				break;
+			case "Round":
+				SetFilter(new RoundFilter(Job.Query()));
 				break;
 		}
 

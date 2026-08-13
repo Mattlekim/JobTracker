@@ -98,6 +98,27 @@
                         <Button Text="Add Tag"  BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8" Clicked="bnt_addTag"></Button>
                     </VerticalStackLayout>
                 </Border>
+
+                <Label Text="Rounds"  VerticalOptions="Center" TranslationY="8" BackgroundColor="{AppThemeBinding Light=white, Dark=black}" HorizontalOptions="Start" TranslationX="4" ></Label>
+                <Border Stroke="{AppThemeBinding Light=black, Dark=white}" StrokeThickness="2" StrokeShape="Rectangle" TranslationX="0" Padding="4">
+                    <VerticalStackLayout>
+                        <!-- only the list to pick from. taking a round off it
+                             does not take the work off that round - the round
+                             is on the job -->
+                        <Label Text="Split the work into rounds - a patch, a village, a day of the week, whatever yours is actually split into. Work is listed round by round, and can be filtered down to one."></Label>
+                        <ListView x:Name="l_roundNames" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <ViewCell>
+                                        <Entry Text="{Binding Name}" ClassId="{Binding Index}" TextChanged="e_roundTextChanged"></Entry>
+                                    </ViewCell>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+
+                        </ListView>
+                        <Button Text="Add Round"  BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Padding="8" Clicked="bnt_addRound"></Button>
+                    </VerticalStackLayout>
+                </Border>
             </VerticalStackLayout>
 
             <!--  PAPER VIEW  -->

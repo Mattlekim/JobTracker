@@ -47,6 +47,9 @@ public struct SettingsData
     /// </summary>
     public List<string> AutoTags;
 
+    /// <summary>the rounds work can be put on</summary>
+    public List<string> RoundNames;
+
     /// <summary>the paypal.me name a payment link is built from</summary>
     public string PayPalHandle;
 
@@ -129,6 +132,10 @@ public class Settings
 
         sd.AutoTags = new List<string>();
         sd.AutoTags.AddRange(Job.AutoTags);
+
+        sd.RoundNames = new List<string>();
+        Job.RoundNames.Remove(string.Empty);
+        sd.RoundNames.AddRange(Job.RoundNames);
 
         sd.PayPalHandle = PayPal.Handle;
 
@@ -239,6 +246,12 @@ public class Settings
                 Job.AutoTags.Clear();
                 if (sd.AutoTags != null)
                     Job.AutoTags.AddRange(sd.AutoTags);
+
+                //there are no rounds to start with, so whatever is in the
+                //file is the whole truth - including none at all
+                Job.RoundNames.Clear();
+                if (sd.RoundNames != null)
+                    Job.RoundNames.AddRange(sd.RoundNames);
             }
         }
         catch
@@ -513,6 +526,7 @@ public partial class SettingLayout : ContentPage
         l_jobNames.ItemsSource = jnsd;
 
         ShowTagNames();
+        ShowRoundNames();
 
         //not read from a file - it is only ever whatever it was set to since
         //the app started
@@ -826,6 +840,49 @@ public partial class SettingLayout : ContentPage
 
         l_tagNames.ItemsSource = null;
         l_tagNames.ItemsSource = tags;
+    }
+
+    /// <summary>
+    /// the rounds work can be put on. taking one off here does not take the
+    /// work off it - the round is on the job, and Job.RoundsInUse is what the
+    /// filters go by
+    /// </summary>
+    private void ShowRoundNames()
+    {
+        List<JobNamesSettingData> rounds = new List<JobNamesSettingData>();
+
+        int index = 0;
+        foreach (string s in Job.RoundNames)
+        {
+            rounds.Add(new JobNamesSettingData()
+            {
+                Name = s,
+                Index = index,
+            });
+            index++;
+        }
+
+        l_roundNames.ItemsSource = null;
+        l_roundNames.ItemsSource = rounds;
+    }
+
+    private void bnt_addRound(object sender, EventArgs e)
+    {
+        if (Job.RoundNames.Contains(string.Empty))
+            return;
+
+        Job.RoundNames.Add(string.Empty);
+        ShowRoundNames();
+    }
+
+    private void e_roundTextChanged(object sender, TextChangedEventArgs e)
+    {
+        Entry entry = sender as Entry;
+        if (e.OldTextValue == null || e.NewTextValue == null)
+            return;
+
+        int i = Convert.ToInt32(entry.ClassId);
+        Job.RoundNames[i] = entry.Text;
     }
 
     private void bnt_addTag(object sender, EventArgs e)
