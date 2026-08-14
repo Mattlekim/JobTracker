@@ -103,8 +103,23 @@ namespace Kernel
 
         private static string _FilePathQuotes = "quotes.rjt";
 
+        /// <summary>
+        /// true when the jobs file was there and could not be read. nothing
+        /// is written while this is set: an empty list saved over a file that
+        /// would not parse is the round gone for good
+        /// </summary>
+        public static bool LoadFailed = false;
+
+        /// <summary>why the load failed, for telling somebody</summary>
+        public static string LoadError = string.Empty;
+
         public static void Save(string dir = null)
         {
+            //the file was there and unreadable, so what is in memory is not
+            //the round - it is what was left after failing to read it
+            if (LoadFailed)
+                return;
+
             JobSaveData csd = new JobSaveData()
             {
 
@@ -297,8 +312,31 @@ namespace Kernel
                 FillRoundsDownTheJob();
                 _Loaded = true;
             }
+            catch (FileNotFoundException)
+            {
+                //no jobs file yet: a new install, and an empty round is right
+                _Loaded = true;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                _Loaded = true;
+            }
             catch (Exception ex)
-            { }
+            {
+                //  The file is there and could not be read.
+                //
+                //  This used to be swallowed whole, which is the worst thing
+                //  it could do: the jobs list is left empty, the app opens
+                //  looking like every job has gone, and the first save writes
+                //  that emptiness over the file that still had them all in
+                //  it. A round could be lost to a single bad character.
+                //
+                //  So the failure is remembered, and nothing is written until
+                //  somebody has seen it.
+                LoadFailed = true;
+                LoadError = ex.Message;
+                _Jobs.Clear();
+            }
 
 
             

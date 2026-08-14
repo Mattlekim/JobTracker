@@ -1,4 +1,12 @@
 ﻿using Kernel;
+using KernelDebugger;
+
+//  "dotnet run -- selftest" checks the domain layer writes its data down and
+//  reads it back with nothing lost, and says so with an exit code. It is what
+//  the build runs: the app itself cannot be tried out here, but the part that
+//  holds somebody's round can be.
+if (args.Length > 0 && string.Equals(args[0], "selftest", StringComparison.OrdinalIgnoreCase))
+    return SelfTest.Run();
 
 
 void ListCustomers(List<Customer> customers)
@@ -113,3 +121,4 @@ Console.ReadLine();
 
 
 
+return 0;
