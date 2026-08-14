@@ -495,6 +495,24 @@ a round is named by whoever has one, and a made up default would only be in the 
 Unlike a tag it belongs to the job rather than to one visit, so **`Job.DeepCopy` does carry it over** — the next
 clean at a house is on the same round as the last one.
 
+A round is a thing about **the job**, like how long it takes — where the house is does not change between one
+clean and the next. So **`Job.SetRound` puts it on every visit of the job**, and `Job.EveryVisit` finds them by
+**`BaseJobId`**: that is what says a run of visits is all the same job, it is carried by `DeepCopy`, and it is
+repaired on load for files that never had one (`FixBaseIdBug`). Following `PreviousJobId`/`JobNextId` instead
+would split a job in two wherever a link is missing.
+
+Setting it on the visit in front of you was no use: that visit is as likely as not already done, and the next one
+was copied off it before the round was set — so the house showed up on no round from its next clean onwards,
+which is what made the stats page keep saying work had no round after a whole list had been put on one.
+
+`SaveLoad.FillRoundsDownTheJob` puts right the rounds set that way, filling each job's round down from its newest
+visit that has one, so a round already put together does not have to be put together again. Only what is in
+memory is changed — the file catches up on the next save, like the other tidy ups done on load.
+
+The other half of that: the work list only reaches a **fortnight** ahead (`ResetDateFilter`), so a house not due
+for a month is not on it to be picked at all. **Put On A Round** says how many are still on no round afterwards,
+and that the dates on the filter panel are how to reach them.
+
 Both work pages put it first: `Layouts/WorkPlanner` sorts by round then by date, and `Layouts/PaperView` groups by
 round *and* street (a street worked on two rounds is two lots of work) with a heading naming each round. Work on
 no round sorts **last** rather than first, so what nobody has organised is not the top of every page. The paper

@@ -560,13 +560,62 @@ namespace Kernel
         /// puts this job on a round, and remembers the round for next time.
         /// blank takes it off whatever round it was on
         /// </summary>
+        /// <summary>
+        /// Puts this job on a round - the job, not this one visit of it.
+        ///
+        /// A round is a thing about the job itself, like how long it takes:
+        /// it is where the house is, and the house does not move between one
+        /// clean and the next. It is not like a tag, which says what one
+        /// visit was like and belongs to that visit alone.
+        ///
+        /// So it goes on every visit of the job. Setting it on the one in
+        /// front of you was no use at all: that visit is as likely as not
+        /// already done, and the next one was copied off it before the round
+        /// was set, so the house showed up on no round from its next clean
+        /// onwards.
+        /// </summary>
         public void SetRound(string round)
         {
-            Round = TidyTag(round);
-            RememberRound(Round);
+            round = TidyTag(round);
+            RememberRound(round);
+
+            foreach (Job visit in EveryVisit())
+                visit.PutOnRound(round);
+        }
+
+        /// <summary>the round on this one visit and nothing else</summary>
+        private void PutOnRound(string round)
+        {
+            Round = round;
             RaisePropertyChanged("Round");
             RaisePropertyChanged("HaveRound");
             RaisePropertyChanged("RoundOrNone");
+        }
+
+        /// <summary>
+        /// Every visit of this job - the same work at the same house, done
+        /// over and over.
+        ///
+        /// They are found by <see cref="BaseJobId"/>, which is what says they
+        /// are all the same job: it is the id of the first of them and every
+        /// visit copied off it carries it. That is a better handle than
+        /// following PreviousJobId and JobNextId along the chain, because a
+        /// chain with one link missing splits the job in two while the base
+        /// id still holds them together - and it is repaired on load
+        /// (FixBaseIdBug) where an old file never had one.
+        /// </summary>
+        public List<Job> EveryVisit()
+        {
+            //a quote, or a job not on the list at all: it is its own visit
+            if (BaseJobId <= 0)
+                return new List<Job>() { this };
+
+            List<Job> visits = _Jobs.FindAll(x => x.BaseJobId == BaseJobId);
+
+            if (visits.Count == 0)
+                visits.Add(this);
+
+            return visits;
         }
 
         private List<string> _tags = new List<string>();
