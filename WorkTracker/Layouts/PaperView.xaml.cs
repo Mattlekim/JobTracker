@@ -1399,12 +1399,23 @@ public partial class PaperView : ContentPage
 
 		if (result.Contains("Skip"))
 		{
+			bool wasBooked = j.IsBookedIn;
+
 			//written up on the day the round was actually done, same as
-			//marking work done
+			//marking work done. through WorkPlanner rather than the job so
+			//the day it was booked for lets go of it as well
 			if (CustomeMarkDate)
-				j.SkipJob(DateToMarkWorkDone);
+				WorkPlanner.MarkJobSkipped(j, DateToMarkWorkDone);
 			else
-				j.SkipJob();
+				WorkPlanner.MarkJobSkipped(j);
+
+			if (wasBooked)
+			{
+				//the same as Unbook: the house has come out of the booked work
+				//at the top and belongs back against its own street
+				FullPageLoad();
+				return;
+			}
 		}
 
 		if (result.Contains("Clear"))

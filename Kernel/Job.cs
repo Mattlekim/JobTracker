@@ -1446,6 +1446,22 @@ namespace Kernel
             //kept so the skip stays on the day it happened, alongside the
             //work done that day, rather than moving with the new due date
             DateSkipped = dateSkipped;
+
+            //a booking says the house is being done on a day, and skipping it
+            //says it is not - the work has gone out to its next visit. Left
+            //booked in it read as booked for a day it is no longer due on: it
+            //stayed on that day as work outstanding, so the day never cleared
+            //and went on being called overdue, and the work list leaves booked
+            //work out, so the house was on neither page.
+            //
+            //this is done here rather than in each of the places work can be
+            //skipped - the swipes on the work list, the calendar and the
+            //booked work page, the paper view's sheet - so none of them can be
+            //the one that forgets. The day held in Booking.Bookings is worked
+            //out from the jobs and cached, and the kernel cannot see it, so
+            //WorkPlanner.MarkJobSkipped takes the job out of that first
+            UnBookInJob();
+
             Job.Save();
         }
 
