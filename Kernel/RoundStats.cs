@@ -37,6 +37,13 @@ namespace Kernel
     /// without the app, and so the same definition of "left to do" is used
     /// everywhere: not done, not cancelled, and due today or before. Work
     /// booked in for a day still counts as left, because it is.
+    ///
+    /// Two things are counted here and they are counted differently on
+    /// purpose. What is *left to do* is a number of visits, the same as the
+    /// work list counts it. How big the *round* is is a number of houses,
+    /// worked out a job at a time through <see cref="Job.SameJobKey"/> - the
+    /// job list keeps every visit of a house, and a house is one house
+    /// however many visits of it happen to be outstanding.
     /// </summary>
     public class RoundStats
     {
@@ -67,7 +74,12 @@ namespace Kernel
         /// <summary>houses that were due before today rather than on it</summary>
         public int HousesOverdue;
 
-        /// <summary>everything on the round, done or not</summary>
+        /// <summary>
+        /// how many houses the round is made of. Houses, not visits: the job
+        /// list holds every visit of a house, so a house with more than one
+        /// visit still outstanding is counted once here even though it is two
+        /// jobs to do
+        /// </summary>
         public int HousesOnTheRound;
 
         /// <summary>
@@ -178,7 +190,8 @@ namespace Kernel
         /// nothing about the others: a day's worth still to do in the village
         /// is a different thing from the same figure spread over everywhere.
         /// The rounds come back in the order the work pages use - by name,
-        /// with the work nobody has put on a round last.
+        /// with the work nobody has put on a round last. Only rounds that
+        /// actually have work on them come back at all.
         /// </summary>
         public static List<RoundStats> ByRound(int months = 12)
         {
@@ -188,11 +201,21 @@ namespace Kernel
         /// <summary>a round at a time, as they stood on a given day</summary>
         public static List<RoundStats> ByRound(DateTime today, int months)
         {
+            List<Job> all = new List<Job>(Job.Query());
+
+            //the round of the whole job rather than of each visit of it, so
+            //every visit of a house lands in the same group. Splitting a
+            //house between two groups is what put a "No Round" made of
+            //nothing but finished visits on this page
+            Dictionary<string, string> roundOfJob = Job.RoundsOfEveryJob(all);
+
             Dictionary<string, List<Job>> byRound = new Dictionary<string, List<Job>>(StringComparer.CurrentCultureIgnoreCase);
 
-            foreach (Job j in new List<Job>(Job.Query()))
+            foreach (Job j in all)
             {
-                string round = j.HaveRound ? j.Round.Trim() : string.Empty;
+                string round;
+                if (!roundOfJob.TryGetValue(j.SameJobKey, out round))
+                    round = j.HaveRound ? j.Round.Trim() : string.Empty;
 
                 List<Job> onIt;
                 if (!byRound.TryGetValue(round, out onIt))
@@ -206,7 +229,18 @@ namespace Kernel
 
             List<RoundStats> rounds = new List<RoundStats>();
             foreach (KeyValuePair<string, List<Job>> pair in byRound)
-                rounds.Add(Build(pair.Value, today, months, pair.Key, false));
+            {
+                RoundStats stats = Build(pair.Value, today, months, pair.Key, false);
+
+                //a round is a patch of work you have. A group with no work
+                //left on it is not one - it is the finished and cancelled
+                //visits of houses that are not coming round again - and it
+                //drew a row saying no houses, no time and no value
+                if (stats.HousesOnTheRound == 0)
+                    continue;
+
+                rounds.Add(stats);
+            }
 
             return rounds
                 .OrderBy(x => string.IsNullOrWhiteSpace(x.Round) ? 1 : 0)
@@ -231,6 +265,14 @@ namespace Kernel
 
             Dictionary<string, MonthOfWork> byMonth = new Dictionary<string, MonthOfWork>();
             DateTime earliest = new DateTime(today.Year, today.Month, 1).AddMonths(-(months - 1));
+
+            //the houses the round is made of, one visit each. The job list
+            //holds every visit of a house, so counting the visits counts the
+            //same house twice over wherever more than one of them is still
+            //outstanding - and how big a round is is a number of houses. The
+            //one kept is the visit due first, which is what the house is
+            //next wanted for
+            Dictionary<string, Job> houses = new Dictionary<string, Job>();
 
             foreach (Job j in jobs)
             {
@@ -260,25 +302,36 @@ namespace Kernel
                     continue;
                 }
 
-                //everything from here is work still waiting
+                //everything from here is work still waiting.
+                //
+                //what is left today is counted a visit at a time, because
+                //that is what is left to do: two visits of a house both due
+                //are two jobs, and the work list lists them both
+                if (j.DueDate.Date <= today.Date)
+                {
+                    stats.HousesLeft++;
+                    stats.ValueLeft += j.EffectivePrice;
+                    //a house with no estimate of its own still takes the
+                    //round's usual, which is what the calendar counts it as
+                    stats.MinutesLeft += j.Minutes;
+
+                    if (j.DueDate.Date < today.Date)
+                        stats.HousesOverdue++;
+                }
+
+                //the round itself is counted a house at a time
+                Job kept;
+                houses.TryGetValue(j.SameJobKey, out kept);
+                houses[j.SameJobKey] = Job.NextDue(kept, j);
+            }
+
+            //the round in full, whether or not it is due today
+            foreach (Job j in houses.Values)
+            {
                 stats.HousesOnTheRound++;
                 stats.ValuePerMonth += PerMonth(j);
-
-                //the round in full, whether or not it is due today
                 stats.ValueOfTheRound += j.EffectivePrice;
                 stats.MinutesForTheRound += j.Minutes;
-
-                if (j.DueDate.Date > today.Date)
-                    continue;
-
-                stats.HousesLeft++;
-                stats.ValueLeft += j.EffectivePrice;
-                //a house with no estimate of its own still takes the round's
-                //usual, which is what the calendar counts it as
-                stats.MinutesLeft += j.Minutes;
-
-                if (j.DueDate.Date < today.Date)
-                    stats.HousesOverdue++;
             }
 
             stats.Months = byMonth.Values
@@ -297,11 +350,14 @@ namespace Kernel
             }
             else
             {
-                //the customers with work on this round, each counted once
-                //however many houses of theirs are on it
+                //the customers with work still on this round, each counted
+                //once however many houses of theirs are on it. Read off the
+                //work that is left rather than off every visit ever done, so
+                //a customer whose houses have since moved to another round is
+                //not still counted against this one
                 HashSet<int> counted = new HashSet<int>();
 
-                foreach (Job j in jobs)
+                foreach (Job j in houses.Values)
                 {
                     if (!counted.Add(j.CustomerId))
                         continue;

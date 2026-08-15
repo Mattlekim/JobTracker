@@ -41,6 +41,8 @@ public static class SelfTest
         {
             RoundAndDurationSurviveASave();
             ARoundBelongsToEveryVisit();
+            ARoundWithNothingLeftOnItIsNotARound();
+            AHouseIsCountedOnceHoweverManyVisitsAreOut();
         }
         catch (Exception ex)
         {
@@ -125,6 +127,94 @@ public static class SelfTest
         foreach (Job visit in Job.Query())
             Check($"visit {visit.Id} is still on the round after a save", visit.Round == "Mill Lane Round",
                 $"round was '{visit.Round}'");
+    }
+
+    /// <summary>
+    /// The stats page showed a "No Round" with no houses, no time and no
+    /// value in it while every house was on a round.
+    ///
+    /// The rounds were grouped off each visit rather than off the job, so a
+    /// house whose finished visits had been left on no round - which is what
+    /// an old file looks like, and what the load time repair cannot reach
+    /// without a base id - went into two groups at once. The one made of the
+    /// finished visits had nothing outstanding in it, so it drew a row of
+    /// noughts.
+    /// </summary>
+    private static void ARoundWithNothingLeftOnItIsNotARound()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A round with nothing left on it is not a round");
+
+        Reset();
+
+        Job job = AddJob("30", "Church Row", 14f);
+        job.SetFrequence(4, FrequenceType.Week);
+
+        //done once, which is what makes the next visit
+        job.MarkJobDone(true);
+        job.SetRound("Thursday");
+
+        //an old file: the visit already done was left on no round while the
+        //one still to come is on Thursday
+        Job finished = Job.Query().Find(x => x.IsCompleted);
+        Check("there is a finished visit to leave behind", finished != null, "none found");
+
+        if (finished != null)
+            finished.Round = string.Empty;
+
+        List<RoundStats> rounds = RoundStats.ByRound(12);
+
+        Check("no round made out of finished visits", !rounds.Exists(x => x.HousesOnTheRound == 0),
+            $"{rounds.Count} round(s): {Describe(rounds)}");
+        Check("the house is on Thursday", rounds.Exists(x => x.Round == "Thursday" && x.HousesOnTheRound == 1),
+            Describe(rounds));
+
+        //and work that really is on no round still says so
+        AddJob("1", "The Green", 8f);
+
+        rounds = RoundStats.ByRound(12);
+
+        Check("work on no round is still counted",
+            rounds.Exists(x => x.Round.Length == 0 && x.HousesOnTheRound == 1 && x.ValueOfTheRound == 8f),
+            Describe(rounds));
+    }
+
+    /// <summary>
+    /// how big a round is is a number of houses, so a house with two visits
+    /// still outstanding is one house on it - but two jobs left to do
+    /// </summary>
+    private static void AHouseIsCountedOnceHoweverManyVisitsAreOut()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A house is one house however many visits of it are out");
+
+        Reset();
+
+        Job job = AddJob("7", "Mill Lane", 10f);
+        job.SetFrequence(4, FrequenceType.Week);
+        job.SetRound("Monday");
+
+        //a second visit of the same house left outstanding alongside the
+        //first, which is what a botched skip or a hand made copy leaves
+        Job again = job.DeepCopy();
+        again.DueDate = UsfulFuctions.DateNow;
+        Job.Add(again);
+        again.BaseJobId = job.BaseJobId;
+
+        RoundStats stats = RoundStats.Now(12);
+
+        Check("one house on the round", stats.HousesOnTheRound == 1, $"{stats.HousesOnTheRound} counted");
+        Check("worth one visit of it", stats.ValueOfTheRound == 10f, $"{stats.ValueOfTheRound} counted");
+        Check("but two jobs left to do", stats.HousesLeft == 2, $"{stats.HousesLeft} counted");
+    }
+
+    private static string Describe(List<RoundStats> rounds)
+    {
+        List<string> said = new List<string>();
+        foreach (RoundStats r in rounds)
+            said.Add($"{r.RoundName}={r.HousesOnTheRound} house(s)");
+
+        return said.Count == 0 ? "no rounds" : string.Join(", ", said);
     }
 
     private static Job AddJob(string number, string street, float price)

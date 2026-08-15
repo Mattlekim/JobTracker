@@ -618,6 +618,86 @@ namespace Kernel
             return visits;
         }
 
+        /// <summary>
+        /// What says two visits are the same job - the same work at the same
+        /// house, done over and over.
+        ///
+        /// That is <see cref="BaseJobId"/>. A visit that has not got one - an
+        /// old file the load repair could not put right - stands on its own
+        /// under its own id rather than being lumped in with every other
+        /// visit missing one, which would collapse a whole round into a
+        /// single house.
+        /// </summary>
+        [XmlIgnore]
+        public string SameJobKey
+        {
+            get { return BaseJobId > 0 ? $"b{BaseJobId}" : $"i{Id}"; }
+        }
+
+        /// <summary>
+        /// Which round each job is on, keyed by <see cref="SameJobKey"/>.
+        ///
+        /// A round belongs to the job rather than to one visit of it, so it
+        /// is read off the last visit that names one - the same rule
+        /// SaveLoad.FillRoundsDownTheJob uses when a file is loaded. Reading
+        /// it off each visit on its own puts the finished visits of a house
+        /// on one round and the visit still to come on another, which is what
+        /// put a "No Round" with nothing on it on the stats page: the group
+        /// was made out of visits nobody was ever going to do again, so it
+        /// drew a row with no houses and no value in it.
+        ///
+        /// The load time repair cannot be relied on for this. It only reaches
+        /// jobs that have a base id, and anything worked out for the screen
+        /// has to be right whatever the file turned out to hold.
+        /// </summary>
+        public static Dictionary<string, string> RoundsOfEveryJob(List<Job> jobs)
+        {
+            Dictionary<string, string> rounds = new Dictionary<string, string>();
+
+            //the id of the visit each answer was read off, so a later visit
+            //can overrule an earlier one whatever order the list is in
+            Dictionary<string, int> readOff = new Dictionary<string, int>();
+
+            foreach (Job j in jobs)
+            {
+                string key = j.SameJobKey;
+
+                if (!rounds.ContainsKey(key))
+                {
+                    rounds[key] = string.Empty;
+                    readOff[key] = int.MinValue;
+                }
+
+                if (!j.HaveRound || j.Id < readOff[key])
+                    continue;
+
+                readOff[key] = j.Id;
+                rounds[key] = j.Round.Trim();
+            }
+
+            return rounds;
+        }
+
+        /// <summary>
+        /// Of two visits of the same job, the one a list should show: the one
+        /// due first, so a house says when it is next wanted rather than when
+        /// some other visit of it is. Ids break a tie, so the answer never
+        /// depends on what order the jobs happened to be read in.
+        /// </summary>
+        public static Job NextDue(Job kept, Job other)
+        {
+            if (kept == null)
+                return other;
+
+            if (other == null)
+                return kept;
+
+            if (other.DueDate.Date != kept.DueDate.Date)
+                return other.DueDate.Date < kept.DueDate.Date ? other : kept;
+
+            return other.Id < kept.Id ? other : kept;
+        }
+
         private List<string> _tags = new List<string>();
 
         /// <summary>
