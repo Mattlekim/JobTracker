@@ -44,6 +44,7 @@ public static class SelfTest
             ARoundWithNothingLeftOnItIsNotARound();
             AHouseIsCountedOnceHoweverManyVisitsAreOut();
             ACleanThatWasDoneCountsAfterTheJobIsCancelled();
+            ASharedWorkListSurvivesTheTripThereAndBack(folder);
         }
         catch (Exception ex)
         {
@@ -258,6 +259,78 @@ public static class SelfTest
         //nothing outstanding is left at either house
         Check("neither house is on the round", stats.HousesOnTheRound == 0, $"{stats.HousesOnTheRound} counted");
         Check("and there is nothing left to do", stats.HousesLeft == 0, $"{stats.HousesLeft} counted");
+    }
+
+    /// <summary>
+    /// a work list sent to somebody comes back readable: the header is in
+    /// the clear, the wrong PIN opens nothing, the right one gives back what
+    /// was sent, and what was ticked off travels with the return
+    /// </summary>
+    private static void ASharedWorkListSurvivesTheTripThereAndBack(string folder)
+    {
+        Console.WriteLine();
+        Console.WriteLine("A shared work list survives the trip there and back");
+
+        Reset();
+
+        Job first = AddJob("12", "High Street", 10.50f);
+        first.Notes = "Side gate sticks";
+        Job second = AddJob("14", "High Street", 12f);
+
+        SharedWorkData sent = WorkShare.BuildShare(new List<Job>() { first, second },
+            prices: true, notes: true, phones: false, allowCollect: true, workerTag: "Dave");
+
+        Check("both jobs went in", sent.Jobs.Count == 2, $"{sent.Jobs.Count} in the file");
+        Check("the price was included", sent.Jobs[0].HasPrice && sent.Jobs[0].Price == 10.50f,
+            $"{sent.Jobs[0].Price}");
+        Check("the note was included", sent.Jobs[0].Notes == "Side gate sticks", sent.Jobs[0].Notes);
+        Check("the phone number was not", sent.Jobs[0].Phone.Length == 0, sent.Jobs[0].Phone);
+
+        string path = Path.Combine(folder, "test" + WorkShare.Extension);
+        WorkShare.WriteFile(path, sent, "1234", WorkShareKind.SentWork);
+
+        WorkShareHeader header = WorkShare.ReadHeader(path);
+        Check("the header reads without the PIN", header != null && header.Key == sent.Key,
+            header == null ? "no header" : header.Key);
+        Check("and says which way the file is going",
+            header != null && header.Kind == WorkShareKind.SentWork,
+            header == null ? "no header" : header.Kind.ToString());
+
+        Check("the wrong PIN opens nothing", WorkShare.ReadFile(path, "9999") == null, "it opened");
+
+        SharedWorkData opened = WorkShare.ReadFile(path, "1234");
+        Check("the right PIN opens it", opened != null && opened.Jobs.Count == 2,
+            opened == null ? "did not open" : $"{opened.Jobs.Count} job(s)");
+
+        if (opened == null)
+            return;
+
+        Check("the options travelled", opened.AllowCollect && opened.IncludePrices && !opened.IncludePhones,
+            $"collect={opened.AllowCollect} prices={opened.IncludePrices} phones={opened.IncludePhones}");
+        Check("the worker tag travelled", opened.WorkerTag == "Dave", opened.WorkerTag);
+
+        //the worker marks the day off and the return carries it home
+        opened.Jobs[0].Done = true;
+        opened.Jobs[0].DoneOn = DateTime.Now.Date;
+        opened.Jobs[0].Tags.Add("Front Only");
+        opened.Jobs[1].Skipped = true;
+
+        string returnPath = Path.Combine(folder, "return" + WorkShare.Extension);
+        WorkShare.WriteFile(returnPath, opened, "1234", WorkShareKind.ReturnedWork);
+
+        WorkShareHeader returnHeader = WorkShare.ReadHeader(returnPath);
+        Check("the return still carries the same key in the clear",
+            returnHeader != null && returnHeader.Key == sent.Key
+            && returnHeader.Kind == WorkShareKind.ReturnedWork,
+            returnHeader == null ? "no header" : $"{returnHeader.Key} {returnHeader.Kind}");
+
+        SharedWorkData back = WorkShare.ReadFile(returnPath, "1234");
+        Check("the work marked off came back", back != null && back.Jobs[0].Done
+            && back.Jobs[0].Tags.Contains("Front Only") && back.Jobs[1].Skipped,
+            back == null ? "did not open" : back.Jobs[0].FormattedStatus);
+        Check("matched back to the sender's own job ids",
+            back != null && back.Jobs[0].JobId == first.Id && back.Jobs[1].JobId == second.Id,
+            back == null ? "did not open" : $"{back.Jobs[0].JobId}, {back.Jobs[1].JobId}");
     }
 
     private static string Describe(List<RoundStats> rounds)

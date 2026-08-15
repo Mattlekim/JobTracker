@@ -145,6 +145,56 @@ navigation, with `_askingAboutBackup` making sure the same file is not offered t
 Windows cannot register a file type without an installer, so `CheckCommandLine` covers *Open With* instead.
 **iOS is not done**: it needs `CFBundleDocumentTypes` in `Info.plist` and an `OpenUrl` override in `AppDelegate`.
 
+## Sending a work list to someone
+
+A handful of jobs can be handed to another copy of the app — a mate covering a week off — as a `.rwk` file.
+`Kernel/WorkShare.cs` is the whole of the kernel side: the file format, the PIN encryption, the sender's key
+store and the receiver's extra-work state. It is covered by the KernelDebugger self test
+(`dotnet run -- selftest`), which is the fastest way to check a change to it.
+
+**The file** is a small plain header (magic, version, a kind byte saying whether it is going out or coming
+back, and a random key as a guid) with everything else — the jobs, addresses, prices, numbers — gzipped and
+AES-encrypted under keys derived from a PIN (PBKDF2), with an HMAC over the ciphertext so a wrong PIN and a
+damaged file are both turned away. **The key is unencrypted on purpose**: it is how a return finds its own
+record on the sender's phone. The sender keeps `{key, PIN, worker name tag}` in `sentwork.rjt`
+(`SentWorkRecord`), so a returned file opens itself without the PIN being typed again. That store is written
+AES-scrambled under a key baked into the app — obfuscation against a file browser, not security, and the code
+says so; do not mistake it for more. Records are pruned three months after the work comes back; one that never
+came back is kept.
+
+**Sending** is on the work list's selection toolbar (*Send To Someone*): pick jobs, then `Layouts/SendWork`
+asks what travels with them — prices, notes, phone numbers, and *allow them to collect* (which forces prices
+on, since collecting means knowing what to collect) — plus the worker's name tag and the PIN. Anything not
+ticked is simply never put in the file. Sending changes nothing on the sender's round.
+
+**Receiving**: `.rwk` opens with the app exactly like a `.rbf` — the same two kinds of Android intent filter
+(see *Opening a backup*; `MainActivity.TakeTheFile` routes by extension to `ImportExport/WorkShareOpen`, the
+`.rwk` twin of `BackupRestore`'s pending-file holding). `AppShell.OfferPendingShare` reads the plain header
+and routes: a *sent* file is offered as extra work (`WorkShare.TakeOnExtraWork` copies it, still encrypted,
+to `extrawork.rwk`); a *returned* file is matched by key to its record, decrypted with the stored PIN and
+pushed onto `Layouts/ReturnedWork`. A return with no matching record can only say so — the PIN for it lives
+on the phone that sent it.
+
+**Extra work** (`Layouts/ExtraWork`) asks for the PIN every time it is entered and holds it only while the
+list is open: every mark is re-encrypted straight back into `extrawork.rwk` with it, and leaving forgets
+both. While it is open the tab bar is cut down to *Extra Work*, *My Work* and *Settings*
+(`AppShell.EnterExtraWork` / `LeaveExtraWork` toggle `Tab.IsVisible`), so the phone's own round is out of
+reach; *My Work* is a gate (`Layouts/MyWorkGate`) that warns the PIN will be wanted again, and only shows
+when the phone has any work of its own. On the normal tabs, a squeegee tab (`tab_extraShortcut`, last in the
+bar so it sits bottom right — behind More on a five-tab phone) is the way back in, and only shows while extra
+work is on the phone. The two squeegee tabs both host `ExtraWork`; the shell must never be left standing on a
+tab that has just been hidden, which is why Enter/LeaveExtraWork make the destination visible and current
+*before* `RefreshShareTabs` hides anything. Work there can be marked done, skipped and tagged but **not
+cancelled** — the round is not that phone's to change — and *Paid* only appears when the sender allowed
+collecting. *Return Work* writes the same list back out with the kind byte flipped, same key, same PIN.
+
+**The return** (`Layouts/ReturnedWork`) shows what came back and only touches the round when *Update My Work*
+is pressed: done goes through `MarkJobDone`, skipped through `WorkPlanner.MarkJobSkipped` (so a booked day is
+put right too), paid through `MarkJobPaid` — done before paid, because paid needs the completed job's balance
+behind it. Everything the worker touched is tagged with their name tag as well as any tags they added, which
+is what the customer's history says about who was there. Jobs are matched by the sender's own job id carried
+in the file; one deleted since it was sent is reported, not guessed at.
+
 ## Receipt photos
 
 `WorkTracker/ReceiptPhoto.cs` scales every receipt photo down and re-encodes it as a JPEG before it is written into

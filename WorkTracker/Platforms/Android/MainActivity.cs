@@ -83,6 +83,31 @@ namespace WorkTracker
         Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
         DataSchemes = new[] { "content", "file" },
         DataMimeTypes = new[] { "application/octet-stream", "application/zip", "application/x-zip-compressed" })]
+
+    //  A shared work list (.rwk) opens with the app the same two ways a
+    //  backup does: by name where the uri carries one, written out once per
+    //  possible dot for the same reason as above, and on type alone for the
+    //  downloads list - which the octet-stream filter above already covers.
+    //  The name is checked once the file can be read, so being offered for
+    //  somebody else's file costs nothing.
+    [IntentFilter(new[] { Intent.ActionView },
+        Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
+        DataSchemes = new[] { "content", "file" },
+        DataHost = "*",
+        DataMimeType = "*/*",
+        DataPathPattern = ".*\\\\.rwk")]
+    [IntentFilter(new[] { Intent.ActionView },
+        Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
+        DataSchemes = new[] { "content", "file" },
+        DataHost = "*",
+        DataMimeType = "*/*",
+        DataPathPattern = ".*\\\\..*\\\\.rwk")]
+    [IntentFilter(new[] { Intent.ActionView },
+        Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
+        DataSchemes = new[] { "content", "file" },
+        DataHost = "*",
+        DataMimeType = "*/*",
+        DataPathPattern = ".*\\\\..*\\\\..*\\\\.rwk")]
     public class MainActivity : MauiAppCompatActivity
     {
 
@@ -132,7 +157,13 @@ namespace WorkTracker
             Android.Net.Uri uri = intent.Data;
             string name = NameOf(uri);
 
-            if (!UiInterface.ImportExport.BackupRestore.LooksLikeBackup(name))
+            //two kinds of file open with the app: a backup, and a shared
+            //work list. told apart by name, and anything else is put back
+            //down without a word
+            bool isBackup = UiInterface.ImportExport.BackupRestore.LooksLikeBackup(name);
+            bool isShare = Kernel.WorkShare.LooksLikeShare(name);
+
+            if (!isBackup && !isShare)
                 return;
 
             //a backup carries the receipt photos, so it can be big. copying it
@@ -154,7 +185,10 @@ namespace WorkTracker
                             from.CopyTo(to);
                     }
 
-                    UiInterface.ImportExport.BackupRestore.FileWasOpened(copy);
+                    if (isBackup)
+                        UiInterface.ImportExport.BackupRestore.FileWasOpened(copy);
+                    else
+                        UiInterface.ImportExport.WorkShareOpen.FileWasOpened(copy);
                 }
                 catch
                 {

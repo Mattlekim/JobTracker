@@ -8,6 +8,27 @@
 
     <TabBar >
 
+        <!-- somebody else's work list, sent over as a .rwk and opened with
+             a PIN. only on show while extra work is on the phone. this one
+             leads the tab bar while extra work is being done; the shortcut
+             with the same squeegee at the far end is the way in from the
+             normal tabs - see AppShell.xaml.cs -->
+        <Tab Title="Extra Work"
+            Icon="squeegee.png"
+            x:Name="tab_extraWork"
+            IsVisible="false">
+            <ShellContent ContentTemplate="{DataTemplate local:ExtraWork}"/>
+        </Tab>
+        <!-- the way back out of extra work. it is a gate rather than the
+             work itself: landing on it asks about leaving, because getting
+             back in means the PIN again -->
+        <Tab Title="My Work"
+            Icon="work.png"
+            x:Name="tab_myWork"
+            IsVisible="false">
+            <ShellContent ContentTemplate="{DataTemplate local:MyWorkGate}"/>
+        </Tab>
+
         <Tab Title="Customers"
             Icon="person.png">
             <ShellContent  ContentTemplate="{DataTemplate local:Customers}" IsVisible="false"/>
@@ -41,22 +62,35 @@
         </Tab>
         <Tab Title="Calendar"
             Icon="planner.png"
-             >
+            x:Name="tab_calendar">
             <ShellContent ContentTemplate="{DataTemplate local:CalenderView}" />
         </Tab>
         <!-- money in, money out and the tax figures share one tab: android's
              bottom bar only shows five, and anything past that disappears
              behind a More tab -->
         <Tab Title="Money"
-            Icon="payments.png">
+            Icon="payments.png"
+            x:Name="tab_money">
             <ShellContent Title="Payments" Route="money_payments" ContentTemplate="{DataTemplate local:Payments}" />
             <ShellContent Title="Expenses" Route="money_expenses" ContentTemplate="{DataTemplate local:Expenses}" />
             <ShellContent Title="Tax" Route="money_tax" ContentTemplate="{DataTemplate local:TaxView}" />
         </Tab>
         <Tab Title="Settings"
             Icon="options.png"
-             >
+            x:Name="tab_settings">
             <ShellContent ContentTemplate="{DataTemplate local:SettingLayout}" />
+        </Tab>
+
+        <!-- the squeegee at the end of the normal tabs, the way back into
+             extra work. only on show while extra work is on the phone and
+             the normal tabs are up. on a narrow phone the bar keeps five
+             tabs and puts the rest behind More, so this is behind More
+             there - it is still the way in -->
+        <Tab Title="Extra Work"
+            Icon="squeegee.png"
+            x:Name="tab_extraShortcut"
+            IsVisible="false">
+            <ShellContent ContentTemplate="{DataTemplate local:ExtraWork}"/>
         </Tab>
 
     </TabBar>

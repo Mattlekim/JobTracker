@@ -57,6 +57,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
     public ToolbarItem bnt_cancelSelection;
     public ToolbarItem bnt_setRound;
+    public ToolbarItem bnt_sendWork;
 
     /// <summary>
     /// Select All on the toolbar as well as on the bar. The bar is where the
@@ -109,6 +110,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             this.ToolbarItems.Add(tbi_selectAll);
             this.ToolbarItems.Add(bnt_bookInWork);
             this.ToolbarItems.Add(bnt_setRound);
+            this.ToolbarItems.Add(bnt_sendWork);
             this.ToolbarItems.Add(bnt_textCustomers);
             this.ToolbarItems.Add(bnt_CreateGroup);
             return;
@@ -203,6 +205,12 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         bnt_setRound.Text = "Put On A Round";
         bnt_setRound.Clicked += bnt_setRound_Clicked;
         bnt_setRound.Order = ToolbarItemOrder.Secondary;
+
+        //handing a list of jobs to somebody else is picking them too
+        bnt_sendWork = new ToolbarItem();
+        bnt_sendWork.Text = "Send To Someone";
+        bnt_sendWork.Clicked += bnt_sendWork_Clicked;
+        bnt_sendWork.Order = ToolbarItemOrder.Secondary;
 
         UpdateToolBar();
 
@@ -2189,6 +2197,31 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     /// which nobody is going to do - and a round that is never filled in is
     /// a round that may as well not exist.
     /// </summary>
+    /// <summary>
+    /// hands the picked jobs to somebody else's copy of the app, as an
+    /// encrypted file. the SendWork page asks what travels with them - the
+    /// jobs themselves are not changed by being sent
+    /// </summary>
+    private async void bnt_sendWork_Clicked(object sender, EventArgs e)
+    {
+        List<Job> picked = new List<Job>();
+        foreach (int id in _selectedJobs)
+        {
+            Job j = Job.Query(QueryType.JobId, id).FirstOrDefault();
+            if (j != null && j.CustomerId != -1 && !j.IsCompleted && !j.HaveCanceled)
+                picked.Add(j);
+        }
+
+        if (picked.Count == 0)
+        {
+            await DisplayAlert("No Jobs", "Pick the jobs you want to send first.", "Ok");
+            return;
+        }
+
+        CancelSelectingJobs();
+        await Navigation.PushAsync(new SendWork(picked));
+    }
+
     private async void bnt_setRound_Clicked(object sender, EventArgs e)
     {
         List<Job> picked = new List<Job>();
