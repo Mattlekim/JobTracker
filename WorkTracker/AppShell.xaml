@@ -19,7 +19,11 @@
         <Tab Title="Work"
             Icon="work.png"
             x:Name="tab_work">
-            <ShellContent Title="Overview" Route="work_overview" x:Name="sc_workOverview" ContentTemplate="{DataTemplate local:PaperView}"/>
+            <!-- the route stays work_overview: it is what the WorkTabView
+                 preference has been written as all along, and renaming it
+                 would lose which work view reopens for everybody already
+                 using the app -->
+            <ShellContent Title="Paper" Route="work_overview" x:Name="sc_workOverview" ContentTemplate="{DataTemplate local:PaperView}"/>
             <ShellContent Title="List" Route="work_list" x:Name="sc_workList" ContentTemplate="{DataTemplate local:WorkPlanner}"/>
             <!-- the whole round rather than the work in hand: every job once,
                  grouped by round, area, town and street. The work list only
