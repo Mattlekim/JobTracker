@@ -813,7 +813,31 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
     public static void MarkJobSkipped(Job j)
     {
-        j.SkipJob();
+        MarkJobSkipped(j, UsfulFuctions.DateNow);
+    }
+
+    /// <summary>
+    /// skips a job, taking it off any day it was booked for.
+    ///
+    /// <see cref="Job.SkipJob(DateTime)"/> clears the booking on the job
+    /// itself, but the day in <see cref="Booking.Bookings"/> is a cache built
+    /// from the jobs, and the kernel cannot see it. So the job comes out of
+    /// that first: <see cref="Booking.RemoveJobFromBooking"/> has nothing to
+    /// go on once the job says it is not booked in, and the day would be left
+    /// with a summary row counting work that is no longer on it
+    /// </summary>
+    /// <param name="j">the job being passed over</param>
+    /// <param name="dateSkipped">
+    /// the day you were there and passed it over, which is not necessarily
+    /// today when a round is being written up afterwards
+    /// </param>
+    public static void MarkJobSkipped(Job j, DateTime dateSkipped)
+    {
+        if (j == null)
+            return;
+
+        Booking.RemoveJobFromBooking(j);
+        j.SkipJob(dateSkipped);
         j.Refresh();
         j.RefreshColors();
         Job.Save();
@@ -824,7 +848,12 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         if (j == null)
             return;
         MarkJobSkipped(j);
-     
+
+        //the list is rebuilt because the job has moved between the two halves
+        //of it: skipping takes it off the day it was booked for, so it goes
+        //back on the round with its new due date and the booking's summary
+        //row has one less house on it
+        RefreshPage();
     }
 
     /// <summary>

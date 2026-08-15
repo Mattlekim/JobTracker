@@ -281,6 +281,26 @@ nowhere to go on a phone). They all go through `WorkPlanner.CancelBooking`, whic
 Cancelling a booking is **not** cancelling the work: the jobs go back on the round, due as they were, and
 anything already done stays done.
 
+### Skipping work that is booked in
+
+Skipping a job takes it off the day it was booked for. Skipping says you were there and passed the house over, and
+`Job.SkipJob` pushes it out to its next visit — so the day it was booked on is not when it is being done any more.
+Left booked in it read as booked for a day it was no longer due on: it stayed on that day as work still outstanding,
+so the day never cleared and went on being called overdue, and the work list leaves booked work out
+(`MasterFilter`), so the house was on neither page.
+
+`Job.SkipJob` is what unbooks it, in the kernel with the rest of the skip, so none of the four places work can be
+skipped from — the swipes and menus on the work list, the calendar and the booked work page, and the paper view's
+record sheet — can be the one that forgets. The day itself is a `Booking` worked out from the jobs and cached in
+`Booking.Bookings`, which the kernel cannot see, so **`WorkPlanner.MarkJobSkipped` takes the job out of that
+first**: `Booking.RemoveJobFromBooking` has nothing to go on once the job says it is not booked in, and the day
+would be left with a summary row counting a house that is not on it. Anything skipping work goes through
+`MarkJobSkipped` for that reason — `SkipJob` on its own puts the job right but leaves the cached day stale until
+the next `DataRefreshNotifier.RebuildBookings`.
+
+Clearing a skip (the paper view's **Clear**) puts the due date back but **does not** put the booking back — the day
+is gone and nothing remembers it. Book it in again if it is wanted.
+
 `BookJobFormcs.BookForDate` is how a caller says which day the form should open on — it is used once and resets to
 today, so a caller with no day in mind cannot pick up somebody else's. Without it the form opened on today and the
 date had to be typed in again, which is wrong every time the day is already known.
