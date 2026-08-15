@@ -37,7 +37,7 @@
         </Style>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
         <!--  how much round there is, before any of it is scrolled through  -->
         <Border Grid.Row="0" Style="{StaticResource Card}" Margin="12,12,12,0">
@@ -47,10 +47,19 @@
             </VerticalStackLayout>
         </Border>
 
-        <Label Grid.Row="1" x:Name="l_empty" IsVisible="false" Margin="16,16" Style="{StaticResource Caption}"
+        <!--  what the list has been cut down to, with the way back out beside
+              it. A filter must never be on with nothing on screen saying so  -->
+        <Grid Grid.Row="1" x:Name="g_filter" IsVisible="false" BackgroundColor="#00695C"
+              Padding="12,6" ColumnSpacing="8" ColumnDefinitions="*,Auto">
+            <Label Grid.Column="0" x:Name="l_filter" FontSize="13" TextColor="White" VerticalOptions="Center" />
+            <Button Grid.Column="1" Text="Show All" Clicked="bnt_clearFilter_Clicked" FontSize="12" Padding="12,4"
+                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="White" TextColor="White" CornerRadius="8" />
+        </Grid>
+
+        <Label Grid.Row="2" x:Name="l_empty" IsVisible="false" Margin="16,16" Style="{StaticResource Caption}"
                Text="No work on the round yet. Add Job on the work list or the job list puts the first house on."></Label>
 
-        <CollectionView Grid.Row="1" x:Name="cv_jobs" SelectionMode="Single" SelectionChanged="cv_jobs_SelectionChanged">
+        <CollectionView Grid.Row="2" x:Name="cv_jobs" SelectionMode="Single" SelectionChanged="cv_jobs_SelectionChanged">
             <CollectionView.ItemTemplate>
                 <!--  x:DataType compiles the bindings, so a row that is renamed
                       is a build error rather than a blank label nobody notices  -->

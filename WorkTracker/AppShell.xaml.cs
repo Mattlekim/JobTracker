@@ -63,6 +63,23 @@ namespace WorkTracker
         private static AppShell _instance;
 
         /// <summary>
+        /// Moves to the All Jobs page under Work.
+        ///
+        /// It is the same switch the constructor makes to reopen the work
+        /// view that was used last, rather than a route: everything that
+        /// wants this is already on the Work tab - the stats page sending
+        /// somebody to the round they tapped - so only which page of the tab
+        /// is showing has to change.
+        /// </summary>
+        public static void ShowAllJobs()
+        {
+            if (_instance == null || _instance.tab_work == null)
+                return;
+
+            _instance.tab_work.CurrentItem = _instance.sc_workAll;
+        }
+
+        /// <summary>
         /// Puts the number of overdue days on the Booked tab, so work left
         /// behind on a day that has passed is noticed without having to go
         /// looking for it. Shell has no badge of its own, so the count rides

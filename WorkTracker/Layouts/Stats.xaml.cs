@@ -76,15 +76,34 @@ public partial class Stats : ContentPage
         List<RoundStats> rounds = RoundStats.ByRound(Months);
 
         brd_rounds.IsVisible = rounds.Count > 0;
-        l_roundsNote.Text = "Each round in full: how many houses are on it, how long they all take, what they come to and what is owed on them.";
+        l_roundsNote.Text = "Each round in full: how many houses are on it, how long they all take, what they come to "
+            + "and what is owed on them. Tap one to see its houses.";
 
         foreach (RoundStats round in rounds)
             vsl_rounds.Add(RoundRow(round));
     }
 
+    /// <summary>
+    /// A round row is a way in to the round, not just a figure.
+    ///
+    /// A figure that raises a question - twelve houses on a round you thought
+    /// had twenty, or a No Round you meant to have cleared - is no use
+    /// without the houses behind it, and hunting them out of a list that
+    /// only reaches a fortnight ahead is not something anybody will do. So
+    /// tapping the row opens All Jobs cut down to that round, and the work on
+    /// no round is reached the same way.
+    /// </summary>
     private View RoundRow(RoundStats round)
     {
         VerticalStackLayout rows = new VerticalStackLayout() { Spacing = 2 };
+
+        //a layout with nothing behind it still takes the tap in MAUI, but
+        //the gaps between the two labels are where a thumb actually lands
+        rows.BackgroundColor = Colors.Transparent;
+
+        TapGestureRecognizer tap = new TapGestureRecognizer();
+        tap.Tapped += (s, e) => ShowTheRound(round.Round);
+        rows.GestureRecognizers.Add(tap);
 
         Grid top = new Grid()
         {
@@ -92,6 +111,7 @@ public partial class Stats : ContentPage
             ColumnDefinitions =
             {
                 new ColumnDefinition() { Width = GridLength.Star },
+                new ColumnDefinition() { Width = GridLength.Auto },
                 new ColumnDefinition() { Width = GridLength.Auto },
             },
         };
@@ -116,6 +136,16 @@ public partial class Stats : ContentPage
             VerticalOptions = LayoutOptions.Center,
         }, 1);
 
+        //says the row goes somewhere. without it the card reads as figures to
+        //look at and nobody finds out it can be tapped
+        top.Add(new Label()
+        {
+            Text = "›",
+            FontSize = 20,
+            TextColor = Color.FromArgb("#9CA3AF"),
+            VerticalOptions = LayoutOptions.Center,
+        }, 2);
+
         rows.Add(top);
 
         //how many houses, how long they all take, and what is owed on them
@@ -132,6 +162,16 @@ public partial class Stats : ContentPage
         });
 
         return rows;
+    }
+
+    /// <summary>
+    /// hands the round over to All Jobs and moves to it. Blank is the work
+    /// that is on no round, which is a real answer and not the absence of one
+    /// </summary>
+    private void ShowTheRound(string round)
+    {
+        AllJobs.ShowRound(round ?? string.Empty);
+        WorkTracker.AppShell.ShowAllJobs();
     }
 
     private void BuildMonths(RoundStats stats)
