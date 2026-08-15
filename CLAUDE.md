@@ -270,6 +270,23 @@ The whole list, headings included, is one flat `ItemsSource` on a single `Collec
 heading or a house). A round is hundreds of houses; built as a stack of views in a `ScrollView` the way the Quotes
 page is, it would not virtualise.
 
+### Getting here from the figures
+
+**Tapping a round on the stats page opens this page cut down to that round**, and the No Round row goes to the work
+that is not organised yet the same way. A figure that raises a question — twelve houses on a round you thought had
+twenty — is no use without the houses behind it, and hunting them out of the work list is not something anybody
+will do when that list only reaches a fortnight ahead.
+
+`AllJobs.ShowRound` takes the round and `AppShell.ShowAllJobs` moves to the page. The round is held in a static
+that is **taken rather than read**, like `BookJobFormcs.BookForDate`, so a later visit to the page does not pick up
+somebody else's question. **null is what says nobody has asked**: blank is a real answer, because it is the work on
+no round. `ShowRound` also builds the page there and then when it has been opened before, so the round is on screen
+the moment the tab changes rather than depending on the navigation to say so.
+
+While one round is showing, a bar above the list says which with a **Show All** beside it — the same rule the work
+list's tag filters follow: *do not let a filter be on with nothing on screen saying so*. The round headings are
+left off while it is on, since the bar already names the round.
+
 ## Round figures
 
 `Kernel/RoundStats.cs` works out everything `Layouts/Stats` (the fifth page under Work) shows, so the sums can be
@@ -307,6 +324,9 @@ For the same reason `ByRound` **drops a round with no work left on it**. A round
 group holding nothing but finished and cancelled visits is not one — it could only ever draw a row of noughts. The
 per-round money owed is counted off the work that is left rather than off every visit ever done, so a customer
 whose houses have since moved to another round is not still counted against this one.
+
+Each row on that card is a **way in to the round**, not just a figure — it goes to `Layouts/AllJobs` showing that
+round's houses. See *Getting here from the figures* above.
 
 **A round is asked about differently from the work in hand.** The cards above the card are today: what is left,
 what is overdue, what has been done. A round is a patch of the work you either have or you do not, so the card

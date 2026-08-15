@@ -29,14 +29,61 @@ public partial class AllJobs : ContentPage
     /// <summary>the round of each job, keyed by Job.SameJobKey</summary>
     private Dictionary<string, string> _rounds = new Dictionary<string, string>();
 
+    /// <summary>
+    /// The round a caller has asked to be shown, waiting to be picked up the
+    /// next time this page is built.
+    ///
+    /// null is what says nobody has asked, because blank is a real answer -
+    /// it is the work that is on no round, which is exactly the row somebody
+    /// taps on the stats page when they want to know what is not organised
+    /// yet. It is taken rather than read, so a later visit to the page does
+    /// not pick up somebody else's question.
+    /// </summary>
+    private static string _askedForRound;
+
+    /// <summary>which round the list is cut down to, and whether it is</summary>
+    private string _round = string.Empty;
+
+    private bool _filtered;
+
+    /// <summary>
+    /// Open the page showing one round only. The stats page calls this on
+    /// the way to <see cref="WorkTracker.AppShell.ShowAllJobs"/>, so tapping
+    /// a round there lands on its houses rather than on the whole round with
+    /// the right part of it somewhere further down.
+    /// </summary>
+    public static void ShowRound(string round)
+    {
+        _askedForRound = round ?? string.Empty;
+
+        //a page that has been built before is answered now rather than left
+        //to the navigation, so the round is on screen the moment the tab
+        //changes. Built again on the way in, which changes nothing - the
+        //question has been taken by then and the answer is on the page
+        _open?.Build();
+    }
+
+    /// <summary>the page once there is one. it is built the first time the
+    /// tab is opened and kept, like every other page under a tab</summary>
+    private static AllJobs _open;
+
     public AllJobs()
     {
         InitializeComponent();
+        _open = this;
         NavigatedTo += (s, e) => Build();
     }
 
     private void Build()
     {
+        //taken rather than read, so the question is only answered once
+        if (_askedForRound != null)
+        {
+            _round = _askedForRound;
+            _filtered = true;
+            _askedForRound = null;
+        }
+
         List<Job> all = new List<Job>(Job.Query());
 
         //the round belongs to the job rather than to one visit of it, so it
@@ -45,6 +92,11 @@ public partial class AllJobs : ContentPage
         _rounds = Job.RoundsOfEveryJob(all);
 
         List<Job> jobs = OneVisitPerJob(all);
+
+        if (_filtered)
+            jobs = jobs.FindAll(x => string.Equals(RoundOf(x), _round, StringComparison.CurrentCultureIgnoreCase));
+
+        ShowWhatIsFilteredTo();
 
         jobs = jobs
             //work nobody has put on a round goes last rather than first, the
@@ -63,6 +115,33 @@ public partial class AllJobs : ContentPage
         l_empty.IsVisible = jobs.Count == 0;
         cv_jobs.IsVisible = jobs.Count > 0;
         cv_jobs.ItemsSource = Rows(jobs);
+    }
+
+    /// <summary>
+    /// says which round is being shown while only one of them is, with the
+    /// way back out beside it. A list quietly showing a fraction of the round
+    /// with no way back is worse than no filter at all
+    /// </summary>
+    private void ShowWhatIsFilteredTo()
+    {
+        g_filter.IsVisible = _filtered;
+
+        if (!_filtered)
+            return;
+
+        l_filter.Text = $"Showing {RoundName(_round)}";
+    }
+
+    private void bnt_clearFilter_Clicked(object sender, EventArgs e)
+    {
+        _filtered = false;
+        _round = string.Empty;
+        Build();
+    }
+
+    private static string RoundName(string round)
+    {
+        return round.Length == 0 ? RoundStats.NoRound : round;
     }
 
     /// <summary>
@@ -111,12 +190,21 @@ public partial class AllJobs : ContentPage
                 owed += c.Balance;
         }
 
+        string what = _filtered ? $"on {RoundName(_round)}" : "on the round";
+
         l_total.Text = jobs.Count == 0
-            ? "No jobs on the round"
+            ? $"No jobs {what}"
             : $"{(jobs.Count == 1 ? "1 job" : $"{jobs.Count} jobs")} · {Money(value)} a time round · {Money(owed)} owed";
 
-        l_note.Text = "Every job on the round, one row each rather than one per visit, grouped by round, "
-            + "area, town and street. Tap a house to open it.";
+        l_note.Text = _filtered
+            ? $"Every job on {RoundName(_round)}, one row each rather than one per visit, grouped by area, town "
+                + "and street. Tap a house to open it."
+            : "Every job on the round, one row each rather than one per visit, grouped by round, area, town and "
+                + "street. Tap a house to open it.";
+
+        l_empty.Text = _filtered
+            ? $"Nothing left on {RoundName(_round)}. Show All puts the rest of the round back."
+            : "No work on the round yet. Add Job on the work list or the job list puts the first house on.";
     }
 
     /// <summary>
@@ -140,7 +228,12 @@ public partial class AllJobs : ContentPage
             {
                 round = RoundOf(j);
                 area = city = street = null;
-                rows.Add(AllJobsRow.AsHeading(round.Length == 0 ? RoundStats.NoRound : round, HeadingLevel.Round));
+
+                //while the list is cut down to one round the bar above it
+                //already says which, so a heading naming it again is a line
+                //of a phone screen saying nothing
+                if (!_filtered)
+                    rows.Add(AllJobsRow.AsHeading(RoundName(round), HeadingLevel.Round));
             }
 
             if (!Same(area, AreaOf(j)))
@@ -219,8 +312,7 @@ public partial class AllJobs : ContentPage
         List<string> about = new List<string>();
         about.Add(HowOften(job));
 
-        string round = RoundOf(job);
-        about.Add(round.Length == 0 ? RoundStats.NoRound : round);
+        about.Add(RoundName(RoundOf(job)));
 
         row.HowOftenAndRound = string.Join(" · ", about);
 
