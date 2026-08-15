@@ -216,12 +216,22 @@ in and composes directly rather than going through `TextCustomers`/`EmailCustome
 before wording and then mark the job as told, and a job marked as told is left out of the next round of notices,
 so a quick word from this page would have quietly cost that customer the message that actually matters.
 
+## The pages under Work
+
+**Paper**, **List**, **All Jobs**, **Quotes**, **Stats** — in that order in `AppShell.xaml`. Paper is
+`Layouts/PaperView`, and the tab used to be called Overview.
+
+Its **route is still `work_overview`**, and it stays that way. `AppShell_Navigated` writes the `WorkTabView`
+preference off that route, so renaming it would lose which work view reopens for everybody already using the app.
+A tab's title is what somebody reads; its route is what the data was written against, and the two do not have to
+match. The page's own nav bar still says *Job List*.
+
 ## Quotes
 
 A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never
 goes near `_Jobs` — it is not due, cannot be done or paid for, and must not count as work anywhere.
 
-`Layouts/Quotes` is the fourth page under the Work tab, next to the Overview, the List and All Jobs. Quotes were briefly shown
+`Layouts/Quotes` is the fourth page under the Work tab, next to Paper, the List and All Jobs. Quotes were briefly shown
 as a section at the bottom of the work list instead; they are not on that list any more, so nothing there needs to
 know about them. `Job.AcceptQuote` is the only way a quote becomes work — it moves the same object across, keeping
 its id, price and frequency, and sets the day it starts. `Job.DeleteQuote` throws one away.

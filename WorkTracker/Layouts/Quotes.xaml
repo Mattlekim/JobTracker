@@ -35,7 +35,7 @@
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Padding="12" Spacing="12">
                 <Label x:Name="l_empty" IsVisible="false" Padding="4,10"
-                       Text="No quotes yet. New Quote at the top adds one, or tap a street on the Overview page and choose Quick Quote."></Label>
+                       Text="No quotes yet. New Quote at the top adds one, or tap a street on the Paper page and choose Quick Quote."></Label>
                 <VerticalStackLayout x:Name="vsl_list" Spacing="12"></VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>
