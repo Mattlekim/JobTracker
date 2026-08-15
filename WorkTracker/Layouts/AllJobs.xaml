@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:UiInterface.Layouts"
+             x:Class="UiInterface.Layouts.AllJobs"
+             Title="All Jobs">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+
+        <!--  the round, then the area, the town and the street under it  -->
+        <Style x:Key="RoundHeading" TargetType="Label">
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#00695C, Dark=#4DB6AC}" />
+            <Setter Property="Margin" Value="12,18,12,2" />
+        </Style>
+        <Style x:Key="PlaceHeading" TargetType="Label">
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+            <Setter Property="Margin" Value="12,8,12,0" />
+        </Style>
+        <Style x:Key="StreetHeading" TargetType="Label">
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Margin" Value="12,8,12,2" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!--  how much round there is, before any of it is scrolled through  -->
+        <Border Grid.Row="0" Style="{StaticResource Card}" Margin="12,12,12,0">
+            <VerticalStackLayout Spacing="4">
+                <Label x:Name="l_total" FontAttributes="Bold" FontSize="16"></Label>
+                <Label x:Name="l_note" Style="{StaticResource Caption}"></Label>
+            </VerticalStackLayout>
+        </Border>
+
+        <Label Grid.Row="1" x:Name="l_empty" IsVisible="false" Margin="16,16" Style="{StaticResource Caption}"
+               Text="No work on the round yet. Add Job on the work list or the job list puts the first house on."></Label>
+
+        <CollectionView Grid.Row="1" x:Name="cv_jobs" SelectionMode="Single" SelectionChanged="cv_jobs_SelectionChanged">
+            <CollectionView.ItemTemplate>
+                <!--  x:DataType compiles the bindings, so a row that is renamed
+                      is a build error rather than a blank label nobody notices  -->
+                <DataTemplate x:DataType="local:AllJobsRow">
+
+                    <!--  one template for the lot: a row is either a heading or
+                          a house, and the headings only differ by which of the
+                          three they are  -->
+                    <VerticalStackLayout>
+
+                        <Label Text="{Binding Heading}" IsVisible="{Binding IsRoundHeading}" Style="{StaticResource RoundHeading}" />
+                        <Label Text="{Binding Heading}" IsVisible="{Binding IsPlaceHeading}" Style="{StaticResource PlaceHeading}" />
+                        <Label Text="{Binding Heading}" IsVisible="{Binding IsStreetHeading}" Style="{StaticResource StreetHeading}" />
+
+                        <Border IsVisible="{Binding IsJob}" Style="{StaticResource Card}" Margin="12,0,12,6" Padding="12,10">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Where}" FontAttributes="Bold" FontSize="15"
+                                       LineBreakMode="TailTruncation" VerticalOptions="Center" />
+
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Price}" FontAttributes="Bold" FontSize="15"
+                                       TextColor="#2E7D32" VerticalOptions="Center" />
+
+                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Due}" FontSize="12"
+                                       TextColor="{Binding DueColour}" />
+
+                                <Label Grid.Row="2" Grid.Column="0" Text="{Binding HowOftenAndRound}" FontSize="12"
+                                       TextColor="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" LineBreakMode="TailTruncation" />
+
+                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding Balance}" FontSize="12"
+                                       TextColor="{Binding BalanceColour}" />
+
+                            </Grid>
+                        </Border>
+
+                    </VerticalStackLayout>
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>

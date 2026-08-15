@@ -221,7 +221,7 @@ so a quick word from this page would have quietly cost that customer the message
 A quote is priced up work that has not been taken on. It is kept in `Job._Quotes`, saved to `quotes.rjt`, and never
 goes near `_Jobs` — it is not due, cannot be done or paid for, and must not count as work anywhere.
 
-`Layouts/Quotes` is the third page under the Work tab, next to the Overview and the List. Quotes were briefly shown
+`Layouts/Quotes` is the fourth page under the Work tab, next to the Overview, the List and All Jobs. Quotes were briefly shown
 as a section at the bottom of the work list instead; they are not on that list any more, so nothing there needs to
 know about them. `Job.AcceptQuote` is the only way a quote becomes work — it moves the same object across, keeping
 its id, price and frequency, and sets the day it starts. `Job.DeleteQuote` throws one away.
@@ -237,11 +237,52 @@ whole messaging card are hidden — none of them have an answer until the quote 
 at the default the form sets, so a quote saves exactly as it did before. The link to an existing customer stays
 put: quoting somebody already on the round is how a duplicate customer record gets made.
 
+## The whole round, one row per job
+
+`Layouts/AllJobs` is the third page under Work, between the List and the Quotes. It answers the one question
+neither of the other two can: **what have I actually got?**
+
+The work list is the work in hand and only reaches a fortnight ahead (`ResetDateFilter`), and the paper view is
+the sheet you take out with you. Neither is the round. On top of that `_Jobs` keeps **every visit of a house** —
+the clean done last month, the one before it, and the one still to come are three entries for one house — so a
+list of the jobs is not a list of the round either.
+
+So this page shows **one row per job**, found through `Job.SameJobKey`: the `BaseJobId` every visit is copied
+from, falling back to the job's own id when an old file left it without one. Falling back matters — keying
+everything with no base id together would collapse a whole round into a single house. The visit shown is the one
+**next due** (`Job.NextDue`, due date first and the id to break a tie), because that is what the house is next
+wanted for. `RoundStats` picks the same visit through the same two calls, so the page and the figures cannot
+disagree about how many houses there are.
+
+A house is on the round while it has work outstanding, so finished and cancelled visits are not listed, and a
+finished one off is not on the round any more and is not listed either.
+
+Each row says the price, when it is next due (and how far past it is), how often it comes round, which round it is
+on and what the customer owes. Tapping one opens the same window the info button on the work list opens.
+
+It is grouped **round, then area, then town, then street** — headings rather than indents, because a phone has no
+room to indent four deep. A level the round has nothing to say about draws no heading at all rather than a row of
+blanks, which is most rounds and the area. Grouping keys come off the **real** address (`Address.Area`,
+`Address.City`, `SortStreet`) while the headings are drawn from the display names, so screenshot mode changes what
+is on screen and not what groups with what — see *Screenshot mode*.
+
+The whole list, headings included, is one flat `ItemsSource` on a single `CollectionView` (`AllJobsRow`, either a
+heading or a house). A round is hundreds of houses; built as a stack of views in a `ScrollView` the way the Quotes
+page is, it would not virtualise.
+
 ## Round figures
 
-`Kernel/RoundStats.cs` works out everything `Layouts/Stats` (the fourth page under Work) shows, so the sums can be
+`Kernel/RoundStats.cs` works out everything `Layouts/Stats` (the fifth page under Work) shows, so the sums can be
 checked with `KernelDebugger` and so one definition of *left to do* is used everywhere: not done, not cancelled, and
 due today or before. Work booked in for a day still counts as left, because it is.
+
+**Two things are counted here and they are counted differently on purpose.** What is *left to do* is a number of
+**visits**, the same as the work list counts it — two visits of a house both due are two jobs and both are on the
+list. How big the **round** is is a number of **houses**, worked out a job at a time through `Job.SameJobKey` (the
+`BaseJobId`, or the job's own id when an old file left it without one). `_Jobs` keeps every visit of a house, and a
+house is one house however many visits of it happen to be outstanding. `HousesOnTheRound`, `ValueOfTheRound`,
+`MinutesForTheRound` and `ValuePerMonth` are all per house; `HousesLeft`, `ValueLeft`, `MinutesLeft` and
+`HousesOverdue` are per visit.
 
 `ValuePerMonth` is what the round earns in a month with everything done on time. It is worked out per job from the
 frequency against an average month (52.1775/12 weeks, 365.25/12 days) rather than four weeks, because thirteen
@@ -254,6 +295,18 @@ jobs stay in `_Jobs` alongside the next visit they generated, so anything counti
 `RoundStats.ByRound` runs the same sums a round at a time, which is the **By round** card on the page. Both go
 through `Build`, so a round's figures and the totals above them cannot be worked out differently. The card hides
 itself when no work is on a round, where it would only repeat the cards above it.
+
+**A round is grouped by the job, not by the visit** (`Job.RoundsOfEveryJob`, the same rule
+`SaveLoad.FillRoundsDownTheJob` uses on load: the round off the last visit that names one). Read off each visit on
+its own, a house whose finished visits were left on no round — which is what an old file looks like, and what the
+load-time repair cannot reach without a `BaseJobId` — went into two groups at once, and the group made of the
+finished visits drew a **No Round row with no houses, no time and no value in it** while every house really was on
+a round. That is the bug this replaced; do not go back to reading `Job.Round` off each visit here.
+
+For the same reason `ByRound` **drops a round with no work left on it**. A round is a patch of work you have, so a
+group holding nothing but finished and cancelled visits is not one — it could only ever draw a row of noughts. The
+per-round money owed is counted off the work that is left rather than off every visit ever done, so a customer
+whose houses have since moved to another round is not still counted against this one.
 
 **A round is asked about differently from the work in hand.** The cards above the card are today: what is left,
 what is overdue, what has been done. A round is a patch of the work you either have or you do not, so the card

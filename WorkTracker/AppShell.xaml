@@ -21,6 +21,11 @@
             x:Name="tab_work">
             <ShellContent Title="Overview" Route="work_overview" x:Name="sc_workOverview" ContentTemplate="{DataTemplate local:PaperView}"/>
             <ShellContent Title="List" Route="work_list" x:Name="sc_workList" ContentTemplate="{DataTemplate local:WorkPlanner}"/>
+            <!-- the whole round rather than the work in hand: every job once,
+                 grouped by round, area, town and street. The work list only
+                 reaches a fortnight ahead and the job list keeps every visit
+                 of a house, so neither of them says what you have got -->
+            <ShellContent Title="All Jobs" Route="work_all" x:Name="sc_workAll" ContentTemplate="{DataTemplate local:AllJobs}"/>
             <!-- priced up but not taken on. kept off the round and off the
                  work list, because a quote is not due and cannot be done -->
             <ShellContent Title="Quotes" Route="work_quotes" x:Name="sc_workQuotes" ContentTemplate="{DataTemplate local:Quotes}"/>

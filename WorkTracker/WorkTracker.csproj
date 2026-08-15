@@ -212,6 +212,9 @@
 	  <MauiXaml Update="Layouts\TidyCustomers.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Layouts\AllJobs.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Layouts\Quotes.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
