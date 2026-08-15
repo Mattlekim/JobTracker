@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:UiInterface.Layouts"
              x:Class="UiInterface.Layouts.AllJobs"
              Title="All Jobs">
 
@@ -51,7 +52,9 @@
 
         <CollectionView Grid.Row="1" x:Name="cv_jobs" SelectionMode="Single" SelectionChanged="cv_jobs_SelectionChanged">
             <CollectionView.ItemTemplate>
-                <DataTemplate>
+                <!--  x:DataType compiles the bindings, so a row that is renamed
+                      is a build error rather than a blank label nobody notices  -->
+                <DataTemplate x:DataType="local:AllJobsRow">
 
                     <!--  one template for the lot: a row is either a heading or
                           a house, and the headings only differ by which of the
