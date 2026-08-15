@@ -319,6 +319,17 @@ The month by month figures come off `DateCompleated`, not `DueDate`: they are wh
 jobs stay in `_Jobs` alongside the next visit they generated, so anything counting the round itself must skip
 `IsCompleted` or it counts the same house twice.
 
+**A clean that was done counts even though the job has been cancelled since**, and the test for cancelled therefore
+comes *after* the test for completed rather than before it. Cancelling says the house is not being cleaned any
+more — it does not say that clean never happened, and `Job.CancelJob` gives the customer none of it back, so the
+money is real. Dropping them left a month's takings short of the same days added up on the calendar, which has
+always counted them (`CalenderView.PopulateDays`, which removes only `HaveCanceled && !IsCompleted`). A round that
+loses houses is exactly when this shows.
+
+`TaxReporting` counts income the same way for the same reason: left out, a round that has lost houses under-declares
+what it earned. The rule is one line in three places and they have to agree — the calendar, the stats page and the
+tax page are all adding up the same work.
+
 `RoundStats.ByRound` runs the same sums a round at a time, which is the **By round** card on the page. Both go
 through `Build`, so a round's figures and the totals above them cannot be worked out differently. The card hides
 itself when no work is on a round, where it would only repeat the cards above it.

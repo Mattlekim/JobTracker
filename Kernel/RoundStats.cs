@@ -276,9 +276,14 @@ namespace Kernel
 
             foreach (Job j in jobs)
             {
-                if (j.HaveCanceled)
-                    continue;
-
+                //A clean that was done was done, and it counts whether or not
+                //the job has been cancelled since. Cancelling says the house
+                //is not being cleaned any more - it does not say that clean
+                //never happened: the customer was charged for it when it was
+                //written up and cancelling gives none of it back. Dropping
+                //them here is what left a month's takings short of the same
+                //days added up on the calendar, which has always counted
+                //them (see CalenderView.PopulateDays).
                 if (j.IsCompleted)
                 {
                     if (j.DateCompleated.Date < earliest.Date)
@@ -301,6 +306,11 @@ namespace Kernel
                     month.Houses++;
                     continue;
                 }
+
+                //work that is not going to be done is not work in hand, and
+                //the house it is at is not on the round
+                if (j.HaveCanceled)
+                    continue;
 
                 //everything from here is work still waiting.
                 //
