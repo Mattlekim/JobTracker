@@ -180,11 +180,18 @@ list is open: every mark is re-encrypted straight back into `extrawork.rwk` with
 both. While it is open the tab bar is cut down to *Extra Work*, *My Work* and *Settings*
 (`AppShell.EnterExtraWork` / `LeaveExtraWork` toggle `Tab.IsVisible`), so the phone's own round is out of
 reach; *My Work* is a gate (`Layouts/MyWorkGate`) that warns the PIN will be wanted again, and only shows
-when the phone has any work of its own. On the normal tabs, a squeegee tab (`tab_extraShortcut`, last in the
-bar so it sits bottom right — behind More on a five-tab phone) is the way back in, and only shows while extra
-work is on the phone. The two squeegee tabs both host `ExtraWork`; the shell must never be left standing on a
-tab that has just been hidden, which is why Enter/LeaveExtraWork make the destination visible and current
-*before* `RefreshShareTabs` hides anything. Work there can be marked done, skipped and tagged but **not
+when the phone has any work of its own. On the normal tabs, a squeegee tab (`tab_extraShortcut`) is the way
+back in, and only shows while extra work is on the phone. **It takes the settings tab's slot rather than
+being a sixth tab**: Android's bottom bar shows five and pushes the rest behind a More tab of its own, which
+is where the squeegee — the thing that has to be one tap away — ended up. So while the squeegee is out,
+`RefreshShareTabs` retitles the money tab *More* (icon `moretab.png`, a black-on-light copy of the white
+swipe-action `more.png`), the settings tab hides, and `sc_moneySettings` — a second door to `SettingLayout`
+declared inside the money tab — shows as its fourth page. Tapping More still lands on Payments, so the money
+pages do not move; settings is one tap further away, and it is the tab that can afford that. The two
+squeegee tabs both host `ExtraWork`, and settings has two doors for the same reason; the shell must never be
+left standing on a tab or page that has just been hidden, which is why Enter/LeaveExtraWork make the
+destination visible and current *before* `RefreshShareTabs` hides anything, and why the swap inside
+`RefreshShareTabs` opens whichever settings door is taking over before it closes the other. Work there can be marked done, skipped and tagged but **not
 cancelled** — the round is not that phone's to change — and *Paid* only appears when the sender allowed
 collecting. *Return Work* writes the same list back out with the kind byte flipped, same key, same PIN.
 

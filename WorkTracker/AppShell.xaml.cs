@@ -70,7 +70,7 @@ namespace WorkTracker
             //said outright rather than left to the shell: the extra work
             //tabs sit first in the xaml (hidden until they are wanted), and
             //the first tab is what a shell falls back to
-            CurrentItem = tab_work;
+            SelectTab(tab_work);
 
             UiInterface.DataRefreshNotifier.DataChanged += () =>
                 MainThread.BeginInvokeOnMainThread(RefreshBookedBadge);
@@ -145,6 +145,25 @@ namespace WorkTracker
         /// <summary>true while the tab bar is cut down to the extra work</summary>
         public static bool InExtraWork { get; private set; }
 
+        //  the shell's CurrentItem is the tab *bar* - there is only one -
+        //  and the bar's CurrentItem is the tab. assigning a Tab straight to
+        //  Shell.CurrentItem compiles, but only through an implicit
+        //  conversion that wraps the tab in a new item, which is not
+        //  selecting it - so the tab is always reached through the bar
+
+        /// <summary>the tab the shell is standing on</summary>
+        private static Tab SelectedTab()
+        {
+            return _instance?.CurrentItem?.CurrentItem as Tab;
+        }
+
+        /// <summary>moves the shell to this tab</summary>
+        private static void SelectTab(Tab tab)
+        {
+            if (_instance?.CurrentItem != null && tab != null)
+                _instance.CurrentItem.CurrentItem = tab;
+        }
+
         /// <summary>
         /// puts the right tabs up for whichever side of the fence the app is
         /// on. called whenever extra work arrives, is removed, or is entered
@@ -160,13 +179,56 @@ namespace WorkTracker
             if (InExtraWork && !haveExtra)
                 InExtraWork = false;
 
+            //the squeegee on the end of the normal tabs, the way in
+            bool squeegeeOut = !InExtraWork && haveExtra;
+
             //the phone's own round
             _instance.tab_work.IsVisible = !InExtraWork;
             _instance.tab_booked.IsVisible = !InExtraWork;
             _instance.tab_calendar.IsVisible = !InExtraWork;
             _instance.tab_money.IsVisible = !InExtraWork;
 
-            //settings stays up on both sides
+            //  The squeegee takes the settings tab's slot rather than being
+            //  a sixth tab. Android's bottom bar shows five: a sixth pushes
+            //  the overflow behind a More tab of the platform's own, and the
+            //  squeegee - the thing that only earns a place when it is one
+            //  tap away - is exactly what ended up behind it.
+            //
+            //  So while the squeegee is out, the money tab is retitled More
+            //  and settings joins it as a fourth page. Tapping it still
+            //  lands on Payments, so nothing about the money pages moves -
+            //  settings is one tap further away, and it is the tab that can
+            //  afford that.
+            _instance.tab_money.Title = squeegeeOut ? "More" : "Money";
+            //moretab.png, not more.png: that one is stroked white for the
+            //swipe actions, and a white icon disappears into a light tab bar
+            _instance.tab_money.Icon = squeegeeOut ? "moretab.png" : "payments.png";
+
+            //  Never hide the page the shell is standing on. Settings can be
+            //  on screen through either of its two doors when the swap runs -
+            //  extra work can arrive while it is open - so whichever door is
+            //  closing, the other is opened and stepped through first.
+            if (squeegeeOut)
+            {
+                _instance.sc_moneySettings.IsVisible = true;
+                if (SelectedTab() == _instance.tab_settings)
+                {
+                    SelectTab(_instance.tab_money);
+                    _instance.tab_money.CurrentItem = _instance.sc_moneySettings;
+                }
+                _instance.tab_settings.IsVisible = false;
+            }
+            else
+            {
+                _instance.tab_settings.IsVisible = true;
+                if (_instance.tab_money.CurrentItem == _instance.sc_moneySettings)
+                {
+                    _instance.tab_money.CurrentItem = _instance.sc_moneyPayments;
+                    if (!InExtraWork && SelectedTab() == _instance.tab_money)
+                        SelectTab(_instance.tab_settings);
+                }
+                _instance.sc_moneySettings.IsVisible = false;
+            }
 
             //the extra work side: the work itself, and the gate back out.
             //the gate only earns its place when there is any of your own
@@ -174,8 +236,7 @@ namespace WorkTracker
             _instance.tab_extraWork.IsVisible = InExtraWork;
             _instance.tab_myWork.IsVisible = InExtraWork && HasOwnWork();
 
-            //the squeegee at the end of the normal tabs, the way in
-            _instance.tab_extraShortcut.IsVisible = !InExtraWork && haveExtra;
+            _instance.tab_extraShortcut.IsVisible = squeegeeOut;
         }
 
         /// <summary>
@@ -203,7 +264,7 @@ namespace WorkTracker
             //the destination is made visible and current before anything is
             //hidden, so the shell is never left standing on a hidden tab
             _instance.tab_extraWork.IsVisible = true;
-            _instance.CurrentItem = _instance.tab_extraWork;
+            SelectTab(_instance.tab_extraWork);
             RefreshShareTabs();
         }
 
@@ -221,7 +282,7 @@ namespace WorkTracker
 
             //same order as EnterExtraWork, for the same reason
             _instance.tab_work.IsVisible = true;
-            _instance.CurrentItem = _instance.tab_work;
+            SelectTab(_instance.tab_work);
             RefreshShareTabs();
         }
 
@@ -237,7 +298,7 @@ namespace WorkTracker
             if (InExtraWork)
                 LeaveExtraWork();
             else
-                _instance.CurrentItem = _instance.tab_work;
+                SelectTab(_instance.tab_work);
         }
 
         private bool _askingAboutShare;
@@ -313,7 +374,7 @@ namespace WorkTracker
                 if (await page.DisplayAlert("Extra Work",
                         "The work is on the Extra Work tab at the end of the tab bar. You will need the PIN it was sent with to open it.",
                         "Open It Now", "Later"))
-                    CurrentItem = tab_extraShortcut;
+                    SelectTab(tab_extraShortcut);
             }
             catch (Exception ex)
             {
