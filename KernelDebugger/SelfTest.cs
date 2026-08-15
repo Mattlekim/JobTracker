@@ -43,6 +43,7 @@ public static class SelfTest
             ARoundBelongsToEveryVisit();
             ARoundWithNothingLeftOnItIsNotARound();
             AHouseIsCountedOnceHoweverManyVisitsAreOut();
+            ACleanThatWasDoneCountsAfterTheJobIsCancelled();
         }
         catch (Exception ex)
         {
@@ -206,6 +207,57 @@ public static class SelfTest
         Check("one house on the round", stats.HousesOnTheRound == 1, $"{stats.HousesOnTheRound} counted");
         Check("worth one visit of it", stats.ValueOfTheRound == 10f, $"{stats.ValueOfTheRound} counted");
         Check("but two jobs left to do", stats.HousesLeft == 2, $"{stats.HousesLeft} counted");
+    }
+
+    /// <summary>
+    /// A month's takings came out short of the same days added up on the
+    /// calendar page.
+    ///
+    /// The figures dropped every cancelled job before they looked at whether
+    /// it had been done, so a house cleaned and then taken off the round took
+    /// that clean's money out of the month it was earned in - and out of the
+    /// income on the tax page with it. The calendar has always counted them.
+    /// Cancelling says the house is not being cleaned any more; it does not
+    /// say the clean never happened, and the customer was charged for it.
+    /// </summary>
+    private static void ACleanThatWasDoneCountsAfterTheJobIsCancelled()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A clean that was done still counts once the job is cancelled");
+
+        Reset();
+
+        Job job = AddJob("5", "Bridge Street", 12f);
+        job.SetFrequence(4, FrequenceType.Week);
+
+        //cleaned, and then the customer stopped. Cancelling is per visit, so
+        //the whole job goes: the one that was done and the one it generated
+        job.MarkJobDone(true);
+
+        foreach (Job visit in job.EveryVisit())
+            visit.CancelJob();
+
+        //and one that is simply cancelled without ever being done, which is
+        //work that is not going to happen and must not count as anything
+        Job never = AddJob("7", "Bridge Street", 20f);
+        never.CancelJob();
+
+        RoundStats stats = RoundStats.Now(12);
+
+        float takings = 0;
+        int houses = 0;
+        foreach (MonthOfWork m in stats.Months)
+        {
+            takings += m.Value;
+            houses += m.Houses;
+        }
+
+        Check("the clean is still in the month's takings", takings == 12f, $"{takings} counted");
+        Check("and counted as one house done", houses == 1, $"{houses} counted");
+
+        //nothing outstanding is left at either house
+        Check("neither house is on the round", stats.HousesOnTheRound == 0, $"{stats.HousesOnTheRound} counted");
+        Check("and there is nothing left to do", stats.HousesLeft == 0, $"{stats.HousesLeft} counted");
     }
 
     private static string Describe(List<RoundStats> rounds)

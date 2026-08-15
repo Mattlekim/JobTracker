@@ -495,7 +495,11 @@ public partial class JobStatus : ContentPage
         if (!await ApplyPaid(amount, method))
             return;
 
-        ApplyDone();
+        //nothing is written when the done mark could not be changed: saving
+        //the rest would leave the page saying one thing and the job another
+        if (!await ApplyDone())
+            return;
+
         ApplyTags();
 
         _job.Refresh();
@@ -514,22 +518,36 @@ public partial class JobStatus : ContentPage
     /// <summary>
     /// the done tick, and the price this visit was charged at. taking a job
     /// back off done and putting it on again is how a changed price gets on
-    /// to the customer's account
+    /// to the customer's account.
+    ///
+    /// <see cref="Job.UnMarkJobDone"/> refuses when the next clean at the
+    /// house has already been written up - undoing this one would throw that
+    /// away. **Its answer has to be read.** Ignored, the price on the visit
+    /// was changed anyway while the balance it was charged at was left as it
+    /// was: the job then said it was worth one figure and the customer had
+    /// been charged another, and every total worked out off the work - the
+    /// month by month figures on the stats page, the income on the tax page -
+    /// counted the new figure for a clean nobody was ever charged it for.
     /// </summary>
-    private void ApplyDone()
+    /// <returns>false when nothing was changed and the user has been told why</returns>
+    private async Task<bool> ApplyDone()
     {
         int price = p_priceToUse.SelectedIndex - 1;
 
         if (_job.IsCompleted && !cb_done.IsChecked)
         {
-            _job.UnMarkJobDone(true);
+            if (!_job.UnMarkJobDone(true))
+                return await CannotUndoDone();
+
             _job.UseAlterativePrice = price;
-            return;
+            return true;
         }
 
         if (_job.IsCompleted && price != _job.UseAlterativePrice)
         {
-            _job.UnMarkJobDone(true);
+            if (!_job.UnMarkJobDone(true))
+                return await CannotUndoDone();
+
             _job.UseAlterativePrice = price;
             _job.MarkJobDone(dp_done.Date, true);
         }
@@ -541,6 +559,23 @@ public partial class JobStatus : ContentPage
 
         if (_job.IsCompleted && cb_done.IsChecked)
             _job.DateCompleated = dp_done.Date;
+
+        return true;
+    }
+
+    /// <summary>
+    /// says why the visit cannot be touched, rather than saving something
+    /// that does not add up. A refusal with no reason reads as a broken
+    /// button
+    /// </summary>
+    private async Task<bool> CannotUndoDone()
+    {
+        await DisplayAlert("Already Done Again",
+            "The next clean at this house has already been written up, so this one cannot be changed - "
+            + "undoing it would take that clean with it.\n\nClear the later clean first if this one really "
+            + "is wrong.", "Ok");
+
+        return false;
     }
 
     /// <summary>

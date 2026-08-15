@@ -308,8 +308,15 @@ namespace Kernel
             }
             else
             {
+                //a clean that was done is income whether or not the job has
+                //been cancelled since. Cancelling says the house is not being
+                //cleaned any more, not that this one never happened - the
+                //customer was charged for it and cancelling gives none of it
+                //back. Left out, a round that has lost houses under-declares
+                //what it earned, and the figure disagreed with the same work
+                //added up on the calendar and on the stats page
                 foreach (Job j in Job.Query())
-                    if (j.IsCompleted && !j.HaveCanceled && period.Contains(j.DateCompleated))
+                    if (j.IsCompleted && period.Contains(j.DateCompleated))
                     {
                         summary.Income += j.EffectivePrice;
                         summary.IncomeCount++;
