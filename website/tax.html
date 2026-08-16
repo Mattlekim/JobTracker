@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tax — Work Tracker</title>
+<meta name="description" content="Tax in Work Tracker: built around the UK tax year, with an export covering every HMRC box and a quarterly CSV for Making Tax Digital bridging software.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="brand" href="index.html">Work Tracker</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="work.html">Work</a>
+      <a href="booking.html">Booking</a>
+      <a href="customers.html">Customers</a>
+      <a href="money.html">Money</a>
+      <a class="current" href="tax.html">Tax</a>
+      <a href="sharing.html">Work Sharing</a>
+      <a href="data.html">Your Data</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Tax</h1>
+  <p>Built around the UK tax year — 6 April to 5 April — so April is reading
+     figures off a page, not a fortnight of shoebox archaeology.</p>
+</div>
+
+<main>
+
+  <h2>One tax year, one set of records</h2>
+  <p>Everything the taxman cares about is kept per tax year: the year's income,
+     its expenses, its receipt photos and the bank statements the figures were
+     read off. The tax page shows any year's totals on its own, and a statement
+     that straddles 5 April is filed into <em>both</em> years it touches, so
+     each year carries all of its own evidence.</p>
+
+  <h2>Figures that match reality</h2>
+  <p>Income is counted off work actually done and money actually received. A
+     clean that was done still counts even if the job has been cancelled since
+     — cancelling says the house is not being cleaned any more, not that the
+     clean never happened. The calendar, the round's figures and the tax page
+     all count the same way, so no two pages of the app ever disagree about
+     what a month took.</p>
+
+  <h2>The export</h2>
+  <p>The Export button offers two shapes, for the two ways MTD software wants
+     to be fed:</p>
+  <ul>
+    <li><strong>The spreadsheet</strong> writes every HMRC self-employment box,
+        every time, zeros included — so each figure sits in the same cell in
+        every export. Point a bridging tool at the cells once and it stays
+        pointed, quarter after quarter.</li>
+    <li><strong>The quarterly CSV</strong> is the bare figures as a table — one
+        row per period, every column always present — for MTD software that
+        imports rather than links.</li>
+  </ul>
+
+  <h2>Making Tax Digital, without another subscription</h2>
+  <p>Work Tracker is not HMRC-recognised filing software and does not pretend
+     to be — that road runs through <strong>bridging software</strong>: a tool
+     from HMRC's compatible-software list that reads figures out of a
+     spreadsheet and files them. Work Tracker's exports are shaped exactly for
+     that, which keeps a free filing route open.</p>
+
+  <div class="callout">
+    <p><strong>Honest about estimates:</strong> where a figure is an estimate,
+       the export says so inside the file itself — because a spreadsheet
+       travels without the page it came from.</p>
+  </div>
+
+  <h2>Year-end in one file</h2>
+  <p>Any tax year can be saved as a single backup file — its income, expenses,
+     receipts and statements together — from the tax page itself. Hand it to
+     your accountant or keep it with the year's paperwork; see
+     <a href="data.html">Your Data</a> for how backups work.</p>
+
+  <div class="pager">
+    <a href="money.html">← Money</a>
+    <a href="sharing.html">Work Sharing →</a>
+  </div>
+
+</main>
+
+<footer>
+  <p>Work Tracker · a <a href="https://riddlersoftgames.co.uk">Riddlersoft Games</a> app</p>
+</footer>
+
+</body>
+</html>

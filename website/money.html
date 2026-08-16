@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Money — Work Tracker</title>
+<meta name="description" content="Money in Work Tracker: payments, expenses, receipt photos, and bank and PayPal statement imports that never count anything twice.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="brand" href="index.html">Work Tracker</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="work.html">Work</a>
+      <a href="booking.html">Booking</a>
+      <a href="customers.html">Customers</a>
+      <a class="current" href="money.html">Money</a>
+      <a href="tax.html">Tax</a>
+      <a href="sharing.html">Work Sharing</a>
+      <a href="data.html">Your Data</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Money</h1>
+  <p>What came in, what went out, and the paperwork that proves it — with the
+     boring parts done for you.</p>
+</div>
+
+<main>
+
+  <h2>Payments</h2>
+  <p>Cash at the door, a bank transfer that evening, PayPal a week later —
+     every payment is recorded against the customer with how it arrived, and
+     the balance moves with it. Most payments never need typing in at all:
+     they come off the bank statement, below.</p>
+
+  <h2>Expenses and receipts</h2>
+  <p>Log an expense with a photo of the receipt. Photos are automatically
+     scaled down and re-compressed before they are stored — receipts are kept
+     for as long as the records are, so years of them should not fill a phone —
+     and if a photo cannot be processed the original is kept untouched, because
+     a receipt is never lost to save space.</p>
+
+  <h2>Bank statement import</h2>
+  <p>Point Work Tracker at a statement (CSV or PDF) and it reads both sides of
+     it:</p>
+  <ul>
+    <li><strong>Money in</strong> is matched to customers and recorded as
+        payments. Every line shows as a card saying exactly what will happen to
+        it before anything is imported — and lines already in are badged, not
+        imported again.</li>
+    <li><strong>Money out</strong> is flagged as expenses or ignored, line by
+        line.</li>
+  </ul>
+  <p>Tell it once which column is the date, the reference and the amount, and
+     it remembers — CSV and PDF layouts separately. Nothing is ever imported
+     twice: the next statement always overlaps the last, and every line it has
+     seen before is recognised. Two identical fuel stops on the same day still
+     count twice, though — they were both real.</p>
+
+  <h2>Recurring bills look after themselves</h2>
+  <p>Flag an outgoing as an expense once — insurance, fuel, the van payment —
+     and the payee is remembered. The next statement logs it automatically with
+     the same category and note, seeing through the reference numbers and the
+     "DIRECT DEBIT" wrapping banks put around a name. The rules are yours to
+     edit on their own page.</p>
+
+  <h2>PayPal</h2>
+  <p>A PayPal activity export imports the same way, without touching your bank
+     layout — PayPal names its own columns and the app reads them fresh every
+     time. Payments come in as PayPal (not bank), and the amount taken is the
+     <strong>gross</strong> — what the customer actually sent — so a job paid
+     by PayPal clears the balance to the penny instead of leaving everyone a
+     few pence short for ever. The fee is left for your accounts, and the
+     import tells you so.</p>
+
+  <div class="callout">
+    <p><strong>The statements are kept:</strong> every imported statement file
+       is stored under the tax year it covers, so the evidence behind the
+       figures travels with them into <a href="data.html">backups</a> and
+       year-end paperwork.</p>
+  </div>
+
+  <div class="pager">
+    <a href="customers.html">← Customers</a>
+    <a href="tax.html">Tax →</a>
+  </div>
+
+</main>
+
+<footer>
+  <p>Work Tracker · a <a href="https://riddlersoftgames.co.uk">Riddlersoft Games</a> app</p>
+</footer>
+
+</body>
+</html>

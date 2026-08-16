@@ -1,0 +1,219 @@
+/* Work Tracker website — shared stylesheet.
+   Colours are taken from the app itself (WorkTracker/Resources/Colors.xaml):
+   Primary #2E7D32, PrimaryAccent #66BB6A, PageLight #F4F6F8, PageDark #121212. */
+
+:root {
+  --green: #2E7D32;
+  --green-accent: #66BB6A;
+  --green-deep: #1B5E20;
+  --page: #F4F6F8;
+  --surface: #FFFFFF;
+  --ink: #1c2321;
+  --ink-soft: #4b5563;
+  --line: #e2e6ea;
+  --nav-ink: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --green: #2E7D32;
+    --green-accent: #66BB6A;
+    --green-deep: #144d19;
+    --page: #121212;
+    --surface: #1E1E1E;
+    --ink: #e8eae8;
+    --ink-soft: #a3aaa5;
+    --line: #2c2f2d;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+}
+
+/* ----- header / nav ----- */
+
+header {
+  background: var(--green);
+  color: var(--nav-ink);
+}
+
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.brand {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--nav-ink);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  margin-right: auto;
+}
+
+nav { display: flex; flex-wrap: wrap; gap: 0.15rem; }
+
+nav a {
+  color: var(--nav-ink);
+  text-decoration: none;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  opacity: 0.92;
+}
+
+nav a:hover { background: rgba(255, 255, 255, 0.15); opacity: 1; }
+nav a.current { background: rgba(255, 255, 255, 0.22); font-weight: 600; opacity: 1; }
+
+/* ----- hero ----- */
+
+.hero {
+  background: linear-gradient(160deg, var(--green) 0%, var(--green-deep) 100%);
+  color: #ffffff;
+  padding: 3rem 1rem 3.25rem;
+  text-align: center;
+}
+
+.hero h1 { margin: 0 0 0.5rem; font-size: 2.1rem; line-height: 1.2; }
+
+.hero p {
+  margin: 0 auto;
+  max-width: 38rem;
+  font-size: 1.15rem;
+  opacity: 0.95;
+}
+
+.hero .tagline { color: #d7ecd9; }
+
+/* ----- page body ----- */
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+h2 {
+  font-size: 1.45rem;
+  margin: 2.25rem 0 0.5rem;
+  color: var(--green);
+}
+
+@media (prefers-color-scheme: dark) {
+  h2 { color: var(--green-accent); }
+}
+
+h3 { font-size: 1.1rem; margin: 1.5rem 0 0.25rem; }
+
+p, li { color: var(--ink); }
+.soft { color: var(--ink-soft); }
+
+a { color: var(--green); }
+@media (prefers-color-scheme: dark) { a { color: var(--green-accent); } }
+
+/* ----- cards ----- */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.1rem 1.2rem;
+  text-decoration: none;
+  color: var(--ink);
+  display: block;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+a.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.card h3 { margin: 0 0 0.35rem; color: var(--green); }
+@media (prefers-color-scheme: dark) { .card h3 { color: var(--green-accent); } }
+
+.card p { margin: 0; font-size: 0.95rem; color: var(--ink-soft); }
+
+.card .go {
+  display: inline-block;
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--green);
+}
+@media (prefers-color-scheme: dark) { .card .go { color: var(--green-accent); } }
+
+/* ----- feature strip on the home page ----- */
+
+.strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.strip div {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+}
+
+.strip strong { display: block; margin-bottom: 0.2rem; }
+
+/* ----- callout box ----- */
+
+.callout {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--green-accent);
+  border-radius: 8px;
+  padding: 0.85rem 1.1rem;
+  margin: 1.25rem 0;
+}
+
+.callout p { margin: 0; }
+
+/* ----- prev/next links at the foot of subpages ----- */
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.95rem;
+}
+
+/* ----- footer ----- */
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 1.25rem 1rem 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+footer a { color: inherit; }
