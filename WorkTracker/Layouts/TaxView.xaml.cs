@@ -96,8 +96,12 @@ public partial class TaxView : ContentPage
             "Making Tax Digital means keeping your records digitally and sending HMRC a summary every quarter. " +
             "This app keeps those records - every job, payment and expense with its receipt - and works out the " +
             "quarterly figures for you.\n\n" +
-            "It cannot send them to HMRC itself: only software HMRC has approved can do that, and approval for " +
-            "this tax year has closed. Export the figures and file them through your accountant or your MTD software.";
+            "It cannot send them to HMRC itself: only software HMRC has recognised can do that. The way to file " +
+            "without paying for software is bridging software - HMRC's 'find compatible software' page lists the " +
+            "options, some free. A bridging tool is pointed at the figures in the exported spreadsheet once and " +
+            "files them each quarter; the figures sit in the same cells in every export, so the links keep " +
+            "working. Export also offers the bare quarterly figures as a csv, for tools that import a table " +
+            "instead. Either way, check the figures before filing - they are estimates from what is recorded here.";
     }
 
     private void BuildQuarters(List<TaxSummary> summaries)
@@ -314,16 +318,39 @@ public partial class TaxView : ContentPage
     /// <summary>what a spreadsheet is called, so the device opens it properly</summary>
     private const string XlsxType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
+    private const string SpreadsheetOption = "Spreadsheet (.xlsx)";
+    private const string MtdCsvOption = "MTD figures only (.csv)";
+
     private async void bnt_export_Clicked(object sender, EventArgs e)
     {
         int taxYear = SelectedTaxYear;
-        string fileName = $"Tax {TaxCalendar.YearName(taxYear).Replace('/', '-')}.xlsx";
+
+        //two shapes for two readers: the spreadsheet for a person - or for
+        //bridging software linked to its cells, which never move between
+        //exports - and the bare csv of the quarterly figures for MTD
+        //software that imports a table instead
+        string format = await DisplayActionSheet("Export what?", "Cancel", null,
+            SpreadsheetOption, MtdCsvOption);
+
+        if (format == null || format == "Cancel")
+            return;
+
+        bool csv = format == MtdCsvOption;
+
+        string fileName = csv
+            ? $"MTD {TaxCalendar.YearName(taxYear).Replace('/', '-')}.csv"
+            : $"Tax {TaxCalendar.YearName(taxYear).Replace('/', '-')}.xlsx";
         string path = Path.Combine(FileSystem.CacheDirectory, fileName);
 
         try
         {
             using (FileStream fs = File.Create(path))
-                TaxReportWriter.Write(fs, taxYear, SelectedBasis, sw_calendarQuarters.IsToggled);
+            {
+                if (csv)
+                    TaxReportWriter.WriteMtdCsv(fs, taxYear, SelectedBasis, sw_calendarQuarters.IsToggled);
+                else
+                    TaxReportWriter.Write(fs, taxYear, SelectedBasis, sw_calendarQuarters.IsToggled);
+            }
         }
         catch (Exception ex)
         {
@@ -331,10 +358,13 @@ public partial class TaxView : ContentPage
             return;
         }
 
-        //the spreadsheet is written either way. what is left is whether it
-        //goes off to another app or onto this device, where it can be found
+        //the file is written either way. what is left is whether it goes
+        //off to another app or onto this device, where it can be found
         //again without sending it anywhere
-        string title = $"Tax {TaxCalendar.YearName(taxYear)}";
+        string title = csv
+            ? $"MTD figures {TaxCalendar.YearName(taxYear)}"
+            : $"Tax {TaxCalendar.YearName(taxYear)}";
+        string mime = csv ? "text/csv" : XlsxType;
 
         if (!DeviceFileSaver.CanSave)
         {
@@ -354,7 +384,7 @@ public partial class TaxView : ContentPage
 
         try
         {
-            string saved = await DeviceFileSaver.SaveAsync(path, fileName, XlsxType);
+            string saved = await DeviceFileSaver.SaveAsync(path, fileName, mime);
             await DisplayAlert("Saved", $"Saved to {saved}", "Ok");
         }
         catch (Exception ex)
