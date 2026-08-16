@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.SendWork"
+             Title="Send Work">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="12">
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="4">
+                    <Label x:Name="l_count" FontAttributes="Bold" FontSize="16"/>
+                    <Label Style="{StaticResource Caption}"
+                           Text="The jobs go out in an encrypted file that only opens in Work Tracker with the PIN you set here. Send it by whatever the phone can share with - a message, an email, a drive."/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- what travels with the work. anything not ticked is simply
+                 not in the file, rather than in it and hidden -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="What goes with the jobs" FontAttributes="Bold"/>
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Prices" VerticalOptions="Center"/>
+                        <Switch x:Name="sw_prices" Grid.Column="1" IsToggled="true"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Job notes" VerticalOptions="Center"/>
+                        <Switch x:Name="sw_notes" Grid.Column="1" IsToggled="true"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Customer phone numbers" VerticalOptions="Center"/>
+                        <Switch x:Name="sw_phones" Grid.Column="1"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                            <Label Text="Allow them to collect" VerticalOptions="Center"/>
+                            <Label Style="{StaticResource Caption}"
+                                   Text="They can mark jobs paid and the money taken comes back with the work. Needs the prices."/>
+                        </VerticalStackLayout>
+                        <Switch x:Name="sw_collect" Grid.Column="1" Toggled="sw_collect_Toggled"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Who is doing the work" FontAttributes="Bold"/>
+                    <Entry x:Name="e_workerTag" Placeholder="Name tag, e.g. Dave"/>
+                    <Label Style="{StaticResource Caption}"
+                           Text="When the work comes back, everything they did is tagged with this name on your own jobs."/>
+
+                    <Label Text="PIN" FontAttributes="Bold" Margin="0,6,0,0"/>
+                    <Entry x:Name="e_pin" Placeholder="4 digits or more" Keyboard="Numeric" MaxLength="12"/>
+                    <Label Style="{StaticResource Caption}"
+                           Text="They need this PIN to open the work, so tell them it some other way than with the file. It is kept on this phone so the returned work opens itself."/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Button x:Name="bnt_send" Text="Send The Work" Clicked="bnt_send_Clicked"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

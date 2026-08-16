@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.ReturnedWork"
+             Title="Returned Work">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <Border Grid.Row="0" Style="{StaticResource Card}" Margin="12,12,12,0">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                <Label x:Name="l_summary" FontAttributes="Bold" FontSize="16" VerticalOptions="Center"/>
+                <Label x:Name="l_detail" Grid.Row="1" Style="{StaticResource Caption}" Margin="0,4,0,0"/>
+                <Button x:Name="bnt_update" Grid.Column="1" Grid.RowSpan="2" Text="Update My Work"
+                        Clicked="bnt_update_Clicked" VerticalOptions="Center"/>
+            </Grid>
+        </Border>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="12" Spacing="12" x:Name="vsl_list"/>
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>

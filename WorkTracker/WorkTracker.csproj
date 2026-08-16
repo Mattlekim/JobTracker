@@ -134,6 +134,7 @@
 	  <Compile Include="..\Kernel\TaxReporting.cs" Link="Kernal\TaxReporting.cs" />
 	  <Compile Include="..\Kernel\UsefulFuctions.cs" Link="Kernal\UsefulFuctions.cs" />
 	  <Compile Include="..\Kernel\WorkDay.cs" Link="Kernal\WorkDay.cs" />
+	  <Compile Include="..\Kernel\WorkShare.cs" Link="Kernal\WorkShare.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

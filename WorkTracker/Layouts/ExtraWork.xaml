@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.ExtraWork"
+             Title="Extra Work">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- whose work this is and how it is getting on. the Return Work
+             button lives up here where it can always be found -->
+        <Border Grid.Row="0" Style="{StaticResource Card}" Margin="12,12,12,0" x:Name="brd_header" IsVisible="false">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                <Label x:Name="l_summary" FontAttributes="Bold" FontSize="16" VerticalOptions="Center"/>
+                <Label x:Name="l_progress" Grid.Row="1" Style="{StaticResource Caption}" Margin="0,4,0,0"/>
+                <Button x:Name="bnt_return" Grid.Column="1" Grid.RowSpan="2" Text="Return Work"
+                        Clicked="bnt_return_Clicked" VerticalOptions="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- while the list is locked, or there is nothing here -->
+        <VerticalStackLayout Grid.Row="1" x:Name="vsl_locked" Padding="24" Spacing="12" IsVisible="false"
+                             VerticalOptions="Center">
+            <Label x:Name="l_locked" HorizontalTextAlignment="Center"
+                   Text="This work list is locked. It needs the PIN it was sent with."/>
+            <Button x:Name="bnt_unlock" Text="Enter PIN" Clicked="bnt_unlock_Clicked" HorizontalOptions="Center"/>
+        </VerticalStackLayout>
+
+        <ScrollView Grid.Row="1" x:Name="sv_jobs">
+            <VerticalStackLayout Padding="12" Spacing="12" x:Name="vsl_list"/>
+        </ScrollView>
+
+    </Grid>
+
+</ContentPage>
