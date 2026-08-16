@@ -860,7 +860,8 @@ quietly showing made up addresses weeks later.
 ## Toolbar icons
 
 The toolbar items everybody already knows the picture for carry one: Search is a magnifier, Filters a funnel,
-and anything that adds is a plus (`Resources/Images/search.svg`, `filter.svg`, `add.svg`). They are Feather style
+anything that adds is a plus, and Select Jobs is a ticked box (`Resources/Images/search.svg`, `filter.svg`,
+`add.svg`, `select.svg`). They are Feather style
 24×24 like the rest of the icons, and referenced as `search.png` — `MauiImage` turns the svg into a png at build.
 
 They are stroked **white**, unlike the icons used on the swipe actions and the tab bar, because the toolbar is the
