@@ -698,6 +698,11 @@ public partial class PaperView : ContentPage
 		cb_showAllJobs.IsChecked = ShowAllJobs;
 		cb_showAllJobs.CheckedChanged += cb_showAllJobs_Changed;
 
+		//shown as All Jobs without running the filter it stands for
+		_settingPaperFilterBy = true;
+		p_paperFilterBy.SelectedIndex = 0;
+		_settingPaperFilterBy = false;
+
 
 
 
@@ -1895,40 +1900,37 @@ public partial class PaperView : ContentPage
 		throw new NotImplementedException();
 	}
 
-	private async void bnt_View_Clicked(object sender, EventArgs e)
-	{
-		List<string> options = new List<string>();
-		options.Add("All Jobs");
-        options.Add("City");
-        options.Add("Area");
-        options.Add("Round");
+	/// <summary>set without running the filter, for showing what is already on</summary>
+	private bool _settingPaperFilterBy;
 
-        //Group was on this list with nothing behind it, so picking it put the
-        //sheet away and changed nothing. under a button labelled Filters that
-        //reads as a filter that does not work
-        string result = await DisplayActionSheet("Filter The List", "Cancel", null, options.ToArray());
-        if (result == null || result == "Cancel")
-            return;
-        switch (result)
+	/// <summary>
+	/// what the sheet is narrowed to, on the same panel as the options - it
+	/// used to be an action sheet of its own, which was a second place to
+	/// look for one idea. All Jobs is the way back off a filter
+	/// </summary>
+	private void p_paperFilterBy_Changed(object sender, EventArgs e)
+	{
+		if (_settingPaperFilterBy)
+			return;
+
+		switch (p_paperFilterBy.SelectedIndex)
 		{
-			case "All Jobs":
+			case 0:
 				PaperViewFilter = null;
 				g_filters.IsVisible = false;
 				FullPageLoad();
 				break;
-			case "City":
+			case 1:
 				SetFilter(new CityFilter(Job.Query()));
 				break;
-			case "Area":
+			case 2:
 				SetFilter(new AreaFilter(Job.Query()));
 				break;
-			case "Round":
+			case 3:
 				SetFilter(new RoundFilter(Job.Query()));
 				break;
 		}
-
-
-    }
+	}
 
 	private DateTime DateToMarkWorkDone = DateTime.Now;
 	private bool CustomeMarkDate = false;
@@ -1985,13 +1987,17 @@ public partial class PaperView : ContentPage
 		FullPageLoad();
 	}
 
+	/// <summary>
+	/// the funnel toggles the one panel: the filter, and the page's options.
+	/// pressing it again is the same as Hide, so it never looks stuck on
+	/// </summary>
+	private void tbi_Filters_Clicked(object sender, EventArgs e)
+	{
+		g_options.IsVisible = !g_options.IsVisible;
+	}
+
 	private void bnt_hideOptions_Clicked(object sender, EventArgs e)
 	{
 		g_options.IsVisible = false;
-    }
-
-	private void tbi_ShowOptions_Clicked(object sender, EventArgs e)
-	{
-        g_options.IsVisible = true;
     }
 }

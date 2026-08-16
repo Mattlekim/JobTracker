@@ -157,44 +157,55 @@ namespace WorkTracker
             Android.Net.Uri uri = intent.Data;
             string name = NameOf(uri);
 
-            //two kinds of file open with the app: a backup, and a shared
-            //work list. told apart by name, and anything else is put back
-            //down without a word
-            bool isBackup = UiInterface.ImportExport.BackupRestore.LooksLikeBackup(name);
-            bool isShare = Kernel.WorkShare.LooksLikeShare(name);
-
-            if (!isBackup && !isShare)
-                return;
-
-            //a backup carries the receipt photos, so it can be big. copying it
-            //is not something to hold the app open on - the page that offers
-            //to restore is told when the copy is there
+            //the file is copied first and told apart afterwards. it used to
+            //be told apart by name alone, before copying - but a content uri
+            //does not have to carry a name at all, and a file that arrived
+            //nameless was dropped without a word: the app opened and nothing
+            //happened, which is exactly how it was reported. a shared work
+            //list can be recognised by its own first bytes instead, and a
+            //file that is neither is said out loud rather than ignored -
+            //being opened *with* Work Tracker was a deliberate act, and
+            //silence reads as the app being broken
             System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
+                    if (string.IsNullOrWhiteSpace(name))
+                        name = "opened-file";
+
                     string copy = System.IO.Path.Combine(
                         Microsoft.Maui.Storage.FileSystem.CacheDirectory, name);
 
                     using (System.IO.Stream from = ContentResolver.OpenInputStream(uri))
                     {
                         if (from == null)
+                        {
+                            UiInterface.ImportExport.WorkShareOpen.UnreadableFileWasOpened(name);
                             return;
+                        }
 
                         using (System.IO.Stream to = System.IO.File.Create(copy))
                             from.CopyTo(to);
                     }
 
-                    if (isBackup)
-                        UiInterface.ImportExport.BackupRestore.FileWasOpened(copy);
-                    else
+                    if (Kernel.WorkShare.LooksLikeShare(name))
                         UiInterface.ImportExport.WorkShareOpen.FileWasOpened(copy);
+                    else if (UiInterface.ImportExport.BackupRestore.LooksLikeBackup(name))
+                        UiInterface.ImportExport.BackupRestore.FileWasOpened(copy);
+                    else if (Kernel.WorkShare.ReadHeader(copy) != null)
+                        //named something else - or nothing - on the way, but
+                        //the magic bytes say what it is
+                        UiInterface.ImportExport.WorkShareOpen.FileWasOpened(copy);
+                    else
+                        UiInterface.ImportExport.WorkShareOpen.UnreadableFileWasOpened(name);
                 }
-                catch
+                catch (System.Exception ex)
                 {
                     //a file we cannot read is not worth taking the app down
-                    //for. nothing is offered, and the settings page is still
-                    //there to pick one by hand
+                    //for - but it is worth a line in the crash log, because
+                    //"nothing happened" cannot be chased without one
+                    CrashLogger.Log("MainActivity.TakeTheFile", ex);
+                    UiInterface.ImportExport.WorkShareOpen.UnreadableFileWasOpened(name);
                 }
             });
         }
