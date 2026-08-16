@@ -180,7 +180,13 @@ that went out is tagged `Sent To <name>` (`WorkShare.SentTag`, the one definitio
 take off exactly what the send put on), so the lists say which work is with somebody. It goes on through
 `Job.AddTagQuietly` — on the visit but **not** on the tag picker's list, which would otherwise fill up with
 worker names — and *Update My Work* takes it off every job in the return, marked or not, because the work is
-back home either way.
+back home either way. Not every send comes back as a file, so **Work Sent Out** (on the work list's toolbar
+while any send is remembered — `Layouts/SentWorkList`) lists every send and clears one by hand. Clearing
+changes nothing on the other phone; the two buttons differ only in what this phone forgets: *Take The Sent
+Tags Off* keeps the record — and the PIN on it — so a late return can still open itself, while *Forget This
+Send* drops both, after which its return can never be opened here, which the page says plainly before doing
+it. Tags are cleared by worker name (`WorkShare.ClearSentTags`), so two sends to the same name clear
+together.
 
 **Receiving**: `.rwk` opens with the app exactly like a `.rbf` — the same two kinds of Android intent filter
 (see *Opening a backup*; `MainActivity.TakeTheFile` routes by extension to `ImportExport/WorkShareOpen`, the
