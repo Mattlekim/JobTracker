@@ -193,7 +193,10 @@ worker names — and *Update My Work* takes it off every job in the return, mark
 back home either way. The name is read back off the tags (`WorkShare.OutWith`) wherever a whole day is
 titled: a booked day that has been sent says *With \<name\>* on its day heading on `Layouts/BookedWork` and
 on the work list's booking summary row, so a week planned out and handed over says whose hands each day is
-in at a glance. Not every send comes back as a file, so **Work Sent Out** (on the work list's toolbar
+in at a glance. Work that is out is **not offered for sending again** (`WorkShare.IsOut`): two copies of the
+same job with two people ends with the house cleaned twice or not at all, so the day menus drop their send
+option once the day is out, and the work list says which picked jobs are already with somebody rather than
+quietly sending fewer than were picked. Not every send comes back as a file, so **Work Sent Out** (on the work list's toolbar
 while any send is remembered — `Layouts/SentWorkList`) lists every send and clears one by hand. Clearing
 changes nothing on the other phone; the two buttons differ only in what this phone forgets: *Take The Sent
 Tags Off* keeps the record — and the PIN on it — so a late return can still open itself, while *Forget This

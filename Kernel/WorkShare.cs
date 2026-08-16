@@ -189,6 +189,24 @@ namespace Kernel
         }
 
         /// <summary>
+        /// is this job already out with somebody, by its Sent To tag. work
+        /// that is out is not offered for sending again - two copies of the
+        /// same job with two people ends with the house cleaned twice or
+        /// not at all
+        /// </summary>
+        public static bool IsOut(Job j)
+        {
+            if (j == null)
+                return false;
+
+            foreach (string tag in j.Tags)
+                if (tag != null && tag.StartsWith(SentTagPrefix, StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+            return false;
+        }
+
+        /// <summary>
         /// who this work is out with, read back off the Sent To tags - each
         /// name once, however many jobs carry it. empty for work that is
         /// home, which is nearly all of it nearly all the time

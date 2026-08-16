@@ -311,9 +311,13 @@ public partial class BookedWork : ContentPage, IHoldRows
             return;
 
         //sending work out is opt-in on the settings page, so the menu only
-        //offers it to a round that has turned it on
+        //offers it to a round that has turned it on - and a day already out
+        //with somebody is not offered again, because two copies of the same
+        //job with two people ends with the house cleaned twice or not at all
         List<string> options = new List<string>() { "Tag The Work", "Change The Date" };
-        if (Settings.EnableWorkSharing)
+        if (Settings.EnableWorkSharing
+            && g.Exists(x => x != null && x.CustomerId != -1
+                && !x.IsCompleted && !x.HaveCanceled && !WorkShare.IsOut(x)))
             options.Add("Send To Someone");
         options.Add("Cancel The Booking");
 
@@ -350,13 +354,14 @@ public partial class BookedWork : ContentPage, IHoldRows
     /// </summary>
     private async Task SendDay(BookingGroup g)
     {
+        //what is done, cancelled or already out with somebody stays home
         List<Job> toSend = g.FindAll(x => x != null && x.CustomerId != -1
-            && !x.IsCompleted && !x.HaveCanceled);
+            && !x.IsCompleted && !x.HaveCanceled && !WorkShare.IsOut(x));
 
         if (toSend.Count == 0)
         {
             await DisplayAlert("Send To Someone",
-                "Everything on this day is already done - there is nothing left to send.", "Ok");
+                "Everything on this day is already done or already out with somebody - there is nothing left to send.", "Ok");
             return;
         }
 
