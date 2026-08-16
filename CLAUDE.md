@@ -175,7 +175,12 @@ day is the natural parcel to hand over. All three land on `Layouts/SendWork` wit
 ones send the day's outstanding work (done and cancelled stay home), and sending changes nothing about the
 booking. `Layouts/SendWork` asks what travels with them — prices, notes, phone numbers, and *allow them to collect* (which forces prices
 on, since collecting means knowing what to collect) — plus the worker's name tag and the PIN. Anything not
-ticked is simply never put in the file. Sending changes nothing on the sender's round.
+ticked is simply never put in the file. The one thing sending changes on the sender's round is a tag: each job
+that went out is tagged `Sent To <name>` (`WorkShare.SentTag`, the one definition, because the return has to
+take off exactly what the send put on), so the lists say which work is with somebody. It goes on through
+`Job.AddTagQuietly` — on the visit but **not** on the tag picker's list, which would otherwise fill up with
+worker names — and *Update My Work* takes it off every job in the return, marked or not, because the work is
+back home either way.
 
 **Receiving**: `.rwk` opens with the app exactly like a `.rbf` — the same two kinds of Android intent filter
 (see *Opening a backup*; `MainActivity.TakeTheFile` routes by extension to `ImportExport/WorkShareOpen`, the
@@ -183,7 +188,10 @@ ticked is simply never put in the file. Sending changes nothing on the sender's 
 and routes: a *sent* file is offered as extra work (`WorkShare.TakeOnExtraWork` copies it, still encrypted,
 to `extrawork.rwk`); a *returned* file is matched by key to its record, decrypted with the stored PIN and
 pushed onto `Layouts/ReturnedWork`. A return with no matching record can only say so — the PIN for it lives
-on the phone that sent it.
+on the phone that sent it. A *sent* file whose key **is** in this phone's records is the phone's own sent
+work: it is named for what it is and offered as a look at what was sent (`ReturnedWork` with `sentPreview`,
+same cards, no update button) rather than as extra work — taking on your own round as somebody else's would
+only end in a muddle, and the stored PIN means the look costs nothing.
 
 **Extra work** (`Layouts/ExtraWork`) asks for the PIN every time it is entered and holds it only while the
 list is open: every mark is re-encrypted straight back into `extrawork.rwk` with it, and leaving forgets
@@ -661,7 +669,10 @@ collection (older phones write the file directly, after asking for the storage p
 user's Downloads folder without overwriting a file already there. iOS keeps each app's files to itself, so `CanSave`
 is false there and sharing stays the only way out — anything calling this must cope with that.
 
-The tax page's Export asks *Save To This Device* or *Share* when the platform can do both.
+The tax page's Export, the manual backup on the settings page and the tax page's *Save This/Other Tax Years*
+all ask *Save To This Device* or *Share* when the platform can do both — a backup saved onto the device is a
+real backup on its own, and it is written as `application/octet-stream` so tapping it in the downloads list
+offers Work Tracker back.
 
 ## Job types
 

@@ -257,22 +257,59 @@ public partial class TaxView : ContentPage
 
     private async Task SaveYears(List<int> years)
     {
+        TaxYearBackup.BackupResult result;
         try
         {
-            TaxYearBackup.BackupResult result = TaxYearBackup.Create(years,
-                TaxYearBackup.FileNameFor(years, false));
+            result = TaxYearBackup.Create(years, TaxYearBackup.FileNameFor(years, false));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Save Failed", ex.Message, "Ok");
+            return;
+        }
 
-            await DisplayAlert("Tax Year Saved",
-                $"Saved {result.FormattedYears}, with {result.Receipts} receipt photo(s) and {result.Statements} bank statement(s). Your customers and round are in there too.",
-                "Ok");
+        await DisplayAlert("Tax Year Saved",
+            $"Saved {result.FormattedYears}, with {result.Receipts} receipt photo(s) and {result.Statements} bank statement(s). Your customers and round are in there too.",
+            "Ok");
 
-            await Share.RequestAsync(new ShareFileRequest("Work Tracker Tax Year", new ShareFile(result.Path)));
+        //saving onto the device is a real backup on its own - the same
+        //choice the settings page backup offers, for the same reason
+        string title = "Work Tracker Tax Year";
+
+        if (!DeviceFileSaver.CanSave)
+        {
+            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(result.Path)));
+            return;
+        }
+
+        string choice = await DisplayActionSheet(title, "Cancel", null, "Save To This Device", "Share");
+
+        if (choice == "Share")
+        {
+            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(result.Path)));
+            return;
+        }
+
+        if (choice != "Save To This Device")
+            return;
+
+        try
+        {
+            //as its own kind of file rather than left for the phone to guess
+            //at, so tapping it in the downloads list offers Work Tracker back
+            string saved = await DeviceFileSaver.SaveAsync(result.Path,
+                Path.GetFileName(result.Path), BackupType);
+
+            await DisplayAlert("Saved", $"Saved to {saved}.\n\nOpening it from there puts it back.", "Ok");
         }
         catch (Exception ex)
         {
             await DisplayAlert("Save Failed", ex.Message, "Ok");
         }
     }
+
+    /// <summary>what a .rbf is saved as - see the same constant on the settings page</summary>
+    private const string BackupType = "application/octet-stream";
 
     /// <summary>what a spreadsheet is called, so the device opens it properly</summary>
     private const string XlsxType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";

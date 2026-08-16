@@ -86,6 +86,15 @@ public partial class SendWork : ContentPage
             //its record could never be opened when it came back
             WorkShare.RememberSentWork(data.Key, pin, workerTag, _jobs.Count);
 
+            //the round says which work is out: every job sent is tagged
+            //"Sent To <name>" on this phone, and Update My Work takes the
+            //tag off when the return is put on the round. quietly, so the
+            //tag picker is not filled up with worker names
+            string sentTag = WorkShare.SentTag(workerTag);
+            foreach (Job j in _jobs)
+                j.AddTagQuietly(sentTag);
+            Job.Save();
+
             await Share.RequestAsync(new ShareFileRequest($"Work for {workerTag}", new ShareFile(path)));
 
             await DisplayAlert("Send Work",
