@@ -190,7 +190,10 @@ that went out is tagged `Sent To <name>` (`WorkShare.SentTag`, the one definitio
 take off exactly what the send put on), so the lists say which work is with somebody. It goes on through
 `Job.AddTagQuietly` — on the visit but **not** on the tag picker's list, which would otherwise fill up with
 worker names — and *Update My Work* takes it off every job in the return, marked or not, because the work is
-back home either way. Not every send comes back as a file, so **Work Sent Out** (on the work list's toolbar
+back home either way. The name is read back off the tags (`WorkShare.OutWith`) wherever a whole day is
+titled: a booked day that has been sent says *With \<name\>* on its day heading on `Layouts/BookedWork` and
+on the work list's booking summary row, so a week planned out and handed over says whose hands each day is
+in at a glance. Not every send comes back as a file, so **Work Sent Out** (on the work list's toolbar
 while any send is remembered — `Layouts/SentWorkList`) lists every send and clears one by hand. Clearing
 changes nothing on the other phone; the two buttons differ only in what this phone forgets: *Take The Sent
 Tags Off* keeps the record — and the PIN on it — so a late return can still open itself, while *Forget This

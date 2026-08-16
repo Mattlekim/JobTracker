@@ -46,6 +46,13 @@ public partial class BookedWork : ContentPage, IHoldRows
             WorkOutProgress();
             WorkOutOverdue();
             WorkOutTags();
+
+            //a day that has been sent to somebody says so in its title, read
+            //off the Sent To tags the send put on - a week planned out and
+            //handed over should say whose hands each day is in at a glance
+            List<string> outWith = WorkShare.OutWith(this);
+            if (outWith.Count > 0)
+                Header = $"{Header} • With {string.Join(", ", outWith)}";
         }
 
         /// <summary>

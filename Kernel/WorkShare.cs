@@ -175,6 +175,9 @@ namespace Kernel
                 && fileName.EndsWith(Extension, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>the front half of every sent tag, the one definition</summary>
+        private const string SentTagPrefix = "Sent To ";
+
         /// <summary>
         /// the tag put on the sender's own copy of each job that went out, so
         /// the round says which work is with somebody. one definition, because
@@ -182,7 +185,37 @@ namespace Kernel
         /// </summary>
         public static string SentTag(string workerTag)
         {
-            return $"Sent To {(workerTag ?? string.Empty).Trim()}".Trim();
+            return $"{SentTagPrefix}{(workerTag ?? string.Empty).Trim()}".Trim();
+        }
+
+        /// <summary>
+        /// who this work is out with, read back off the Sent To tags - each
+        /// name once, however many jobs carry it. empty for work that is
+        /// home, which is nearly all of it nearly all the time
+        /// </summary>
+        public static List<string> OutWith(IEnumerable<Job> jobs)
+        {
+            List<string> names = new List<string>();
+
+            if (jobs != null)
+                foreach (Job j in jobs)
+                {
+                    if (j == null)
+                        continue;
+
+                    foreach (string tag in j.Tags)
+                    {
+                        if (tag == null || !tag.StartsWith(SentTagPrefix, StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        string name = tag.Substring(SentTagPrefix.Length).Trim();
+                        if (name.Length > 0
+                            && !names.Exists(x => string.Equals(x, name, StringComparison.CurrentCultureIgnoreCase)))
+                            names.Add(name);
+                    }
+                }
+
+            return names;
         }
 
         //  --------------------------------------------------  the file itself
