@@ -111,7 +111,10 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             this.ToolbarItems.Add(tbi_selectAll);
             this.ToolbarItems.Add(bnt_bookInWork);
             this.ToolbarItems.Add(bnt_setRound);
-            this.ToolbarItems.Add(bnt_sendWork);
+            //sending work out is opt-in on the settings page: most rounds
+            //are one person, and the button would only be in the way
+            if (Settings.EnableWorkSharing)
+                this.ToolbarItems.Add(bnt_sendWork);
             this.ToolbarItems.Add(bnt_textCustomers);
             this.ToolbarItems.Add(bnt_CreateGroup);
             return;

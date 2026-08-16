@@ -289,8 +289,15 @@ public partial class BookedWork : ContentPage, IHoldRows
         if (g == null)
             return;
 
+        //sending work out is opt-in on the settings page, so the menu only
+        //offers it to a round that has turned it on
+        List<string> options = new List<string>() { "Tag The Work", "Change The Date" };
+        if (Settings.EnableWorkSharing)
+            options.Add("Send To Someone");
+        options.Add("Cancel The Booking");
+
         string result = await DisplayActionSheet($"{g.Date:ddd dd MMM yyyy}", "Close", null,
-            "Tag The Work", "Change The Date", "Send To Someone", "Cancel The Booking");
+            options.ToArray());
 
         if (result == null)
             return;

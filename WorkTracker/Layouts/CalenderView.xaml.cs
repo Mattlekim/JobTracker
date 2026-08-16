@@ -698,8 +698,10 @@ public partial class CalenderView : ContentPage
                     options.Add($"Bookin Remaining {numberOfJobsNotBookedIn} Jobs");
                 options.Add($"Cancel {numberOfJobsBookedIn} Jobs Booked In");
                 //the booked day handed to somebody else's copy of the app -
-                //the same Send Work the work list and the booked work page use
-                options.Add("Send Booked In Jobs To Someone");
+                //the same Send Work the work list and the booked work page
+                //use, and opt-in on the settings page like them
+                if (Settings.EnableWorkSharing)
+                    options.Add("Send Booked In Jobs To Someone");
             }
             else
                 options.Add("Bookin All Jobs");
