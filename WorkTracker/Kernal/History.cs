@@ -10,6 +10,7 @@ namespace Kernel
     {
         public Job TheJob;
         public Payment ThePayment;
+        public BalanceAdjustment TheAdjustment;
 
         public string Notes { get; set; }
         public DateTime SortDate;
@@ -19,11 +20,14 @@ namespace Kernel
 
         public bool IsJob { get; private set; }
 
+        /// <summary>a write-off or a balance set by hand, in with the money it explains</summary>
+        public bool IsAdjustment { get; private set; }
+
         public bool IsPayment
         {
             get
             {
-                return !IsJob;
+                return !IsJob && !IsAdjustment;
             }
         }
         public Color AltColour { get; set; }
@@ -86,6 +90,37 @@ namespace Kernel
             DateColour = Colors.Green;
             TextDateColour = Colors.White;
             IsJob = false;
+        }
+
+        /// <summary>
+        /// a balance changed outside the ledgers - debt written off, or a
+        /// figure typed in. it sits in the history with the visits and the
+        /// payments because it is the missing line that makes them add up
+        /// </summary>
+        public History(BalanceAdjustment theAdjustment)
+        {
+            TheAdjustment = theAdjustment;
+
+            SortDate = theAdjustment.Date;
+
+            //its own colour: it is not work and it is not money that moved
+            DateColour = Color.FromArgb("#6A1B9A");
+            TextDateColour = Colors.White;
+            IsJob = false;
+            IsAdjustment = true;
+        }
+
+        public string AdjustmentDate
+        {
+            get
+            {
+                if (TheAdjustment == null)
+                    return string.Empty;
+
+                return TheAdjustment.Kind == BalanceAdjustmentKind.WriteOff
+                    ? $"Written off {TheAdjustment.Date.ToShortDateString()}"
+                    : $"Balance changed {TheAdjustment.Date.ToShortDateString()}";
+            }
         }
 
         private Customer _customer;
@@ -160,16 +195,16 @@ namespace Kernel
 
                 if (IsJob)
                     return $"Job Address: {TheJob.Address.PropertyNameNumber} {TheJob.Address.DisplayStreet} {TheJob.Address.DisplayCity}";
-                else
-                {
-                    return $"Paid by {ThePayment.PaymentType} {Gloable.CurrenceSymbol}{ThePayment.Amount}";
 
-                }
+                if (IsAdjustment)
+                    return TheAdjustment.Describe;
+
+                return $"Paid by {ThePayment.PaymentType} {Gloable.CurrenceSymbol}{ThePayment.Amount}";
             }
         }
         public string FormattedLine2
         {
-            get { 
+            get {
                 if (IsJob)
                 {
                     if (TheJob.IsCompleted)
@@ -183,9 +218,16 @@ namespace Kernel
                     else
                         return "NA";
                 }
-                
+
+                //the why is the whole worth of the record - said plainly when
+                //there is one, and honestly when there is not
+                if (IsAdjustment)
+                    return TheAdjustment.Reason.Length > 0
+                        ? $"Reason: {TheAdjustment.Reason}"
+                        : "No reason noted";
+
                 if (ThePayment.PaymentMethod == PaymentMethod.Bank)
-                    return $"Payment reference: {ThePayment.CustomerReference}"; 
+                    return $"Payment reference: {ThePayment.CustomerReference}";
                 else
                     return "Payment Reference: NA";
 

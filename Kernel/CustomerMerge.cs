@@ -162,6 +162,10 @@ namespace Kernel
             Payment.MoveToCustomer(from.Id, into.Id);
             GoCardlessRequest.MoveToCustomer(from.Id, into.Id);
 
+            //the write-offs and hand-set balances are part of the money
+            //story, and the story follows the customer that is kept
+            BalanceAdjustment.MoveCustomer(from.Id, into.Id);
+
             if (string.IsNullOrWhiteSpace(into.FName))
                 into.FName = from.FName;
 

@@ -50,6 +50,12 @@
                         </VerticalStackLayout>
                     </Grid>
 
+                    <!-- the same choice HMRC asks about: cash basis is the
+                         usual one for a sole trader, and the choice is
+                         remembered (Tax_Accruals) -->
+                    <Label Style="{StaticResource Caption}"
+                           Text="Cash basis counts income when the money actually arrives, and is the usual method for a sole trader. Accruals counts it when the work is done, whether it has been paid for or not. Pick whichever you actually file under." />
+
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"></ColumnDefinition>
@@ -59,6 +65,16 @@
                         <Switch Grid.Column="1" x:Name="sw_calendarQuarters" Toggled="Switch_Toggled"></Switch>
                     </Grid>
                     <Label Text="Only turn this on if you have elected calendar quarterly periods with HMRC." Style="{StaticResource Caption}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ESTIMATES, NOT ADVICE - this page must never quietly read as
+                 the finished answer to anybody's tax -->
+            <Border Style="{StaticResource Card}" BackgroundColor="{AppThemeBinding Light=#FFF3E0, Dark=#3E2723}">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="These figures are estimates" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#E65100, Dark=#FFB74D}" />
+                    <Label FontSize="12" TextColor="{AppThemeBinding Light=#8D6E63, Dark=#BCAAA4}"
+                           Text="They are worked out only from what has been recorded in this app, and they may be incomplete or wrong for your circumstances. Before filing or paying tax, give these figures to your accountant or check them yourself against your own records. This app is not tax advice." />
                 </VerticalStackLayout>
             </Border>
 

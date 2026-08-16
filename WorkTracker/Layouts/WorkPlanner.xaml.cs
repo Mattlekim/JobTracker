@@ -969,6 +969,11 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         else
             if (await page.DisplayAlert("Cancel Job?", "Are you sure you want to cancel this job? Canceling the job will stop it from showing up in your job list!", "Yes", "No"))
         {
+            //out of the cached day first, exactly like MarkJobSkipped: the
+            //cache cannot find the day once CancelJob has unbooked the job,
+            //and the day would keep a summary row counting cancelled work
+            //that no list will show
+            Booking.RemoveJobFromBooking(j);
             j.CancelJob();
             j.Refresh();
             j.RefreshColors();

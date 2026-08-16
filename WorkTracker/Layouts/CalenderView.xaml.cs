@@ -697,6 +697,9 @@ public partial class CalenderView : ContentPage
                 if (numberOfJobsNotBookedIn > 0)
                     options.Add($"Bookin Remaining {numberOfJobsNotBookedIn} Jobs");
                 options.Add($"Cancel {numberOfJobsBookedIn} Jobs Booked In");
+                //the booked day handed to somebody else's copy of the app -
+                //the same Send Work the work list and the booked work page use
+                options.Add("Send Booked In Jobs To Someone");
             }
             else
                 options.Add("Bookin All Jobs");
@@ -751,6 +754,20 @@ public partial class CalenderView : ContentPage
             await WorkPlanner.CancelBooking(day.Jobs, this, day.Date);
             RefreshCalenderData();
             RefreshPageDate();
+        }
+        else
+            if (result == "Send Booked In Jobs To Someone")
+        {
+            //what is already done or cancelled stays home - it is not work
+            //to hand over. sending changes nothing about the booking
+            List<Job> toSend = day.Jobs.Where(x => x != null && x.IsBookedIn
+                && !x.IsCompleted && !x.HaveCanceled && x.CustomerId != -1).ToList();
+
+            if (toSend.Count == 0)
+                await DisplayAlert("Send To Someone",
+                    "Everything booked for this day is already done - there is nothing left to send.", "Ok");
+            else
+                await Navigation.PushAsync(new SendWork(toSend));
         }
         else
             if (result == "Message All Jobs")

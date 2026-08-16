@@ -302,6 +302,16 @@ namespace Kernel
                         //the type is listed, and there is nothing to group or
                         //filter it by
                         FillInJobType(j);
+
+                        //work cancelled while it was booked in used to stay
+                        //booked: nothing unbooked it, so the work list kept a
+                        //booking row counting work every list filters out - a
+                        //day with nothing behind it. CancelJob unbooks now;
+                        //this puts right what older files still carry. only
+                        //what is in memory is changed - the file catches up
+                        //on the next save, like the other tidy ups here
+                        if (j.HaveCanceled && !j.IsCompleted && j.IsBookedIn)
+                            j.UnBookInJob();
                     }
 
                     _Jobs.Clear();

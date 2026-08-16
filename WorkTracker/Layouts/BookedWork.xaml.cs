@@ -290,7 +290,7 @@ public partial class BookedWork : ContentPage, IHoldRows
             return;
 
         string result = await DisplayActionSheet($"{g.Date:ddd dd MMM yyyy}", "Close", null,
-            "Tag The Work", "Change The Date", "Cancel The Booking");
+            "Tag The Work", "Change The Date", "Send To Someone", "Cancel The Booking");
 
         if (result == null)
             return;
@@ -303,10 +303,36 @@ public partial class BookedWork : ContentPage, IHoldRows
             case "Change The Date":
                 ShowMoveDay(g);
                 break;
+            case "Send To Someone":
+                await SendDay(g);
+                break;
             case "Cancel The Booking":
                 await CancelDay(g);
                 break;
         }
+    }
+
+    /// <summary>
+    /// hands the day's outstanding work to somebody else's copy of the app -
+    /// the same Send Work the work list's selection toolbar goes through, so
+    /// what travels and how it comes back are asked in the same words. what
+    /// is already done or cancelled stays home: it is not work to hand over.
+    /// sending changes nothing about the booking - the day is still this
+    /// round's plan until the return says what happened to it.
+    /// </summary>
+    private async Task SendDay(BookingGroup g)
+    {
+        List<Job> toSend = g.FindAll(x => x != null && x.CustomerId != -1
+            && !x.IsCompleted && !x.HaveCanceled);
+
+        if (toSend.Count == 0)
+        {
+            await DisplayAlert("Send To Someone",
+                "Everything on this day is already done - there is nothing left to send.", "Ok");
+            return;
+        }
+
+        await Navigation.PushAsync(new SendWork(toSend));
     }
 
     /// <summary>

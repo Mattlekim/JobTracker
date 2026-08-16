@@ -49,6 +49,10 @@ namespace UiInterface.ImportExport
                 ? "Calendar quarterly periods (elected with HMRC)"
                 : "Standard quarterly periods");
             row = TextRow(sb, row, $"Produced {DateTime.Now.ToShortDateString()} by Work Tracker");
+            //the export travels without the page it came from, so it carries
+            //the same warning the page shows
+            row = TextRow(sb, row, "ESTIMATES ONLY - worked out from what was recorded in the app. "
+                + "Check these figures with your accountant, or against your own records, before filing or paying tax.");
             row++;
 
             //---- the quarterly figures, one column per period ----

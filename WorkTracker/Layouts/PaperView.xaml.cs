@@ -1299,6 +1299,9 @@ public partial class PaperView : ContentPage
 
 		if (result == "Cancel Job")
 		{
+			//out of the cached day first, like the skip paths - see
+			//WorkPlanner.MarkJobCancled
+			Booking.RemoveJobFromBooking(j);
 			j.CancelJob();
 			//while cancelled work is hidden it has to leave the list, not
 			//just collapse in place

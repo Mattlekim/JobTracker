@@ -92,6 +92,9 @@
                                     
                                 </Label>
                                 <Label Text="{Binding PaymentDate}"  TextColor="{Binding DueColorTextCode}" IsVisible="{Binding IsPayment}" FontAttributes="Bold"></Label>
+                                <!-- a write-off or a hand-set balance, the
+                                     line that makes the money add up -->
+                                <Label Text="{Binding AdjustmentDate}" TextColor="{Binding TextDateColour}" IsVisible="{Binding IsAdjustment}" FontAttributes="Bold"></Label>
                             </HorizontalStackLayout>
 
                             <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Padding="4">

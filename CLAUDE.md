@@ -13,7 +13,14 @@
 
 `Kernel/` holds the domain model (Customer, Job, Payment, WorkDay, SaveLoad, TaxReporting…). It has its own
 `Kernel.csproj`, but `WorkTracker` does not reference it — it pulls the `.cs` files in as linked `<Compile Include="..\Kernel\...">`
-items. Editing a file under `Kernel/` therefore changes both the app and `KernelDebugger`.
+items. Editing a file under `Kernel/` therefore changes both the app and `KernelDebugger`. **A new kernel file
+must be added to `WorkTracker.csproj`'s link list by hand** or the app builds without it.
+
+`Job` is one partial class in two files with two jobs: `Job.cs` is the round — dates, money, the rules for
+what happens to a visit — and `JobDisplay.cs` is the half a page binds to — colours, formatted strings, the
+tick boxes, the fold-out state. The rule for what goes where: if deleting a member could only ever break a
+screen it belongs in `JobDisplay.cs`; if it could break a figure, a file or a rule about the work it belongs
+in `Job.cs`, and nothing in `Job.cs` should ever need a colour.
 
 `UiInterface/` (net6.0) and `JobTracker/` (Xamarin) are older versions kept for reference. They are not in the
 solution and are not built or maintained.
@@ -162,8 +169,11 @@ AES-scrambled under a key baked into the app — obfuscation against a file brow
 says so; do not mistake it for more. Records are pruned three months after the work comes back; one that never
 came back is kept.
 
-**Sending** is on the work list's selection toolbar (*Send To Someone*): pick jobs, then `Layouts/SendWork`
-asks what travels with them — prices, notes, phone numbers, and *allow them to collect* (which forces prices
+**Sending** is on the work list's selection toolbar (*Send To Someone*), on the **Day ▾** menu of a day on
+`Layouts/BookedWork`, and on the calendar day's action sheet (*Send Booked In Jobs To Someone*) — a booked
+day is the natural parcel to hand over. All three land on `Layouts/SendWork` with a list of jobs; the day
+ones send the day's outstanding work (done and cancelled stay home), and sending changes nothing about the
+booking. `Layouts/SendWork` asks what travels with them — prices, notes, phone numbers, and *allow them to collect* (which forces prices
 on, since collecting means knowing what to collect) — plus the worker's name tag and the PIN. Anything not
 ticked is simply never put in the file. Sending changes nothing on the sender's round.
 
@@ -442,15 +452,27 @@ so the day never cleared and went on being called overdue, and the work list lea
 
 `Job.SkipJob` is what unbooks it, in the kernel with the rest of the skip, so none of the four places work can be
 skipped from — the swipes and menus on the work list, the calendar and the booked work page, and the paper view's
-record sheet — can be the one that forgets. The day itself is a `Booking` worked out from the jobs and cached in
-`Booking.Bookings`, which the kernel cannot see, so **`WorkPlanner.MarkJobSkipped` takes the job out of that
-first**: `Booking.RemoveJobFromBooking` has nothing to go on once the job says it is not booked in, and the day
-would be left with a summary row counting a house that is not on it. Anything skipping work goes through
-`MarkJobSkipped` for that reason — `SkipJob` on its own puts the job right but leaves the cached day stale until
-the next `DataRefreshNotifier.RebuildBookings`.
+record sheet — can be the one that forgets. The day itself is a `Booking` in `Booking.Bookings`, which is a
+**cache the jobs are the truth for**: `Booking.Rebuild` builds it from the jobs and is the only thing allowed to
+fill it. It used to be patched in place as well, and every path that changed a job's booked state had to remember
+to mend the cache too — skip forgot once, cancelling work forgot once, and each was a ghost day on the work list.
+Now every mutator on `Booking` (`AddBooking`, `RemoveJobFromBooking`, `RemoveBooking`, `ReseduleBooking`) does the
+same thing — change the flags on the jobs, rebuild — and `RemoveBooking` works off the jobs rather than the cached
+day, so work booked for the date that no list was showing comes off with the rest. Anything skipping work still
+goes through `WorkPlanner.MarkJobSkipped`, which refreshes the row and saves; `SkipJob` on its own leaves the
+cached day stale until the next rebuild.
 
 Clearing a skip (the paper view's **Clear**) puts the due date back but **does not** put the booking back — the day
 is gone and nothing remembers it. Book it in again if it is wanted.
+
+**Cancelling booked-in work unbooks it the same way.** `Job.CancelJob` takes the visit off any day it was
+booked for — but only a visit that never happened; a clean already done stays on the day it was done.
+Left booked, the work list kept a booking summary row counting work that every list filters out: a day
+with nothing behind it, which is exactly how it was reported. The UI paths that cancel
+(`WorkPlanner.MarkJobCancled`, the paper view's *Cancel Job*, the customer page's toolbar) call
+`Booking.RemoveJobFromBooking` so the cached day is rebuilt there and then, and `Job.Load`
+unbooks cancelled-never-done work older files still carry — memory only, the file catches up on the next
+save, like the other tidy ups done on load.
 
 `BookJobFormcs.BookForDate` is how a caller says which day the form should open on — it is used once and resets to
 today, so a caller with no day in mind cannot pick up somebody else's. Without it the form opened on today and the
@@ -481,6 +503,17 @@ put right, each with a **Change** beside it rather than a trip through the job f
   owed written down somewhere else.
 - **Time For Job** — `Layouts/JobDuration`. How long the job takes is what the day is planned off, and it is
   noticed to be wrong stood at the house.
+
+**A balance changed outside the ledgers leaves a record** (`Kernel/BalanceAdjustment.cs`,
+`balanceadjustments.rjt`). The balance is normally the gap between work done and money received, and both of
+those keep their history — but settling up wrote debt off and remembered nothing, and typing a balance in
+overwrote the figure without a trace, so the next argument about money had a history that did not add up.
+Now `Job.SettleBalance` records the write-off itself (in the kernel, so no button can forget), with an
+optional reason asked for on the settle prompt, and `CustomerBalance.Apply` records what a hand-set balance
+was and became. Both show in the customer's history (`History` has a third kind alongside jobs and payments)
+as the line that makes the money add up. **Nothing here touches tax**: on the cash basis income is the
+payments, and a write-off is precisely money that never arrived. The records ride in every backup with the
+other global files, follow a merged duplicate to the kept customer, and are covered by the self test.
 
 `Job.Minutes` is the one definition of how long a job counts as taking — its own `EstimatedTime`, or the round's
 usual when it has none — so the tags, the day totals, the booking form and the round's figures cannot disagree
@@ -906,3 +939,35 @@ the top of the page while it was being worked from.
 `ApplicationDisplayVersion` and `ApplicationVersion` live in `WorkTracker/WorkTracker.csproj` and must both be
 bumped for a Play Store upload. `BuildDate` is stamped into the assembly automatically at build time and surfaced
 on the settings page, so it needs no manual update.
+
+## Improvements considered and not done yet
+
+Proposed during the work-sharing and balance-records work, agreed worth doing, and deliberately left for later.
+Enough context here to pick each one up cold:
+
+- **Derived customer balance.** Stop storing `Customer.Balance` and compute it: completed visits (at
+  `EffectivePrice`) − payments − write-offs, plus hand-set records. The compensating `+=`/`-=` scattered
+  through done/undone/paid/merge is the drift risk behind the duplicate-customer bug, and deriving removes
+  the class. The groundwork is in: `BalanceAdjustment` keeps the write-offs and hand-set figures that make
+  derivation possible, and each visit keeps the price it was charged at. Still needed: a one-time migration
+  turning each customer's stored balance into an opening `SetByHand` record so nothing changes on screen,
+  self-test coverage *before* the switch, and a sweep of every `Balance +=`/`-=` site. Do this only after
+  the adjustment records have been in real use for a while — it is the one change here with regression risk.
+  (`Customer.CalculateCustomerBill` is an old stab at the same idea; it ignores adjustments and alternative
+  prices, so replace it rather than build on it.)
+
+- **Accruals bad debt.** If the accruals figures on the tax page are ever used seriously: income there is
+  counted off completed visits, so debt written off later stays in declared income. The write-off records
+  are exactly the bad-debt line — subtract the period's write-offs in `TaxSummary.Build`'s accruals branch.
+  On the cash basis (the default) nothing is needed; a write-off is money that never arrived.
+
+- **iOS file opening.** `.rbf` and `.rwk` cannot be opened into the app on iOS: needs
+  `CFBundleDocumentTypes` in `Info.plist` and an `OpenUrl` override in `AppDelegate`, routing to
+  `BackupRestore.FileWasOpened` / `WorkShareOpen.FileWasOpened` by extension the way `MainActivity` does.
+  Only matters if the iOS build is ever actually shipped.
+
+- **Row wrappers (the rest of the Job split).** `Job.cs`/`JobDisplay.cs` separates the files; the display
+  state (`IsSelected`, colours, `CollapsedInList`…) still lives on the shared job objects, so two pages
+  showing the same job share row state. The full fix is wrapper row view-models per list with bindings
+  prefixed onto them — a large churn across every virtualised list page for a cleanliness payoff. Not worth
+  it until it blocks something; do it one page at a time if ever.

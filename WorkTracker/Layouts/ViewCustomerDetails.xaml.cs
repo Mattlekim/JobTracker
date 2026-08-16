@@ -44,6 +44,12 @@ public partial class ViewCustomerDetails : ContentPage
         foreach (Payment p in payments)
             history.Add(new History(p));
 
+        //the balance changed outside the ledgers - written off, or typed in -
+        //sits in with the visits and the payments, because it is the missing
+        //line that makes them add up when a customer argues about money
+        foreach (BalanceAdjustment a in BalanceAdjustment.ForCustomer(CurrentJob.CustomerId))
+            history.Add(new History(a));
+
         history = history.OrderByDescending(x => x.SortDate).ToList();
 
 
@@ -467,7 +473,13 @@ public partial class ViewCustomerDetails : ContentPage
         if (!await DisplayAlert("Settle Up", question, "Clear It", "Cancel"))
             return;
 
-        float writtenOff = CurrentJob.SettleBalance();
+        //the reason is what the history says when this customer argues about
+        //money again - "agreed £2 off, gate was locked" is worth having. it
+        //is optional: No Reason still settles, it just leaves the line blank
+        string reason = await DisplayPromptAsync("Settle Up",
+            "Why is it being cleared? Goes in the customer's history.", "Clear It", "No Reason");
+
+        float writtenOff = CurrentJob.SettleBalance(reason);
 
         if (OnJobDetialsUpdated != null)
             OnJobDetialsUpdated(CurrentJob);
@@ -481,7 +493,12 @@ public partial class ViewCustomerDetails : ContentPage
     private void tbi_Cancel_Job_Clicked(object sender, EventArgs e)
     {
         if (!CurrentJob.HaveCanceled)
+        {
+            //out of the cached day first, like the skip paths - see
+            //WorkPlanner.MarkJobCancled
+            Booking.RemoveJobFromBooking(CurrentJob);
             CurrentJob.CancelJob();
+        }
         else
             CurrentJob.UnCancelJob();
 
