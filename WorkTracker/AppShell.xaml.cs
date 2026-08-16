@@ -319,6 +319,29 @@ namespace WorkTracker
             if (_askingAboutShare)
                 return;
 
+            //a file that was opened with the app and could not be dealt with
+            //gets told to the user, not swallowed - "nothing happened" is a
+            //bug report waiting to be written
+            string unreadable = UiInterface.ImportExport.WorkShareOpen.TakePendingUnreadable();
+            if (!string.IsNullOrWhiteSpace(unreadable))
+            {
+                _askingAboutShare = true;
+                try
+                {
+                    await (CurrentPage ?? (Page)this).DisplayAlert("Opened File",
+                        $"{unreadable} is not something Work Tracker recognises - it is not a backup (.rbf) or a shared work list (.rwk), or it could not be read. "
+                        + "If it should be one, it may have been renamed or damaged on the way.", "Ok");
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    _askingAboutShare = false;
+                }
+                return;
+            }
+
             string path = UiInterface.ImportExport.WorkShareOpen.TakePending();
             if (string.IsNullOrWhiteSpace(path))
                 return;

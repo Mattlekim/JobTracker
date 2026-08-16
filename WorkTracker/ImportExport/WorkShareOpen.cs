@@ -45,6 +45,31 @@ public static class WorkShareOpen
         return path;
     }
 
+    private static string _pendingUnreadable;
+
+    /// <summary>
+    /// a file was opened with the app and turned out to be nothing the app
+    /// knows - unreadable, or neither a backup nor a work list. held so
+    /// AppShell can say so: opening a file with Work Tracker was a
+    /// deliberate act, and silence reads as the app being broken
+    /// </summary>
+    public static void UnreadableFileWasOpened(string name)
+    {
+        _pendingUnreadable = string.IsNullOrWhiteSpace(name) ? "that file" : name;
+
+        Action opened = Opened;
+        if (opened != null)
+            opened();
+    }
+
+    /// <summary>the name of the file that could not be dealt with, if any</summary>
+    public static string TakePendingUnreadable()
+    {
+        string name = _pendingUnreadable;
+        _pendingUnreadable = null;
+        return name;
+    }
+
     /// <summary>
     /// a .rwk given to the app on the command line - how a desktop opens a
     /// file with an app, since Windows cannot register the type without an

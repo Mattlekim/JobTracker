@@ -130,7 +130,11 @@ carry the name.
 - **No name in the path** (the downloads list, MediaStore): `content://…/downloads/1000000123` has nothing to
   match on, so these are taken on **type** alone — `application/octet-stream`, which is what a file the phone has
   no type for is called, plus the zip types because a `.rbf` is a zip and anything that looks inside will say so.
-  The name is checked once the file can be read, so a file that is not a backup is put back down without a word.
+  Once the file can be read it is told apart by name — and a nameless `.rwk` by its own magic bytes, which a
+  provider that drops the display name cannot take away. A file that is neither is **said out loud** rather than
+  ignored (`WorkShareOpen.UnreadableFileWasOpened` → the Opened File alert in `AppShell`): it used to be dropped
+  silently, and "opened the file, app loads, nothing happens" was exactly how that was reported. Failures in the
+  copy land in the crash log, so a silent path cannot come back unnoticed.
 
 The second kind is the one that matters: a backup off an email or out of Drive lands in the downloads list, and
 **with only the pattern filters the app never appeared in the chooser at all**. Do not take them out. For the same
