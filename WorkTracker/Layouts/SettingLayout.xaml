@@ -227,6 +227,21 @@
                 <Button Text="Delete All Data" BackgroundColor="Transparent" TextColor="Red" BorderColor="Red" BorderWidth="2" Clicked="bnt_deleteData_Clicked"></Button>
             </VerticalStackLayout>
 
+            <!--  WORK SHARING  -->
+            <!-- off by default: most rounds are one person, and the sending
+                 buttons would only be in the way. receiving is always on -
+                 somebody handed a work list needs no setting to open it -->
+            <Button Text="▸ Work Sharing" ClassId="sec_sharing" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
+            <VerticalStackLayout x:Name="sec_sharing" IsVisible="false" Padding="10,0,10,10">
+                <Label Text="Send a handful of jobs to somebody else's copy of Work Tracker - a mate covering a week off. The work goes out as an encrypted file with a PIN, they mark it off under Extra Work, and sending it back updates your round." TextColor="Grey"></Label>
+                <Label></Label>
+                <HorizontalStackLayout>
+                    <Label Text="Enable sending work out" VerticalOptions="Center"></Label>
+                    <Switch x:Name="sw_workSharing" Toggled="sw_workSharing_Toggled"></Switch>
+                </HorizontalStackLayout>
+                <Label Text="This only shows or hides the sending buttons - on the work list, a booked day and the calendar. Work somebody sends to you always opens, whatever this is set to." FontSize="12" TextColor="Grey"></Label>
+            </VerticalStackLayout>
+
             <!--  CLOUD SYNC  -->
             <!-- not finished yet, so the whole section is shown greyed out and
                  nothing in it can be pressed. taking it out altogether would

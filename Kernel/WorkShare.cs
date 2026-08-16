@@ -476,6 +476,53 @@ namespace Kernel
             SaveRecords();
         }
 
+        /// <summary>every send this phone remembers, newest first</summary>
+        public static List<SentWorkRecord> AllRecords()
+        {
+            LoadRecords();
+            return _records.OrderByDescending(x => x.SentOn).ToList();
+        }
+
+        public static bool HaveSentRecords()
+        {
+            LoadRecords();
+            return _records.Count > 0;
+        }
+
+        /// <summary>
+        /// forgets a send entirely. their copy still works - the file
+        /// carries everything it needs - but a return can no longer open
+        /// itself here, because the PIN goes with the record
+        /// </summary>
+        public static void ForgetRecord(SentWorkRecord record)
+        {
+            LoadRecords();
+            _records.Remove(record);
+            SaveRecords();
+        }
+
+        /// <summary>
+        /// takes the "Sent To" tag off every job carrying it, for when the
+        /// work is being cleared without a return - the worker never sent one
+        /// back, or it came home by word of mouth. matched by the worker's
+        /// name, so two sends to the same name clear together.
+        /// </summary>
+        /// <returns>how many jobs the tag came off</returns>
+        public static int ClearSentTags(string workerTag)
+        {
+            string tag = SentTag(workerTag);
+            int cleared = 0;
+
+            foreach (Job j in Job.Query())
+                if (j.RemoveTag(tag))
+                    cleared++;
+
+            if (cleared > 0)
+                Job.Save();
+
+            return cleared;
+        }
+
         //  -----------------------------------------  building what goes out
 
         /// <summary>

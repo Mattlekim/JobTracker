@@ -60,6 +60,13 @@ public struct SettingsData
 
     public bool HaveShowenJobIntro;
 
+    /// <summary>
+    /// whether the send-work-to-someone buttons are shown. off by default -
+    /// most rounds are one person - and settings written before this existed
+    /// read back as false, which is the same thing
+    /// </summary>
+    public bool EnableWorkSharing;
+
     public string SymbolDone, SymbolPaid, SymbolDonePaid;
 }
 
@@ -93,6 +100,13 @@ public class Settings
     }
 
     public static bool HaveShowenJobIntro = false;
+
+    /// <summary>
+    /// the sending half of work sharing is opt-in: most rounds are one
+    /// person, and the buttons would only be in the way. receiving is not
+    /// gated - somebody handed a work list needs no setting to open it
+    /// </summary>
+    public static bool EnableWorkSharing = false;
 
     public static void Save(string dir = null)
     {
@@ -153,6 +167,7 @@ public class Settings
 
         sd.DefaultJobDuration = DefaultJobDuration;
         sd.HaveShowenJobIntro = HaveShowenJobIntro;
+        sd.EnableWorkSharing = EnableWorkSharing;
 
         sd.SymbolDone = PaperView.PaperItem.StringDone;
         sd.SymbolPaid = PaperView.PaperItem.StringPaid;
@@ -223,6 +238,7 @@ public class Settings
 
                 DefaultJobDuration = sd.DefaultJobDuration;
                 HaveShowenJobIntro = sd.HaveShowenJobIntro;
+                EnableWorkSharing = sd.EnableWorkSharing;
 
                 //settings written before this existed read back as null,
                 //which is the same as never having set one
@@ -543,7 +559,12 @@ public partial class SettingLayout : ContentPage
 
         e_defaultDuration.Text = Settings.DefaultJobDuration.ToString();
 
-        
+        //set straight rather than through the handler, so showing the
+        //setting that is already on does not count as a change
+        _loadingWorkSharing = true;
+        sw_workSharing.IsToggled = Settings.EnableWorkSharing;
+        _loadingWorkSharing = false;
+
         e_pv_done.Text = PaperView.PaperItem.StringDone;
         e_pv_paid.Text = PaperView.PaperItem.StringPaid;
         e_pv_donepaid.Text = PaperView.PaperItem.StringDonePaid;
@@ -572,6 +593,21 @@ public partial class SettingLayout : ContentPage
     }
 
     private bool _loadingPhotoQuality = false;
+
+    private bool _loadingWorkSharing = false;
+
+    /// <summary>
+    /// the sending buttons come and go with this - the toolbars are rebuilt
+    /// every time they are shown, so nothing else needs telling
+    /// </summary>
+    private void sw_workSharing_Toggled(object sender, ToggledEventArgs e)
+    {
+        if (_loadingWorkSharing)
+            return;
+
+        Settings.EnableWorkSharing = e.Value;
+        Settings.Save();
+    }
 
     private void ShowPhotoQualityDetail()
     {

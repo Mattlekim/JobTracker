@@ -345,6 +345,16 @@ public static class SelfTest
 
         first.RemoveTag(WorkShare.SentTag("Dave"));
         Check("and comes off when the work comes home", !first.HasTag("Sent To Dave"), first.TagsText);
+
+        //a send with no return - the worker said at the gate what got done -
+        //is cleared by name, off every job carrying the tag at once
+        first.AddTagQuietly(WorkShare.SentTag("Dave"));
+        second.AddTagQuietly(WorkShare.SentTag("Dave"));
+
+        int cleared = WorkShare.ClearSentTags("Dave");
+        Check("clearing a send takes the tag off every job",
+            cleared == 2 && !first.HasTag("Sent To Dave") && !second.HasTag("Sent To Dave"),
+            $"{cleared} cleared, tags: '{first.TagsText}' '{second.TagsText}'");
     }
 
     /// <summary>

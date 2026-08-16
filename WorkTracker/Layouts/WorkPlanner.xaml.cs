@@ -58,6 +58,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     public ToolbarItem bnt_cancelSelection;
     public ToolbarItem bnt_setRound;
     public ToolbarItem bnt_sendWork;
+    public ToolbarItem bnt_sentOut;
 
     /// <summary>
     /// Select All on the toolbar as well as on the bar. The bar is where the
@@ -110,7 +111,10 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             this.ToolbarItems.Add(tbi_selectAll);
             this.ToolbarItems.Add(bnt_bookInWork);
             this.ToolbarItems.Add(bnt_setRound);
-            this.ToolbarItems.Add(bnt_sendWork);
+            //sending work out is opt-in on the settings page: most rounds
+            //are one person, and the button would only be in the way
+            if (Settings.EnableWorkSharing)
+                this.ToolbarItems.Add(bnt_sendWork);
             this.ToolbarItems.Add(bnt_textCustomers);
             this.ToolbarItems.Add(bnt_CreateGroup);
             return;
@@ -127,6 +131,11 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
         if (haveWork)
             this.ToolbarItems.Add(bnt_selectJobs);
+
+        //only while any send is remembered: the page it opens is the sends,
+        //so with none there is nothing for the item to say
+        if (WorkShare.HaveSentRecords())
+            this.ToolbarItems.Add(bnt_sentOut);
     }
 
     public void UpdateToolBarSelectJobs()
@@ -211,6 +220,13 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         bnt_sendWork.Text = "Send To Someone";
         bnt_sendWork.Clicked += bnt_sendWork_Clicked;
         bnt_sendWork.Order = ToolbarItemOrder.Secondary;
+
+        //what is out with somebody, and the way to clear it when the return
+        //is not coming back as a file
+        bnt_sentOut = new ToolbarItem();
+        bnt_sentOut.Text = "Work Sent Out";
+        bnt_sentOut.Clicked += (s, e) => Navigation.PushAsync(new SentWorkList());
+        bnt_sentOut.Order = ToolbarItemOrder.Secondary;
 
         UpdateToolBar();
 
