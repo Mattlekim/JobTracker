@@ -180,8 +180,12 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         bnt_addNewJob.IconImageSource = "add.png";
         bnt_addNewJob.Clicked += bnt_addJob_Clicked;
 
+        //a ticked box says picking-things-out to anybody. the Text stays on
+        //it like the other icons: Android puts it up on a long press and
+        //reads it out in the ... menu
         bnt_selectJobs = new ToolbarItem();
         bnt_selectJobs.Text = "Select Jobs";
+        bnt_selectJobs.IconImageSource = "select.png";
         bnt_selectJobs.Clicked += bnt_selectJobs_Clicked;
 
         bnt_bookInWork = new ToolbarItem();
