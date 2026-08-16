@@ -343,6 +343,10 @@ public static class SelfTest
         Check("without going on the list to pick from", Job.TagNames.Count == knownTags,
             $"{Job.TagNames.Count - knownTags} added");
 
+        //work that is out is not offered for sending again
+        Check("the job counts as out", WorkShare.IsOut(first), first.TagsText);
+        Check("and one that was not sent does not", !WorkShare.IsOut(second), second.TagsText);
+
         first.RemoveTag(WorkShare.SentTag("Dave"));
         Check("and comes off when the work comes home", !first.HasTag("Sent To Dave"), first.TagsText);
 

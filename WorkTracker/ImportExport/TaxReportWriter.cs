@@ -29,6 +29,74 @@ namespace UiInterface.ImportExport
             AddEntry(zip, "xl/worksheets/sheet1.xml", BuildSheet(taxYear, basis, calendarQuarters, summaries));
         }
 
+        /// <summary>
+        /// The same quarterly figures as a plain csv, for MTD software that
+        /// imports a table rather than linking spreadsheet cells.
+        ///
+        /// One row per period - the four quarterly updates then the whole
+        /// year - and always every column, zeros included, in the same
+        /// order, so an import mapping set up once keeps working. Dates are
+        /// ISO (yyyy-MM-dd) and numbers use a dot for the decimal point
+        /// whatever the phone is set to, because the file is for software,
+        /// not for reading.
+        /// </summary>
+        public static void WriteMtdCsv(Stream output, int taxYear, AccountingBasis basis, bool calendarQuarters)
+        {
+            List<TaxSummary> summaries = TaxSummary.BuildYear(taxYear, basis, calendarQuarters);
+
+            List<HmrcExpenseCategory> boxes = Enum.GetValues<HmrcExpenseCategory>()
+                .OrderBy(b => (int)b)
+                .ToList();
+
+            var sb = new StringBuilder();
+
+            sb.Append("Period,Start,End,DueWithHmrc,Income");
+            foreach (HmrcExpenseCategory box in boxes)
+                sb.Append(',').Append(box);
+            sb.Append(",TotalExpenses,Profit");
+            sb.AppendLine();
+
+            foreach (TaxSummary s in summaries)
+            {
+                sb.Append(CsvField(s.Period.Name));
+                sb.Append(',').Append(s.Period.Start.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                sb.Append(',').Append(s.Period.End.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                sb.Append(',').Append(s.Period.Due.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                sb.Append(',').Append(s.Income.ToString("0.00", CultureInfo.InvariantCulture));
+
+                foreach (HmrcExpenseCategory box in boxes)
+                    sb.Append(',').Append((s.ExpensesByCategory.TryGetValue(box, out float v) ? v : 0)
+                        .ToString("0.00", CultureInfo.InvariantCulture));
+
+                sb.Append(',').Append(s.TotalExpenses.ToString("0.00", CultureInfo.InvariantCulture));
+                sb.Append(',').Append(s.Profit.ToString("0.00", CultureInfo.InvariantCulture));
+                sb.AppendLine();
+            }
+
+            //the warning travels in the file, below the data so a tool that
+            //reads the table is not tripped up by it
+            sb.AppendLine();
+            sb.AppendLine(CsvField("ESTIMATES ONLY - worked out from what was recorded in Work Tracker. "
+                + "Check these figures with your accountant, or against your own records, before filing or paying tax. "
+                + $"Tax year {TaxCalendar.YearName(taxYear)}, "
+                + (basis == AccountingBasis.Cash ? "cash basis" : "accruals basis") + ", "
+                + (calendarQuarters ? "calendar quarterly periods." : "standard quarterly periods.")));
+
+            byte[] bytes = Encoding.UTF8.GetBytes(sb.ToString());
+            output.Write(bytes, 0, bytes.Length);
+        }
+
+        static string CsvField(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            if (text.Contains(',') || text.Contains('"') || text.Contains('\n'))
+                return $"\"{text.Replace("\"", "\"\"")}\"";
+
+            return text;
+        }
+
         const int StyleBold = 1;
         const int StyleDate = 2;
         const int StyleMoney = 3;
@@ -55,10 +123,16 @@ namespace UiInterface.ImportExport
                 + "Check these figures with your accountant, or against your own records, before filing or paying tax.");
             row++;
 
-            //---- the quarterly figures, one column per period ----
-            List<HmrcExpenseCategory> boxes = summaries
-                .SelectMany(s => s.ExpensesByCategory.Keys)
-                .Distinct()
+            //  ----  the quarterly figures, one column per period  ----
+            //
+            //  Every HMRC box is written every time, zeros included, so each
+            //  figure sits in the same cell in every export. That is what
+            //  lets bridging software - the free way of filing an MTD
+            //  update - be pointed at the cells once and stay pointed: a
+            //  layout that shifts with which boxes happen to have spending
+            //  in them breaks the links the quarter something new is bought.
+            //  Do not go back to writing only the boxes with figures in.
+            List<HmrcExpenseCategory> boxes = Enum.GetValues<HmrcExpenseCategory>()
                 .OrderBy(b => (int)b)
                 .ToList();
 
@@ -88,6 +162,7 @@ namespace UiInterface.ImportExport
             row++;
 
             row = TextRow(sb, row, "Expense categories are grouped into HMRC boxes as a starting point - check with your accountant before filing.");
+            row = TextRow(sb, row, "Every box is listed every time, so each figure is always in the same cell - bridging software linked to these cells stays linked.");
             row++;
 
             //---- the entries behind the totals ----

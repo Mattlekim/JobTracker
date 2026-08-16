@@ -193,7 +193,10 @@ worker names — and *Update My Work* takes it off every job in the return, mark
 back home either way. The name is read back off the tags (`WorkShare.OutWith`) wherever a whole day is
 titled: a booked day that has been sent says *With \<name\>* on its day heading on `Layouts/BookedWork` and
 on the work list's booking summary row, so a week planned out and handed over says whose hands each day is
-in at a glance. Not every send comes back as a file, so **Work Sent Out** (on the work list's toolbar
+in at a glance. Work that is out is **not offered for sending again** (`WorkShare.IsOut`): two copies of the
+same job with two people ends with the house cleaned twice or not at all, so the day menus drop their send
+option once the day is out, and the work list says which picked jobs are already with somebody rather than
+quietly sending fewer than were picked. Not every send comes back as a file, so **Work Sent Out** (on the work list's toolbar
 while any send is remembered — `Layouts/SentWorkList`) lists every send and clears one by hand. Clearing
 changes nothing on the other phone; the two buttons differ only in what this phone forgets: *Take The Sent
 Tags Off* keeps the record — and the PIN on it — so a late return can still open itself, while *Forget This
@@ -697,6 +700,22 @@ The tax page's Export, the manual backup on the settings page and the tax page's
 all ask *Save To This Device* or *Share* when the platform can do both — a backup saved onto the device is a
 real backup on its own, and it is written as `application/octet-stream` so tapping it in the downloads list
 offers Work Tracker back.
+
+## The tax export and MTD
+
+The app cannot file to HMRC itself — that needs HMRC-recognised software — so the road to a free MTD filing
+is **bridging software**: a tool off HMRC's compatible-software list that reads the figures out of a
+spreadsheet and files them. `ImportExport/TaxReportWriter` serves that two ways:
+
+- **The spreadsheet** writes **every HMRC box every time, zeros included**, so each figure sits in the same
+  cell in every export. That is what lets a bridging tool be pointed at the cells once and stay pointed —
+  a layout that shifts with which boxes happen to have spending in them breaks the links the quarter
+  something new is bought. **Do not go back to writing only the boxes with figures in.**
+- **`WriteMtdCsv`** is the bare quarterly figures as a table — one row per period, always every column, ISO
+  dates, invariant decimal point — for MTD software that imports rather than links. The Export button on the
+  tax page asks which shape is wanted.
+
+Both carry the estimates warning inside the file, because an export travels without the page it came from.
 
 ## Job types
 

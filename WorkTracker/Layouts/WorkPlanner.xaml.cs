@@ -2249,11 +2249,31 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     private async void bnt_sendWork_Clicked(object sender, EventArgs e)
     {
         List<Job> picked = new List<Job>();
+        List<Job> alreadyOut = new List<Job>();
+
         foreach (int id in _selectedJobs)
         {
             Job j = Job.Query(QueryType.JobId, id).FirstOrDefault();
-            if (j != null && j.CustomerId != -1 && !j.IsCompleted && !j.HaveCanceled)
+            if (j == null || j.CustomerId == -1 || j.IsCompleted || j.HaveCanceled)
+                continue;
+
+            //work already with somebody is not sent again - two copies of the
+            //same job with two people ends with the house cleaned twice or
+            //not at all. said rather than silently dropped, because a count
+            //that quietly shrinks reads as the app losing jobs
+            if (WorkShare.IsOut(j))
+                alreadyOut.Add(j);
+            else
                 picked.Add(j);
+        }
+
+        if (picked.Count == 0 && alreadyOut.Count > 0)
+        {
+            string with = string.Join(", ", WorkShare.OutWith(alreadyOut));
+            await DisplayAlert("Already Sent",
+                $"The job(s) you picked are already out with {with}. Work Sent Out on the toolbar clears a send that is not coming back.",
+                "Ok");
+            return;
         }
 
         if (picked.Count == 0)
@@ -2261,6 +2281,12 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             await DisplayAlert("No Jobs", "Pick the jobs you want to send first.", "Ok");
             return;
         }
+
+        if (alreadyOut.Count > 0
+            && !await DisplayAlert("Already Sent",
+                $"{alreadyOut.Count} of the picked job(s) are already out with {string.Join(", ", WorkShare.OutWith(alreadyOut))} and will not be sent again. Send the other {picked.Count}?",
+                "Send Them", "Cancel"))
+            return;
 
         CancelSelectingJobs();
         await Navigation.PushAsync(new SendWork(picked));
