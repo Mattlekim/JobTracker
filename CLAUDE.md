@@ -939,3 +939,35 @@ the top of the page while it was being worked from.
 `ApplicationDisplayVersion` and `ApplicationVersion` live in `WorkTracker/WorkTracker.csproj` and must both be
 bumped for a Play Store upload. `BuildDate` is stamped into the assembly automatically at build time and surfaced
 on the settings page, so it needs no manual update.
+
+## Improvements considered and not done yet
+
+Proposed during the work-sharing and balance-records work, agreed worth doing, and deliberately left for later.
+Enough context here to pick each one up cold:
+
+- **Derived customer balance.** Stop storing `Customer.Balance` and compute it: completed visits (at
+  `EffectivePrice`) − payments − write-offs, plus hand-set records. The compensating `+=`/`-=` scattered
+  through done/undone/paid/merge is the drift risk behind the duplicate-customer bug, and deriving removes
+  the class. The groundwork is in: `BalanceAdjustment` keeps the write-offs and hand-set figures that make
+  derivation possible, and each visit keeps the price it was charged at. Still needed: a one-time migration
+  turning each customer's stored balance into an opening `SetByHand` record so nothing changes on screen,
+  self-test coverage *before* the switch, and a sweep of every `Balance +=`/`-=` site. Do this only after
+  the adjustment records have been in real use for a while — it is the one change here with regression risk.
+  (`Customer.CalculateCustomerBill` is an old stab at the same idea; it ignores adjustments and alternative
+  prices, so replace it rather than build on it.)
+
+- **Accruals bad debt.** If the accruals figures on the tax page are ever used seriously: income there is
+  counted off completed visits, so debt written off later stays in declared income. The write-off records
+  are exactly the bad-debt line — subtract the period's write-offs in `TaxSummary.Build`'s accruals branch.
+  On the cash basis (the default) nothing is needed; a write-off is money that never arrived.
+
+- **iOS file opening.** `.rbf` and `.rwk` cannot be opened into the app on iOS: needs
+  `CFBundleDocumentTypes` in `Info.plist` and an `OpenUrl` override in `AppDelegate`, routing to
+  `BackupRestore.FileWasOpened` / `WorkShareOpen.FileWasOpened` by extension the way `MainActivity` does.
+  Only matters if the iOS build is ever actually shipped.
+
+- **Row wrappers (the rest of the Job split).** `Job.cs`/`JobDisplay.cs` separates the files; the display
+  state (`IsSelected`, colours, `CollapsedInList`…) still lives on the shared job objects, so two pages
+  showing the same job share row state. The full fix is wrapper row view-models per list with bindings
+  prefixed onto them — a large churn across every virtualised list page for a cleanliness payoff. Not worth
+  it until it blocks something; do it one page at a time if ever.
