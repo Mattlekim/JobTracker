@@ -8,13 +8,14 @@
     <!-- the same three the work list leads with, in the same order and with
          the same icons. this is the same round looked at another way, so
          searching it, narrowing it and adding to it are not somewhere else.
-         Filters is this page's own View chooser - it has no dates of its own,
-         those are the Show All Jobs box under Option. -->
+         Filters opens the one panel below: what the list is grouped and
+         filtered by, and the page's few options. they used to be two menus
+         (Filters and Option), which was two places to look for one idea -
+         what the sheet is showing -->
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Search" IconImageSource="search.png" Clicked="tbi_Search_Clicked"></ToolbarItem>
-        <ToolbarItem Text="Filters" IconImageSource="filter.png" Clicked="bnt_View_Clicked"></ToolbarItem>
+        <ToolbarItem Text="Filters" IconImageSource="filter.png" Clicked="tbi_Filters_Clicked"></ToolbarItem>
         <ToolbarItem Text="Add Job" IconImageSource="add.png" Clicked="bnt_newJob_Clicked"></ToolbarItem>
-        <ToolbarItem Text="Option" Clicked="tbi_ShowOptions_Clicked" Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="New Quote"  Clicked="bnt_newQuote_Clicked" Order="Secondary"></ToolbarItem>
     </ContentPage.ToolbarItems>
     <StackLayout>
@@ -61,9 +62,21 @@
 
 
             </Grid.ColumnDefinitions>
+
+            <!-- what the sheet is narrowed to. this used to be an action
+                 sheet of its own under the Filters button, with the options
+                 below under a separate Option menu - one panel now, because
+                 they are both "what is this page showing" -->
             <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Padding="4">
-                <Label Text="Show Canceled Jobs" VerticalOptions="Center"></Label>
-                <CheckBox x:Name="cb_showCanceledJobs" IsChecked="False" BackgroundColor="Transparent"></CheckBox>
+                <Label Text="Filter By" VerticalOptions="Center"></Label>
+                <Picker x:Name="p_paperFilterBy" SelectedIndexChanged="p_paperFilterBy_Changed">
+                    <Picker.Items>
+                        <x:String>All Jobs</x:String>
+                        <x:String>City</x:String>
+                        <x:String>Area</x:String>
+                        <x:String>Round</x:String>
+                    </Picker.Items>
+                </Picker>
             </HorizontalStackLayout>
 
             <HorizontalStackLayout Grid.Row="0" Grid.Column="1" HorizontalOptions="End" Padding="4">
@@ -71,9 +84,14 @@
                 <DatePicker x:Name="dp_markDate" DateSelected="dp_MarkDate_Selected"></DatePicker>
             </HorizontalStackLayout>
 
+            <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Padding="4">
+                <Label Text="Show Canceled Jobs" VerticalOptions="Center"></Label>
+                <CheckBox x:Name="cb_showCanceledJobs" IsChecked="False" BackgroundColor="Transparent"></CheckBox>
+            </HorizontalStackLayout>
+
             <!-- off, the list is the work in hand: due, due in the next few
                  days, or written up today -->
-            <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Padding="4">
+            <HorizontalStackLayout Grid.Row="1" Grid.Column="1" HorizontalOptions="End" Padding="4">
                 <Label Text="Show All Jobs" VerticalOptions="Center"></Label>
                 <CheckBox x:Name="cb_showAllJobs" IsChecked="False" BackgroundColor="Transparent"></CheckBox>
             </HorizontalStackLayout>

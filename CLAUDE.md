@@ -879,9 +879,11 @@ Every item keeps its `Text` alongside the icon. Android shows that text on a lon
 Only put an icon on something whose picture is genuinely obvious; the rest say what they do in words.
 
 The work list and the paper view **lead with the same three** — Search, Filters, Add Job, in that order. It is
-the same round looked at two ways, so what is on the bar does not move between them. The paper view's Filters is
-its own View chooser (All Jobs, City, Area, Round); it has no dates of its own, those are the *Show All Jobs* box
-under Option.
+the same round looked at two ways, so what is on the bar does not move between them. The paper view's Filters
+toggles one panel holding everything about what the sheet is showing: a *Filter By* picker (All Jobs, City,
+Area, Round — it has no dates of its own, those are the *Show All Jobs* box on the same panel), the mark-done
+date and the show-cancelled box. The filter chooser used to be an action sheet under Filters with the boxes
+under a separate *Option* menu, which was two places to look for one idea.
 
 ### The work list's toolbar is built in code
 
