@@ -74,6 +74,19 @@ public partial class AllJobs : ContentPage
         NavigatedTo += (s, e) => Build();
     }
 
+    /// <summary>the classic pull down: the page built again from the jobs</summary>
+    private void rv_jobs_Refreshing(object sender, EventArgs e)
+    {
+        try
+        {
+            Build();
+        }
+        finally
+        {
+            rv_jobs.IsRefreshing = false;
+        }
+    }
+
     private void Build()
     {
         //taken rather than read, so the question is only answered once

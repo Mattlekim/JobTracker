@@ -221,7 +221,9 @@
             </Grid>
         </Border>
 
-        <CollectionView Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+        <!-- the classic pull down to build the page again from the jobs -->
+        <RefreshView Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" x:Name="rv_jobs" Refreshing="rv_jobs_Refreshing">
+        <CollectionView
                     x:Name="lv_Jobs" SelectionMode="Single" SelectionChanged="lv_Jobs_SelectionChanged" VerticalOptions="FillAndExpand" RemainingItemsThreshold="0">
             <!-- The filter panel rides at the top of the list's own content
                  rather than being pinned above it, so scrolling takes it out
@@ -519,5 +521,6 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+        </RefreshView>
     </Grid>
 </ContentPage>

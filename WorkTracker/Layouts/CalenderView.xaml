@@ -21,7 +21,9 @@
          They ride along as the list's header rather than sitting above it,
          because a ScrollView around the lot would put one scroll inside
          another and cost the list its virtualisation. -->
-    <CollectionView Grid.Row="1" x:Name="lv_Jobs" SelectionMode="None" RemainingItemsThreshold="0">
+    <!-- the classic pull down to build the month again from the jobs -->
+    <RefreshView Grid.Row="1" x:Name="rv_calendar" Refreshing="rv_calendar_Refreshing">
+    <CollectionView x:Name="lv_Jobs" SelectionMode="None" RemainingItemsThreshold="0">
         <CollectionView.Header>
             <VerticalStackLayout>
                 <HorizontalStackLayout HorizontalOptions="Center" x:Name="hsl_monthSelector">
@@ -259,5 +261,6 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
     </CollectionView>
+    </RefreshView>
     </Grid>
 </ContentPage>

@@ -786,6 +786,19 @@ public partial class PaperView : ContentPage
 		e_search.Text = string.Empty;
 	}
 
+    /// <summary>the classic pull down: the sheet built again from the jobs</summary>
+    private void rv_paper_Refreshing(object sender, EventArgs e)
+    {
+        try
+        {
+            FullPageLoad();
+        }
+        finally
+        {
+            rv_paper.IsRefreshing = false;
+        }
+    }
+
     private void FullPageLoad()
 	{
         List<Job> jobs = Job.Query();

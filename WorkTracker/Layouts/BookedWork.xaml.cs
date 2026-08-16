@@ -150,6 +150,20 @@ public partial class BookedWork : ContentPage, IHoldRows
     /// <summary>the one day being looked at, or MinValue for the whole lot</summary>
     private DateTime _showingDay = DateTime.MinValue;
 
+    /// <summary>the classic pull down: the days built again from the jobs</summary>
+    private void rv_bookings_Refreshing(object sender, EventArgs e)
+    {
+        try
+        {
+            DataRefreshNotifier.RebuildBookings();
+            Reload();
+        }
+        finally
+        {
+            rv_bookings.IsRefreshing = false;
+        }
+    }
+
     private void Reload()
     {
         //a day that has passed with all of its work done is a plan for a day

@@ -59,7 +59,9 @@
         <Label Grid.Row="2" x:Name="l_empty" IsVisible="false" Margin="16,16" Style="{StaticResource Caption}"
                Text="No work on the round yet. Add Job on the work list or the job list puts the first house on."></Label>
 
-        <CollectionView Grid.Row="2" x:Name="cv_jobs" SelectionMode="Single" SelectionChanged="cv_jobs_SelectionChanged">
+        <!-- the classic pull down to build the page again from the jobs -->
+        <RefreshView Grid.Row="2" x:Name="rv_jobs" Refreshing="rv_jobs_Refreshing">
+        <CollectionView x:Name="cv_jobs" SelectionMode="Single" SelectionChanged="cv_jobs_SelectionChanged">
             <CollectionView.ItemTemplate>
                 <!--  x:DataType compiles the bindings, so a row that is renamed
                       is a build error rather than a blank label nobody notices  -->
@@ -100,6 +102,7 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+        </RefreshView>
 
     </Grid>
 

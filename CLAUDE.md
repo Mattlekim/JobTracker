@@ -312,6 +312,11 @@ so a quick word from this page would have quietly cost that customer the message
 **Paper**, **List**, **All Jobs**, **Quotes**, **Stats** — in that order in `AppShell.xaml`. Paper is
 `Layouts/PaperView`, and the tab used to be called Overview.
 
+All five work pages — and the booked work and calendar pages — have the classic pull-down-to-refresh
+(`RefreshView` around each page's one `CollectionView`), which builds the page again from the jobs, booked
+days included. Each handler puts `IsRefreshing` back to false in a `finally`, because a throw part way
+through a rebuild must not leave the spinner going round for ever.
+
 Its **route is still `work_overview`**, and it stays that way. `AppShell_Navigated` writes the `WorkTabView`
 preference off that route, so renaming it would lose which work view reopens for everybody already using the app.
 A tab's title is what somebody reads; its route is what the data was written against, and the two do not have to
