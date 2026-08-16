@@ -101,6 +101,12 @@ public static class CustomerBalance
         if (c == null)
             return;
 
+        //a figure typed in leaves a record - what it was, what it became and
+        //when - so the customer's history can say the day it was agreed
+        //rather than just showing a number nothing accounts for
+        if (c.Balance != balance)
+            BalanceAdjustment.AddSetByHand(c.Id, balance, c.Balance, null);
+
         c.Balance = balance;
         c.DateBalanceLastUpdate = DateTime.Now;
         Customer.Save();

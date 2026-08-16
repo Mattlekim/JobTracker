@@ -7,9 +7,20 @@ using System.Threading.Tasks;
 namespace Kernel
 {
     /// <summary>
-    /// a day's work booked in. there is only ever one booking per day -
+    /// A day's work booked in. There is only ever one booking per day -
     /// booking more work for a day it already has adds to it rather than
-    /// starting a second list for the same date
+    /// starting a second list for the same date.
+    ///
+    /// Bookings is a cache and the jobs are the truth: which day a job is on
+    /// lives on the job (IsBookedIn, DateJobBookinFor), and the cache is
+    /// only ever <see cref="Rebuild"/>-built from that. It used to be
+    /// patched in place as well - a job taken out here, a day renamed there -
+    /// and every path that changed a job's booked state had to remember to
+    /// mend the cache too. Skip forgot once, cancelling work forgot once,
+    /// and each one was a ghost day on the work list: a summary row
+    /// counting work no list would show. So the mutators below all do the
+    /// same thing - change the flags on the jobs, then rebuild - and nothing
+    /// else may write to <see cref="Bookings"/>.
     /// </summary>
     public class Booking
     {
@@ -22,6 +33,34 @@ namespace Kernel
             return new DateTime(date.Year, date.Month, date.Day);
         }
 
+        /// <summary>
+        /// builds the cache from the jobs - the only thing that may fill it.
+        /// cheap enough to run on every change: a round is hundreds of jobs
+        /// and a phone rebuilds that without noticing
+        /// </summary>
+        public static void Rebuild()
+        {
+            Bookings.Clear();
+
+            Dictionary<DateTime, List<Job>> byDay = new Dictionary<DateTime, List<Job>>();
+            foreach (Job j in Job.Query())
+            {
+                if (!j.IsBookedIn)
+                    continue;
+
+                DateTime day = DayOf(j.DateJobBookinFor);
+                if (!byDay.TryGetValue(day, out List<Job> jobs))
+                {
+                    jobs = new List<Job>();
+                    byDay[day] = jobs;
+                }
+                jobs.Add(j);
+            }
+
+            foreach (KeyValuePair<DateTime, List<Job>> day in byDay)
+                Bookings.Add(new Booking(day.Value, day.Key));
+        }
+
         /// <summary>the booking on a day, or null when nothing is booked</summary>
         public static Booking ForDate(DateTime date)
         {
@@ -29,35 +68,37 @@ namespace Kernel
             return Bookings.FirstOrDefault(x => x.Date == day);
         }
 
+        /// <summary>
+        /// takes everything off a day. worked out from the jobs rather than
+        /// the cached day, so work booked for the date that some list never
+        /// showed - the reason most callers are removing a day at all -
+        /// comes off with the rest instead of haunting the next rebuild
+        /// </summary>
         public static void RemoveBooking(DateTime date)
         {
             //the time of day is ignored, so a booking can be removed with
             //whatever form of the date the caller happens to hold
             DateTime day = DayOf(date);
-            Bookings.RemoveAll(x => x.Date == day);
+
+            foreach (Job j in Job.Query())
+                if (j.IsBookedIn && j.DateJobBookinFor.Date == day)
+                    j.UnBookInJob();
+
+            Rebuild();
         }
 
         public static void ReseduleBooking(DateTime olddate, DateTime newdate)
         {
-            Booking b = ForDate(olddate);
-            if (b == null)
-                return;
+            DateTime from = DayOf(olddate);
+            DateTime to = DayOf(newdate);
 
-            DateTime day = DayOf(newdate);
+            //moving on to a day that already has work booked joins the two -
+            //one booking per day, and the flags carry that on their own
+            foreach (Job j in Job.Query())
+                if (j.IsBookedIn && j.DateJobBookinFor.Date == from)
+                    j.BookInJob(to);
 
-            //if that day already has work booked, the two join up
-            Booking existing = ForDate(day);
-            if (existing != null && existing != b)
-            {
-                existing.AddJobs(b.Jobs);
-                Bookings.Remove(b);
-                return;
-            }
-
-            b.Date = day;
-            foreach (Job j in b.Jobs)
-                j.BookInJob(day);
-            b.Refresh();
+            Rebuild();
         }
 
         /// <summary>
@@ -68,16 +109,13 @@ namespace Kernel
         {
             DateTime day = DayOf(date);
 
-            Booking existing = ForDate(day);
-            if (existing != null)
-            {
-                existing.AddJobs(jobs);
-                return existing;
-            }
+            if (jobs != null)
+                foreach (Job j in jobs)
+                    if (j != null)
+                        j.BookInJob(day);
 
-            Booking booking = new Booking(jobs, day);
-            Bookings.Add(booking);
-            return booking;
+            Rebuild();
+            return ForDate(day);
         }
 
         /// <summary>
@@ -91,19 +129,8 @@ namespace Kernel
             if (job == null || !job.IsBookedIn)
                 return false;
 
-            Booking b = ForDate(job.DateJobBookinFor);
             job.UnBookInJob();
-
-            if (b == null)
-                return true;
-
-            b.Jobs.RemoveAll(x => x.Id == job.Id);
-
-            if (b.Jobs.Count == 0)
-                Bookings.Remove(b);
-            else
-                b.Refresh();
-
+            Rebuild();
             return true;
         }
 
@@ -254,13 +281,16 @@ namespace Kernel
                     continue;
 
                 foreach (Job j in jobs)
-                    RemoveJobFromBooking(j);
+                    j.UnBookInJob();
 
                 cleared++;
             }
 
             if (cleared > 0)
+            {
+                Rebuild();
                 Job.Save();
+            }
 
             return cleared;
         }
@@ -273,7 +303,13 @@ namespace Kernel
         /// <summary>the day this work is booked for</summary>
         public DateTime Date;
 
-        public Booking(List<Job> jobs, DateTime date)
+        /// <summary>
+        /// only <see cref="Rebuild"/> makes these: a booking is a view of
+        /// jobs already flagged as booked, so building one never changes a
+        /// job - the flags were set by whichever mutator asked for the
+        /// rebuild
+        /// </summary>
+        private Booking(List<Job> jobs, DateTime date)
         {
             Date = DayOf(date);
 
@@ -288,23 +324,10 @@ namespace Kernel
             IdGenerator--;
             BookingInfo.Address = new Location();
 
-            AddJobs(jobs);
-        }
-
-        /// <summary>
-        /// books these jobs in for this day. a job already in this booking is
-        /// left alone rather than counted twice
-        /// </summary>
-        public void AddJobs(List<Job> jobs)
-        {
             if (jobs != null)
                 foreach (Job j in jobs)
-                {
-                    if (j == null || Jobs.Any(x => x.Id == j.Id))
-                        continue;
-                    j.BookInJob(Date);
-                    Jobs.Add(j);
-                }
+                    if (j != null && !Jobs.Any(x => x.Id == j.Id))
+                        Jobs.Add(j);
 
             Refresh();
         }

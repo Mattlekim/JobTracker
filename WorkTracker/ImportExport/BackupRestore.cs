@@ -139,6 +139,7 @@ public static class BackupRestore
             ExpenseRule.Load();
             StatementRecord.Load();
             GoCardlessRequest.Load();
+            BalanceAdjustment.Load();
 
             DataRefreshNotifier.NotifyDataChanged();
         }

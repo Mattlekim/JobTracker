@@ -5,8 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Xml.Serialization;
-using Microsoft.Maui;
-using Microsoft.Maui.Graphics;
 
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -14,7 +12,13 @@ using System.ComponentModel;
 namespace Kernel
 {
     /// <summary>
-    /// the main job class
+    /// The main job class - one visit of a house, and the rules for what
+    /// happens to it. This file is the round: dates, money, what was done.
+    /// The half of the class a page binds to - colours, formatted strings,
+    /// tick boxes, fold-out state - lives in JobDisplay.cs, so nothing in
+    /// here should ever need a colour. If a member could only ever break a
+    /// screen, it goes there; if it could break a figure, a file or a rule
+    /// about the work, it goes here.
     /// </summary>
     public partial class Job: INotifyPropertyChanged
     {
@@ -186,8 +190,6 @@ namespace Kernel
             rounds.Sort(StringComparer.CurrentCultureIgnoreCase);
             return rounds;
         }
-
-        public GridLength Gr { get; set; } = new GridLength(0.3, GridUnitType.Star);
 
         /// <summary>
         /// the master id number
@@ -475,10 +477,6 @@ namespace Kernel
 
         public List<AlternativePrice> AlternativePrices;
 
-        [XmlIgnore]
-        public bool DisableSwipe = false;
-
-        public bool EnabledSwipe { get { return !DisableSwipe; } }
         public int UseAlterativePrice = -1;
         /// <summary>
         /// the first job this is based off
@@ -755,25 +753,6 @@ namespace Kernel
             return true;
         }
 
-        [XmlIgnore]
-        public bool HaveTags
-        {
-            get { return Tags.Count > 0; }
-        }
-
-        /// <summary>the tags as one line, for the job rows and the history</summary>
-        [XmlIgnore]
-        public string TagsText
-        {
-            get { return string.Join(" • ", Tags); }
-        }
-
-        private void RefreshTags()
-        {
-            RaisePropertyChanged("Tags");
-            RaisePropertyChanged("HaveTags");
-            RaisePropertyChanged("TagsText");
-        }
         /// <summary>
         /// the address of the job
         /// </summary>
@@ -820,20 +799,6 @@ namespace Kernel
         public int Minutes
         {
             get { return EstimatedTime > 0 ? EstimatedTime : DefaultDuration; }
-        }
-
-        /// <summary>true while there is a length worth putting on the row</summary>
-        [XmlIgnore]
-        public bool HaveLength
-        {
-            get { return Minutes > 0; }
-        }
-
-        /// <summary>the job's length as a tag, on the rows and the calendar</summary>
-        [XmlIgnore]
-        public string LengthText
-        {
-            get { return SpellMinutes(Minutes); }
         }
 
         //  ------------------------------------------  what is still in use
@@ -901,22 +866,6 @@ namespace Kernel
             return used;
         }
 
-        /// <summary>minutes as somebody would say them</summary>
-        public static string SpellMinutes(int minutes)
-        {
-            if (minutes <= 0)
-                return string.Empty;
-
-            if (minutes < 60)
-                return $"{minutes} mins";
-
-            int hours = minutes / 60;
-            int rest = minutes % 60;
-
-            string said = hours == 1 ? "1 hr" : $"{hours} hrs";
-
-            return rest == 0 ? said : $"{said} {rest} mins";
-        }
         /// <summary>
         /// if the job is booked in or not
         /// </summary>
@@ -941,121 +890,6 @@ namespace Kernel
                 return DueDate;
             }
         }
-
-        /// <summary>
-        /// this is where we can put temp data
-        /// this is not saved
-        /// </summary>
-        [XmlIgnore]
-        public object Data;
-
-        /// <summary>
-        /// The work list is picking jobs out rather than working through them.
-        /// It is one switch for the whole round - either every row has a tick
-        /// box or none of them do.
-        ///
-        /// It used to be set through a property on the job, which read a
-        /// static behind the scenes but only told the one job it was set on
-        /// that anything had changed. Rows built after that - the list is
-        /// virtualised, so that is any row scrolled into view - read the
-        /// static and drew a tick box while the rest of the list had none.
-        /// That is where the boxes appearing on their own came from, and why
-        /// they could not be got rid of: whichever rows were never told took
-        /// no notice of being switched off either.
-        ///
-        /// So it is set through <see cref="SetSelectionMode"/>, which is the
-        /// only thing that can change it and tells the whole round at once.
-        /// </summary>
-        public static bool SelectionMode { get; private set; }
-
-        /// <summary>
-        /// turns the tick boxes on or off for the whole list, clearing
-        /// whatever was picked on the way out
-        /// </summary>
-        public static void SetSelectionMode(bool on)
-        {
-            SelectionMode = on;
-
-            foreach (Job j in _Jobs)
-            {
-                if (!on)
-                    j.IsSelected = false;
-
-                j.RaisePropertyChanged("SelectionModeEnabled");
-                j.RaisePropertyChanged("GridLengthCheckBoxWidth");
-            }
-        }
-
-        /// <summary>nothing picked, with the tick boxes left as they are</summary>
-        public static void ClearSelection()
-        {
-            foreach (Job j in _Jobs)
-                if (j.IsSelected)
-                    j.IsSelected = false;
-        }
-
-        /// <summary>everything with its tick in</summary>
-        public static List<Job> Selected()
-        {
-            return _Jobs.FindAll(x => x.IsSelected);
-        }
-
-        /// <summary>
-        /// worked out rather than stored, so a row built at any point reads
-        /// the same answer as every other row.
-        ///
-        /// the booking summary rows are not work and cannot be picked, so
-        /// they never show a box whatever the list is doing
-        /// </summary>
-        [XmlIgnore]
-        public bool SelectionModeEnabled
-        {
-            get { return SelectionMode && CustomerId != -1; }
-        }
-
-        [XmlIgnore]
-        public double GridLengthCheckBoxWidth
-        {
-            get { return SelectionModeEnabled ? 0.3 : 0; }
-        }
-
-
-        [XmlIgnore]
-        public Color AltColour { get; set; } = Colors.Transparent;
-        [XmlIgnore]
-        private bool _isSelected;
-        [XmlIgnore]
-        public bool IsSelected
-        {
-            get { return _isSelected; }
-            set
-            {
-                _isSelected = value;
-                RaisePropertyChanged("IsSelected");
-            }
-        }
-
-        [XmlIgnore]
-        private bool _collapsedInList;
-        /// <summary>
-        /// ui state: completed jobs show as a narrow faded row in day lists until tapped
-        /// </summary>
-        [XmlIgnore]
-        public bool CollapsedInList
-        {
-            get { return _collapsedInList; }
-            set
-            {
-                _collapsedInList = value;
-                RaisePropertyChanged("CollapsedInList");
-                RaisePropertyChanged("ExpandedInList");
-            }
-        }
-        [XmlIgnore]
-        public bool ExpandedInList { get { return !_collapsedInList; } }
-
-        [XmlIgnore]
-        public DateTime tmpDate;
 
         public void UnBookInJob()
         {
@@ -1149,17 +983,6 @@ namespace Kernel
         }
 
         /// <summary>
-        /// the one off tag in the lists. the section headings are jobs with
-        /// no customer behind them, and a job that has been done is already
-        /// saying so - the tag is there to warn that it will not come back
-        /// </summary>
-        [XmlIgnore]
-        public bool ShowOneOff
-        {
-            get { return IsOneOff && CustomerId >= 0 && !IsCompleted && !HaveCanceled; }
-        }
-
-        /// <summary>
         /// a finished one off can be put back on for another go - the same
         /// customer wants their gutters doing again a year later. only while
         /// it has not already been: JobNextId holds the go it was given, and
@@ -1188,59 +1011,6 @@ namespace Kernel
             Job.Save();
             Refresh();
             return j;
-        }
-
-        private static string tmp;
-        private static int tmpInt;
-        public void Refresh()
-        {
-
-            //tmp = JobFormattedDueTime;
-            //tmp = JobFormattedOwed;
-            RaisePropertyChanged("JobFormattedOwed");
-            RaisePropertyChanged("JobFormattedDueTime");
-            RaisePropertyChanged("ShowOwed");
-            RaisePropertyChanged("PaymentPending");
-            RaisePropertyChanged("PaymentPendingText");
-            RaisePropertyChanged("IsMarked");
-            RaisePropertyChanged("DoneActionText");
-            RaisePropertyChanged("ShowPaidAction");
-            RaisePropertyChanged("IsOneOff");
-            RaisePropertyChanged("ShowOneOff");
-            RaisePropertyChanged("CanDoAgain");
-            RaisePropertyChanged("Round");
-            RaisePropertyChanged("HaveRound");
-            RaisePropertyChanged("RoundOrNone");
-            RaisePropertyChanged("Minutes");
-            RaisePropertyChanged("HaveLength");
-            RaisePropertyChanged("LengthText");
-            RefreshTags();
-        }
-
-        /// <summary>
-        /// the job has already been marked done or paid, so the swipe offers
-        /// Clear and More rather than Done and Done &amp; Paid again
-        /// </summary>
-        [XmlIgnore]
-        public bool IsMarked
-        {
-            get { return IsCompleted || IsPaidFor; }
-        }
-
-        /// <summary>what the first swipe action does to this job as it stands</summary>
-        [XmlIgnore]
-        public string DoneActionText
-        {
-            get { return IsMarked ? "Clear" : "Done"; }
-        }
-
-        /// <summary>
-        /// Done &amp; Paid is only worth offering on a job that is neither yet
-        /// </summary>
-        [XmlIgnore]
-        public bool ShowPaidAction
-        {
-            get { return !IsMarked; }
         }
 
         /// <summary>the payment this job was marked paid with, or null</summary>
@@ -1335,8 +1105,12 @@ namespace Kernel
         /// the shortfall is written off, not recorded as income, because it
         /// was never actually received
         /// </summary>
+        /// <param name="reason">
+        /// why, in the round's own words - what the history says when the
+        /// customer argues about money again. can be blank
+        /// </param>
         /// <returns>the amount written off</returns>
-        public float SettleBalance()
+        public float SettleBalance(string reason = null)
         {
             MatchCustomer();
 
@@ -1346,6 +1120,11 @@ namespace Kernel
                 writtenOff = _customer.Balance;
                 _customer.Balance = 0;
                 Customer.Save();
+
+                //recorded here rather than by the button, so a write-off can
+                //never happen without its record - the record is the point
+                if (writtenOff != 0)
+                    BalanceAdjustment.AddWriteOff(_customer.Id, writtenOff, writtenOff, reason);
             }
 
             //a direct debit still on its way marks the job paid itself when
@@ -1655,70 +1434,6 @@ namespace Kernel
 
         public bool CustomerAddressDifferentToJob = false;
 
-        public string JobFormattedStringPrice
-        {
-            get
-            {
-          //      RaisePropertyChanged("JobFormattedStringPrice");
-                return $"Price {Gloable.CurrenceSymbol}{Price}";
-            }
-        }
-        public string JobFormattedStringNotes
-        {
-            get
-            {
-             //   RaisePropertyChanged("JobFormattedStringNotes");
-                return $"{Notes}";
-            }
-        }
-        public string JobFormattedString
-        {
-            get
-            {
-             //   RaisePropertyChanged("JobFormattedString");
-                if (Address == null)
-                    return string.Empty;
-                return $"{Address.PropertyNameNumber} {Address.DisplayStreet} {Address.DisplayCity} {Address.DisplayArea}";
-
-            }
-        }
-
-        public string JobFormattedStreet
-        {
-            get
-            {
-             //   RaisePropertyChanged("JobFormattedStreet");
-                if (Address == null)
-                    return string.Empty;
-                return $"{Address.PropertyNameNumber} {Address.DisplayStreet}";
-
-            }
-        }
-
-
-        public string JobFormattedHouseNumber
-        {
-            get
-            {
-           //     RaisePropertyChanged("JobFormattedHouseNumber");
-                if (Address == null)
-                    return string.Empty;
-                return $"{Address.PropertyNameNumber}";
-
-            }
-        }
-        public string JobFormattedStreetOnly
-        {
-            get
-            {
-              //  RaisePropertyChanged("JobFormattedStreetOnly");
-                if (Address == null)
-                    return string.Empty;
-                return $"{Address.DisplayStreet}";
-
-            }
-        }
-
         /// <summary>
         /// Does this job answer to what has been typed into a search box.
         ///
@@ -1863,188 +1578,6 @@ namespace Kernel
             return Address.PropertyNameNumber.Trim();
         }
 
-        public string JobFormattedCity
-        {
-            get
-            {
-            //    RaisePropertyChanged("JobFormattedCity");
-                if (Address == null)
-                    return string.Empty;
-                return $"{Address.DisplayCity}";
-
-            }
-        }
-
-        public string JobFormattedArea
-        {
-            get
-            {
-              //  RaisePropertyChanged("JobFormattedArea");
-                if (Address == null)
-                    return string.Empty;
-                return $"{Address.DisplayArea}";
-
-            }
-        }
-
-        public string JobFormattedSubString
-        {
-            get
-            {
-                RaisePropertyChanged("JobFormattedSubString");
-                return $"Frequence {Frequence} Weekly {Gloable.CurrenceSymbol}{Price}";
-
-            }
-        }
-
-        public string FormattedData
-        {
-            get
-            {
-             //   RaisePropertyChanged("FormattedData");
-                if (IsCompleted)
-                    return DateCompleated.ToShortDateString();
-                else
-                    return DueDate.ToShortDateString();
-            }
-        }
-        
-        public string JobFormattedDetails
-        {
-            get {
-               // RaisePropertyChanged("JobFormattedDetails");
-                if (IsCompleted)
-                {
-                    tmp = $"Completed on {DateCompleated.ToShortDateString()}.";
-                    AlternativePrice chosen = ChosenAlternativePrice;
-                    if (chosen == null)
-                        tmp += $"Price {Gloable.CurrenceSymbol}{Price}";
-                    else
-                        tmp += $"Price {Gloable.CurrenceSymbol}{chosen.Price} for {chosen.Description}";
-                }
-                else
-                    tmp = $"Job next due on {DueDate.ToShortDateString()}";
-
-                return tmp;
-            }
-
-        }
-
-        [XmlIgnore]
-        public Color DueColorCode
-        {
-            get
-            {
-                return _dueColorCode;
-            }
-            set
-            {
-                _dueColorCode = value;
-                RaisePropertyChanged("DueColorCode");
-            }
-        } 
-        private Color _dueColorCode = Colors.LightGray;
-        [XmlIgnore]
-        public Color DueColorTextCode
-        {
-            get
-            {
-                return _dueColorTextCode;
-            }
-            set
-            {
-                _dueColorTextCode = value;
-                RaisePropertyChanged("DueColorTextCode");
-            }
-        } 
-        private Color _dueColorTextCode = Colors.LightGray;
-
-
-        public string JobFormattedDueTime
-        {
-            get
-            {
-             //   RaisePropertyChanged("JobFormattedDueTime");
-                if (IsCompleted)
-                {
-                    DueColorCode = Colors.LightGray;
-                    DueColorTextCode = Colors.Black;
-                    //counted from the day the work was actually done, not the day
-                    //it fell due. this used to measure from DueDate, so a job
-                    //cleaned months after it was due reported the whole overdue
-                    //stretch as though that was how long ago it was cleaned -
-                    //work finished this morning came up as "526 Days Ago"
-                    int d = UsfulFuctions.Difference(DateCompleated, UsfulFuctions.DateNow);
-                    switch (d)
-                    {
-                        case 0:
-                            return $"Completed Today";
-
-                        //Difference has no sign to it, so yesterday counts as
-                        //one. the old -1 here could never be matched
-                        case 1:
-                            return $"Completed Yesterday";
-
-                    }
-                    return $"Completed {d} Days Ago";
-                }
-
-                DueColorTextCode = Colors.White;
-
-                if (HaveCanceled)
-                {
-                    DueColorCode = Colors.Red;
-                    return  "Canceled";
-                }
-
-             
-                if (DueDate.DayOfYear == DateTime.Now.DayOfYear && DueDate.Year == DateTime.Now.Year) //if not due
-                {
-                    DueColorCode = Colors.Orange;
-                    return "Due Today";
-                    
-                }
-
-                if (DueDate.Ticks > UsfulFuctions.DateNow.Ticks) //if not due
-                {
-                    DueColorCode = Colors.Blue;
-                    tmpInt = UsfulFuctions.Difference(DueDate, UsfulFuctions.DateNow);
-                    switch (tmpInt)
-                    {
-                        case 0:
-                            return $"Due Today";
-
-                        case 1:
-                            return $"Due Tomorrow";
-
-                        default:
-                            return $"Due in {UsfulFuctions.Difference(DueDate, UsfulFuctions.DateNow)} Days";
-                    }
-                    
-                    
-                }
-
-                DueColorCode = Colors.Red;
-                return $"{UsfulFuctions.Difference(DueDate, UsfulFuctions.DateNow)} Days Late";
-                
-            }
-        }
-
-        [XmlIgnore]
-
-        public Color OwedColorCode
-        {
-            get
-            {
-                return _owedColorCode;
-            }
-            set
-            {
-                _owedColorCode = value;
-                RaisePropertyChanged("OwedColorCode");
-            }
-        }
-        private Color _owedColorCode;
         public Customer GetCustomer()
         {
             MatchCustomer();
@@ -2071,117 +1604,6 @@ namespace Kernel
                 return;
             _customer.Balance -= amount;
         }
-        public bool HaveJobNotes
-        {
-            get
-            {
-                return !string.IsNullOrWhiteSpace(Notes);
-            }
-        }
-
-        [XmlIgnore]
-        public bool HaveJobName
-        {
-            get
-            {
-                return !string.IsNullOrWhiteSpace(Name);
-            }
-        }
-
-        public string JobFormattedOwedShort
-        {
-            get
-            {
-                MatchCustomer();
-            //    RaisePropertyChanged("JobFormattedOwedShort");
-                if (_customer == null)
-                {
-                    return string.Empty;
-                }
-
-                if (_customer.Balance >= 0)
-                    return $"{_customer.Balance}";
-
-                return "0";
-            }
-        }
-
-
-        public void RefreshColors()
-        {
-            OwedColorCode = Colors.Yellow;
-
-            MatchCustomer();
-
-            if (_customer == null)
-            {
-                OwedColorCode = Colors.Transparent;
-                return;
-            }
-
-            if (_customer.Balance == 0)
-            {
-                OwedColorCode = Colors.LightBlue;
-                return;
-
-            }
-
-            if (_customer.Balance > 0)
-            {
-                OwedColorCode = Colors.Red;
-                return;
-
-            }
-
-            OwedColorCode = Colors.Green;
-            return;
-        }
-
-        /// <summary>
-        /// hide the owed tag when there is no customer or nothing owed
-        /// </summary>
-        [XmlIgnore]
-        public bool ShowOwed
-        {
-            get
-            {
-                MatchCustomer();
-                return _customer != null && _customer.Balance != 0;
-            }
-        }
-
-        public string JobFormattedOwed
-        {
-            get
-            {
-                MatchCustomer();
-
-
-      //         RaisePropertyChanged("JobFormattedOwed");
-
-                if (_customer == null)
-                {
-               
-                    return string.Empty;
-                }
-
-                if (_customer.Balance == 0)
-                {
-                    return  "Nothing Owed";
-                     
-                }
-
-                if (_customer.Balance > 0)
-                {
-                    return $"Owes {Gloable.CurrenceSymbol}{_customer.Balance}";
-                    
-                }
-
-                return $"{Gloable.CurrenceSymbol}{Math.Abs(_customer.Balance)} In Credit";
-                
-            }
-        }
-
         /// <summary>
         /// date the job is due
         /// </summary>

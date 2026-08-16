@@ -13,7 +13,14 @@
 
 `Kernel/` holds the domain model (Customer, Job, Payment, WorkDay, SaveLoad, TaxReporting…). It has its own
 `Kernel.csproj`, but `WorkTracker` does not reference it — it pulls the `.cs` files in as linked `<Compile Include="..\Kernel\...">`
-items. Editing a file under `Kernel/` therefore changes both the app and `KernelDebugger`.
+items. Editing a file under `Kernel/` therefore changes both the app and `KernelDebugger`. **A new kernel file
+must be added to `WorkTracker.csproj`'s link list by hand** or the app builds without it.
+
+`Job` is one partial class in two files with two jobs: `Job.cs` is the round — dates, money, the rules for
+what happens to a visit — and `JobDisplay.cs` is the half a page binds to — colours, formatted strings, the
+tick boxes, the fold-out state. The rule for what goes where: if deleting a member could only ever break a
+screen it belongs in `JobDisplay.cs`; if it could break a figure, a file or a rule about the work it belongs
+in `Job.cs`, and nothing in `Job.cs` should ever need a colour.
 
 `UiInterface/` (net6.0) and `JobTracker/` (Xamarin) are older versions kept for reference. They are not in the
 solution and are not built or maintained.
@@ -445,12 +452,15 @@ so the day never cleared and went on being called overdue, and the work list lea
 
 `Job.SkipJob` is what unbooks it, in the kernel with the rest of the skip, so none of the four places work can be
 skipped from — the swipes and menus on the work list, the calendar and the booked work page, and the paper view's
-record sheet — can be the one that forgets. The day itself is a `Booking` worked out from the jobs and cached in
-`Booking.Bookings`, which the kernel cannot see, so **`WorkPlanner.MarkJobSkipped` takes the job out of that
-first**: `Booking.RemoveJobFromBooking` has nothing to go on once the job says it is not booked in, and the day
-would be left with a summary row counting a house that is not on it. Anything skipping work goes through
-`MarkJobSkipped` for that reason — `SkipJob` on its own puts the job right but leaves the cached day stale until
-the next `DataRefreshNotifier.RebuildBookings`.
+record sheet — can be the one that forgets. The day itself is a `Booking` in `Booking.Bookings`, which is a
+**cache the jobs are the truth for**: `Booking.Rebuild` builds it from the jobs and is the only thing allowed to
+fill it. It used to be patched in place as well, and every path that changed a job's booked state had to remember
+to mend the cache too — skip forgot once, cancelling work forgot once, and each was a ghost day on the work list.
+Now every mutator on `Booking` (`AddBooking`, `RemoveJobFromBooking`, `RemoveBooking`, `ReseduleBooking`) does the
+same thing — change the flags on the jobs, rebuild — and `RemoveBooking` works off the jobs rather than the cached
+day, so work booked for the date that no list was showing comes off with the rest. Anything skipping work still
+goes through `WorkPlanner.MarkJobSkipped`, which refreshes the row and saves; `SkipJob` on its own leaves the
+cached day stale until the next rebuild.
 
 Clearing a skip (the paper view's **Clear**) puts the due date back but **does not** put the booking back — the day
 is gone and nothing remembers it. Book it in again if it is wanted.
@@ -460,7 +470,7 @@ booked for — but only a visit that never happened; a clean already done stays 
 Left booked, the work list kept a booking summary row counting work that every list filters out: a day
 with nothing behind it, which is exactly how it was reported. The UI paths that cancel
 (`WorkPlanner.MarkJobCancled`, the paper view's *Cancel Job*, the customer page's toolbar) call
-`Booking.RemoveJobFromBooking` first, for the same cached-day reason as `MarkJobSkipped`, and `Job.Load`
+`Booking.RemoveJobFromBooking` so the cached day is rebuilt there and then, and `Job.Load`
 unbooks cancelled-never-done work older files still carry — memory only, the file catches up on the next
 save, like the other tidy ups done on load.
 
@@ -493,6 +503,17 @@ put right, each with a **Change** beside it rather than a trip through the job f
   owed written down somewhere else.
 - **Time For Job** — `Layouts/JobDuration`. How long the job takes is what the day is planned off, and it is
   noticed to be wrong stood at the house.
+
+**A balance changed outside the ledgers leaves a record** (`Kernel/BalanceAdjustment.cs`,
+`balanceadjustments.rjt`). The balance is normally the gap between work done and money received, and both of
+those keep their history — but settling up wrote debt off and remembered nothing, and typing a balance in
+overwrote the figure without a trace, so the next argument about money had a history that did not add up.
+Now `Job.SettleBalance` records the write-off itself (in the kernel, so no button can forget), with an
+optional reason asked for on the settle prompt, and `CustomerBalance.Apply` records what a hand-set balance
+was and became. Both show in the customer's history (`History` has a third kind alongside jobs and payments)
+as the line that makes the money add up. **Nothing here touches tax**: on the cash basis income is the
+payments, and a write-off is precisely money that never arrived. The records ride in every backup with the
+other global files, follow a merged duplicate to the kept customer, and are covered by the self test.
 
 `Job.Minutes` is the one definition of how long a job counts as taking — its own `EstimatedTime`, or the round's
 usual when it has none — so the tags, the day totals, the booking form and the round's figures cannot disagree

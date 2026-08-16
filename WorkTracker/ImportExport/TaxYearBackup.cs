@@ -71,6 +71,7 @@ public static class TaxYearBackup
         Job.Save(Settings.SaveDataFolder);
         ExpenseRule.Save(Settings.SaveDataFolder);
         GoCardlessRequest.Save(Settings.SaveDataFolder);
+        BalanceAdjustment.Save(Settings.SaveDataFolder);
         Settings.Save(Settings.SaveDataFolder);
 
         //the tax records, for the years asked for

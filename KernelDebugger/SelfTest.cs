@@ -46,6 +46,7 @@ public static class SelfTest
             ACleanThatWasDoneCountsAfterTheJobIsCancelled();
             ASharedWorkListSurvivesTheTripThereAndBack(folder);
             CancellingBookedInWorkTakesItOffTheDay();
+            AWriteOffLeavesARecord();
         }
         catch (Exception ex)
         {
@@ -361,6 +362,50 @@ public static class SelfTest
         done.CancelJob();
 
         Check("a done job keeps the day it was done on", done.IsBookedIn, "was unbooked");
+    }
+
+    /// <summary>
+    /// debt written off leaves a record - who, when, how much and why - and
+    /// the record survives a save and load. the record is the point: it is
+    /// the line that makes the history add up when a customer argues
+    /// </summary>
+    private static void AWriteOffLeavesARecord()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A write off leaves a record");
+
+        Reset();
+        BalanceAdjustment.DeleteData();
+
+        Customer customer = new Customer("12", "High Street");
+        Customer.Add(customer);
+
+        Job j = AddJob("12", "High Street", 10f);
+        j.CustomerId = customer.Id;
+        j.MarkJobDone(forceNotSave: true);
+
+        Check("the clean put its price on the balance", customer.Balance == 10f, $"{customer.Balance}");
+
+        j.SettleBalance("gate was locked all month");
+
+        Check("settling cleared the balance", customer.Balance == 0, $"{customer.Balance}");
+
+        List<BalanceAdjustment> records = BalanceAdjustment.ForCustomer(customer.Id);
+        Check("the write off left a record", records.Count == 1 && records[0].Amount == 10f,
+            records.Count == 0 ? "no record" : $"{records.Count} record(s), first {records[0].Amount}");
+        Check("with the reason on it",
+            records.Count == 1 && records[0].Reason == "gate was locked all month",
+            records.Count == 0 ? "no record" : records[0].Reason);
+
+        //thrown away and read back off the file the settle wrote
+        BalanceAdjustment.DeleteData();
+        BalanceAdjustment.Load();
+
+        records = BalanceAdjustment.ForCustomer(customer.Id);
+        Check("and the record survives a save and load",
+            records.Count == 1 && records[0].Reason == "gate was locked all month"
+            && records[0].Kind == BalanceAdjustmentKind.WriteOff,
+            records.Count == 0 ? "no record" : records[0].Describe);
     }
 
     private static string Describe(List<RoundStats> rounds)
