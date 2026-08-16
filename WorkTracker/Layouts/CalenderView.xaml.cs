@@ -1096,6 +1096,20 @@ public partial class CalenderView : ContentPage
         RefreshPageDate();
     }
 
+    /// <summary>the classic pull down: the month built again from the jobs</summary>
+    private void rv_calendar_Refreshing(object sender, EventArgs e)
+    {
+        try
+        {
+            RefreshCalenderData();
+            RefreshPageDate();
+        }
+        finally
+        {
+            rv_calendar.IsRefreshing = false;
+        }
+    }
+
     public void RefreshCalenderData()
     {
         l_date.Text = $"{_months[_date.Month - 1]} {_date.Year}";

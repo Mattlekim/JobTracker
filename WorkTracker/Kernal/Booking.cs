@@ -350,7 +350,13 @@ namespace Kernel
             BookingInfo.DateJobBookinFor = Date;
             BookingInfo.DueDate = Date;
             BookingInfo.EstimatedTime = (int)minutes;
-            BookingInfo.Address.Street = $"{Jobs.Count} Jobs Booked In";
+
+            //a day that has been sent to somebody says whose hands it is in,
+            //read off the Sent To tags the send put on the jobs
+            List<string> outWith = WorkShare.OutWith(Jobs);
+            BookingInfo.Address.Street = outWith.Count > 0
+                ? $"{Jobs.Count} Jobs Booked In - With {string.Join(", ", outWith)}"
+                : $"{Jobs.Count} Jobs Booked In";
         }
     }
 }

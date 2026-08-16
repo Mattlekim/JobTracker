@@ -351,6 +351,12 @@ public static class SelfTest
         first.AddTagQuietly(WorkShare.SentTag("Dave"));
         second.AddTagQuietly(WorkShare.SentTag("Dave"));
 
+        //the name is read back off the tags for the day headings and the
+        //booking rows - each name once, however many jobs carry it
+        List<string> outWith = WorkShare.OutWith(new List<Job>() { first, second });
+        Check("the work says whose hands it is in", outWith.Count == 1 && outWith[0] == "Dave",
+            string.Join(", ", outWith));
+
         int cleared = WorkShare.ClearSentTags("Dave");
         Check("clearing a send takes the tag off every job",
             cleared == 2 && !first.HasTag("Sent To Dave") && !second.HasTag("Sent To Dave"),

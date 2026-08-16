@@ -674,6 +674,25 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
         _isRefreshing = false;
     }
+    /// <summary>
+    /// the classic pull down: everything built again from the jobs, booked
+    /// days included. IsRefreshing off in finally, or a throw would leave
+    /// the spinner going round for ever
+    /// </summary>
+    private void rv_jobs_Refreshing(object sender, EventArgs e)
+    {
+        try
+        {
+            DataRefreshNotifier.RebuildBookings();
+            Job.RefreshJobs();
+            RefreshPage();
+        }
+        finally
+        {
+            rv_jobs.IsRefreshing = false;
+        }
+    }
+
     private void RefreshPage()
     {
      

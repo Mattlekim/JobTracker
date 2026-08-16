@@ -46,6 +46,13 @@ public partial class BookedWork : ContentPage, IHoldRows
             WorkOutProgress();
             WorkOutOverdue();
             WorkOutTags();
+
+            //a day that has been sent to somebody says so in its title, read
+            //off the Sent To tags the send put on - a week planned out and
+            //handed over should say whose hands each day is in at a glance
+            List<string> outWith = WorkShare.OutWith(this);
+            if (outWith.Count > 0)
+                Header = $"{Header} • With {string.Join(", ", outWith)}";
         }
 
         /// <summary>
@@ -149,6 +156,20 @@ public partial class BookedWork : ContentPage, IHoldRows
 
     /// <summary>the one day being looked at, or MinValue for the whole lot</summary>
     private DateTime _showingDay = DateTime.MinValue;
+
+    /// <summary>the classic pull down: the days built again from the jobs</summary>
+    private void rv_bookings_Refreshing(object sender, EventArgs e)
+    {
+        try
+        {
+            DataRefreshNotifier.RebuildBookings();
+            Reload();
+        }
+        finally
+        {
+            rv_bookings.IsRefreshing = false;
+        }
+    }
 
     private void Reload()
     {

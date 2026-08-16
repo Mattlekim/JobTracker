@@ -190,7 +190,10 @@ that went out is tagged `Sent To <name>` (`WorkShare.SentTag`, the one definitio
 take off exactly what the send put on), so the lists say which work is with somebody. It goes on through
 `Job.AddTagQuietly` — on the visit but **not** on the tag picker's list, which would otherwise fill up with
 worker names — and *Update My Work* takes it off every job in the return, marked or not, because the work is
-back home either way. Not every send comes back as a file, so **Work Sent Out** (on the work list's toolbar
+back home either way. The name is read back off the tags (`WorkShare.OutWith`) wherever a whole day is
+titled: a booked day that has been sent says *With \<name\>* on its day heading on `Layouts/BookedWork` and
+on the work list's booking summary row, so a week planned out and handed over says whose hands each day is
+in at a glance. Not every send comes back as a file, so **Work Sent Out** (on the work list's toolbar
 while any send is remembered — `Layouts/SentWorkList`) lists every send and clears one by hand. Clearing
 changes nothing on the other phone; the two buttons differ only in what this phone forgets: *Take The Sent
 Tags Off* keeps the record — and the PIN on it — so a late return can still open itself, while *Forget This
@@ -311,6 +314,11 @@ so a quick word from this page would have quietly cost that customer the message
 
 **Paper**, **List**, **All Jobs**, **Quotes**, **Stats** — in that order in `AppShell.xaml`. Paper is
 `Layouts/PaperView`, and the tab used to be called Overview.
+
+All five work pages — and the booked work and calendar pages — have the classic pull-down-to-refresh
+(`RefreshView` around each page's one `CollectionView`), which builds the page again from the jobs, booked
+days included. Each handler puts `IsRefreshing` back to false in a `finally`, because a throw part way
+through a rebuild must not leave the spinner going round for ever.
 
 Its **route is still `work_overview`**, and it stays that way. `AppShell_Navigated` writes the `WorkTabView`
 preference off that route, so renaming it would lose which work view reopens for everybody already using the app.

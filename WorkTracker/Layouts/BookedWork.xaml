@@ -35,7 +35,9 @@
             </HorizontalStackLayout>
         </VerticalStackLayout>
 
-        <CollectionView x:Name="cv_bookings" Grid.Row="3" IsGrouped="True">
+        <!-- the classic pull down to build the days again from the jobs -->
+        <RefreshView Grid.Row="3" x:Name="rv_bookings" Refreshing="rv_bookings_Refreshing">
+        <CollectionView x:Name="cv_bookings" IsGrouped="True">
         <CollectionView.EmptyView>
             <Label Text="No work booked in.&#10;&#10;Select jobs in the Work list and use 'Bookin Work' to plan a day."
                    Padding="20" HorizontalTextAlignment="Center" VerticalOptions="Center" FontSize="16"
@@ -164,5 +166,6 @@
             </DataTemplate>
         </CollectionView.ItemTemplate>
         </CollectionView>
+        </RefreshView>
     </Grid>
 </ContentPage>

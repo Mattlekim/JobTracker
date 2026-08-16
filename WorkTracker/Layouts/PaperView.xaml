@@ -112,6 +112,8 @@
                 <ColumnDefinition></ColumnDefinition>
             </Grid.ColumnDefinitions>
         </Grid>
+        <!-- the classic pull down to build the sheet again from the jobs -->
+        <RefreshView x:Name="rv_paper" VerticalOptions="FillAndExpand" Refreshing="rv_paper_Refreshing">
         <CollectionView x:Name="c_jobList" VerticalOptions="StartAndExpand">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
@@ -233,5 +235,6 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
+        </RefreshView>
     </StackLayout>
 </ContentPage>
