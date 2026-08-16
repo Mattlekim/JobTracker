@@ -175,6 +175,16 @@ namespace Kernel
                 && fileName.EndsWith(Extension, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// the tag put on the sender's own copy of each job that went out, so
+        /// the round says which work is with somebody. one definition, because
+        /// the return has to take off exactly what the send put on
+        /// </summary>
+        public static string SentTag(string workerTag)
+        {
+            return $"Sent To {(workerTag ?? string.Empty).Trim()}".Trim();
+        }
+
         //  --------------------------------------------------  the file itself
 
         /// <summary>

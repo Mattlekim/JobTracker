@@ -23,34 +23,58 @@ public partial class ReturnedWork : ContentPage
     private readonly SharedWorkData _data;
     private readonly SentWorkRecord _record;
 
+    /// <summary>
+    /// looking at a file this phone sent, not one that has come back: the
+    /// same page and the same cards, but nothing can be written on the
+    /// round from it - the marks belong to whoever is doing the work
+    /// </summary>
+    private readonly bool _sentPreview;
+
     private bool _updated;
 
-    public ReturnedWork(SharedWorkData data, SentWorkRecord record)
+    public ReturnedWork(SharedWorkData data, SentWorkRecord record, bool sentPreview = false)
     {
         _data = data;
         _record = record;
+        _sentPreview = sentPreview;
 
         InitializeComponent();
 
-        int done = _data.Jobs.Count(x => x.Done);
-        int skipped = _data.Jobs.Count(x => x.Skipped);
-        int paid = _data.Jobs.Count(x => x.Paid);
-
-        l_summary.Text = $"Work back from {_record.WorkerTag}";
-
         List<string> parts = new List<string>();
-        parts.Add($"{done} done");
-        if (skipped > 0)
-            parts.Add($"{skipped} skipped");
-        if (paid > 0)
-            parts.Add($"{paid} paid");
-        parts.Add($"of {_data.Jobs.Count} sent {_record.SentOn.ToShortDateString()}");
 
-        //a return opened twice must not quietly charge everything twice.
-        //the marks themselves cannot double up - a done job stays done -
-        //but the warning saves puzzling over why nothing seems to happen
-        if (_record.HasReturned)
-            parts.Add($"already updated {_record.ReturnedOn.ToShortDateString()}");
+        if (_sentPreview)
+        {
+            Title = "Sent Work";
+            l_summary.Text = $"Work sent to {_record.WorkerTag}";
+            bnt_update.IsVisible = false;
+
+            parts.Add(_data.Jobs.Count == 1 ? "1 job" : $"{_data.Jobs.Count} jobs");
+            parts.Add($"sent {_record.SentOn.ToShortDateString()}");
+            parts.Add(_record.HasReturned
+                ? $"came back {_record.ReturnedOn.ToShortDateString()}"
+                : "not back yet");
+        }
+        else
+        {
+            int done = _data.Jobs.Count(x => x.Done);
+            int skipped = _data.Jobs.Count(x => x.Skipped);
+            int paid = _data.Jobs.Count(x => x.Paid);
+
+            l_summary.Text = $"Work back from {_record.WorkerTag}";
+
+            parts.Add($"{done} done");
+            if (skipped > 0)
+                parts.Add($"{skipped} skipped");
+            if (paid > 0)
+                parts.Add($"{paid} paid");
+            parts.Add($"of {_data.Jobs.Count} sent {_record.SentOn.ToShortDateString()}");
+
+            //a return opened twice must not quietly charge everything twice.
+            //the marks themselves cannot double up - a done job stays done -
+            //but the warning saves puzzling over why nothing seems to happen
+            if (_record.HasReturned)
+                parts.Add($"already updated {_record.ReturnedOn.ToShortDateString()}");
+        }
 
         l_detail.Text = string.Join(" • ", parts);
 
@@ -149,15 +173,21 @@ public partial class ReturnedWork : ContentPage
         foreach (SharedJob shared in _data.Jobs)
         {
             bool touched = shared.Done || shared.Skipped || shared.Paid || shared.Tags.Count > 0;
-            if (!touched)
-                continue;
 
             Job job = FindJob(shared);
             if (job == null)
             {
-                missed++;
+                if (touched)
+                    missed++;
                 continue;
             }
+
+            //the work is back home, so the out-with-somebody tag comes off -
+            //whether or not anything was done to this particular job
+            job.RemoveTag(WorkShare.SentTag(_record.WorkerTag));
+
+            if (!touched)
+                continue;
 
             if (shared.Done && !job.IsCompleted)
             {

@@ -742,6 +742,22 @@ namespace Kernel
             return true;
         }
 
+        /// <summary>
+        /// tags this visit without putting the tag on the list to pick from.
+        /// for the tags the app makes itself - "Sent To Dave" - which would
+        /// only clutter the picker, and which the app takes off again itself
+        /// </summary>
+        public bool AddTagQuietly(string tag)
+        {
+            tag = TidyTag(tag);
+            if (tag.Length == 0 || HasTag(tag))
+                return false;
+
+            Tags.Add(tag);
+            RefreshTags();
+            return true;
+        }
+
         /// <returns>true when the tag was on and has been taken off</returns>
         public bool RemoveTag(string tag)
         {

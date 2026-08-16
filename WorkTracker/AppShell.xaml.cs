@@ -360,6 +360,32 @@ namespace WorkTracker
                     return;
                 }
 
+                //a sent file whose key is in this phone's own records is work
+                //this phone sent out. offering to take it on would treat your
+                //own round as somebody else's extra work - so it is named for
+                //what it is, and can be looked at since the PIN is kept here
+                SentWorkRecord mine = WorkShare.FindRecord(header.Key);
+                if (mine != null)
+                {
+                    if (!await page.DisplayAlert("Sent Work",
+                            $"This is the work you sent to {mine.WorkerTag} on {mine.SentOn.ToShortDateString()}. "
+                            + "It is for them to open on their phone - the marks they make are what comes back to update your round. "
+                            + "Do you want to look at what was sent?",
+                            "Look At It", "Close"))
+                        return;
+
+                    SharedWorkData sent = WorkShare.ReadFile(path, mine.Pin);
+                    if (sent == null)
+                    {
+                        await page.DisplayAlert("Sent Work",
+                            "That file could not be opened. It may have been damaged since it was sent.", "Ok");
+                        return;
+                    }
+
+                    await Navigation.PushAsync(new UiInterface.Layouts.ReturnedWork(sent, mine, sentPreview: true));
+                    return;
+                }
+
                 //work sent to this phone
                 string warning = WorkShare.HaveExtraWork()
                     ? "\n\nThere is already extra work on this phone, and taking this on replaces it."

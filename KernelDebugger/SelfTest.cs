@@ -333,6 +333,18 @@ public static class SelfTest
         Check("matched back to the sender's own job ids",
             back != null && back.Jobs[0].JobId == first.Id && back.Jobs[1].JobId == second.Id,
             back == null ? "did not open" : $"{back.Jobs[0].JobId}, {back.Jobs[1].JobId}");
+
+        //the sender's copy is tagged so the round says the work is out -
+        //quietly, so the tag picker is not offered every worker's name
+        int knownTags = Job.TagNames.Count;
+        first.AddTagQuietly(WorkShare.SentTag("Dave"));
+
+        Check("the sent tag went on the job", first.HasTag("Sent To Dave"), first.TagsText);
+        Check("without going on the list to pick from", Job.TagNames.Count == knownTags,
+            $"{Job.TagNames.Count - knownTags} added");
+
+        first.RemoveTag(WorkShare.SentTag("Dave"));
+        Check("and comes off when the work comes home", !first.HasTag("Sent To Dave"), first.TagsText);
     }
 
     /// <summary>
