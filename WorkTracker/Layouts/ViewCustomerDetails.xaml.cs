@@ -481,7 +481,12 @@ public partial class ViewCustomerDetails : ContentPage
     private void tbi_Cancel_Job_Clicked(object sender, EventArgs e)
     {
         if (!CurrentJob.HaveCanceled)
+        {
+            //out of the cached day first, like the skip paths - see
+            //WorkPlanner.MarkJobCancled
+            Booking.RemoveJobFromBooking(CurrentJob);
             CurrentJob.CancelJob();
+        }
         else
             CurrentJob.UnCancelJob();
 

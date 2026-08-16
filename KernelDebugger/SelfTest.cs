@@ -45,6 +45,7 @@ public static class SelfTest
             AHouseIsCountedOnceHoweverManyVisitsAreOut();
             ACleanThatWasDoneCountsAfterTheJobIsCancelled();
             ASharedWorkListSurvivesTheTripThereAndBack(folder);
+            CancellingBookedInWorkTakesItOffTheDay();
         }
         catch (Exception ex)
         {
@@ -331,6 +332,35 @@ public static class SelfTest
         Check("matched back to the sender's own job ids",
             back != null && back.Jobs[0].JobId == first.Id && back.Jobs[1].JobId == second.Id,
             back == null ? "did not open" : $"{back.Jobs[0].JobId}, {back.Jobs[1].JobId}");
+    }
+
+    /// <summary>
+    /// cancelling work that was booked in takes it off the day. left booked,
+    /// the work list kept a booking row counting work that every list
+    /// filters out - a day with nothing behind it
+    /// </summary>
+    private static void CancellingBookedInWorkTakesItOffTheDay()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Cancelling booked in work takes it off the day");
+
+        Reset();
+
+        Job planned = AddJob("12", "High Street", 10f);
+        planned.BookInJob(DateTime.Now.Date);
+        planned.CancelJob();
+
+        Check("the cancelled job is not booked in any more", !planned.IsBookedIn,
+            $"still booked for {planned.DateJobBookinFor.ToShortDateString()}");
+
+        //a clean already done stays on the day it was done - cancelling
+        //stops the cleans to come, it does not unhappen that one
+        Job done = AddJob("14", "High Street", 12f);
+        done.BookInJob(DateTime.Now.Date);
+        done.MarkJobDone(forceNotSave: true);
+        done.CancelJob();
+
+        Check("a done job keeps the day it was done on", done.IsBookedIn, "was unbooked");
     }
 
     private static string Describe(List<RoundStats> rounds)

@@ -1570,6 +1570,23 @@ namespace Kernel
         {
             HaveCanceled = true;
             DateCanceled = UsfulFuctions.DateNow;
+
+            //a booking says the house is being done on a day, and cancelling
+            //the work says it is not being done at all - so it comes off any
+            //day it was planned on, the same as skipping does. Left booked in
+            //it kept a booking alive that every list filters cancelled work
+            //out of: a summary row on the work list with nothing behind it.
+            //
+            //only work that never happened. a clean already done stays on the
+            //day it was done - cancelling stops the cleans to come, it does
+            //not unhappen that one.
+            //
+            //the day cached in Booking.Bookings is the app's to mend, not the
+            //kernel's - anything cancelling work must take the job out of
+            //that first (Booking.RemoveJobFromBooking), like the skip paths
+            if (!IsCompleted)
+                UnBookInJob();
+
             Job.Save();
         }
 

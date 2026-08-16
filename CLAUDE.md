@@ -162,8 +162,11 @@ AES-scrambled under a key baked into the app — obfuscation against a file brow
 says so; do not mistake it for more. Records are pruned three months after the work comes back; one that never
 came back is kept.
 
-**Sending** is on the work list's selection toolbar (*Send To Someone*): pick jobs, then `Layouts/SendWork`
-asks what travels with them — prices, notes, phone numbers, and *allow them to collect* (which forces prices
+**Sending** is on the work list's selection toolbar (*Send To Someone*), on the **Day ▾** menu of a day on
+`Layouts/BookedWork`, and on the calendar day's action sheet (*Send Booked In Jobs To Someone*) — a booked
+day is the natural parcel to hand over. All three land on `Layouts/SendWork` with a list of jobs; the day
+ones send the day's outstanding work (done and cancelled stay home), and sending changes nothing about the
+booking. `Layouts/SendWork` asks what travels with them — prices, notes, phone numbers, and *allow them to collect* (which forces prices
 on, since collecting means knowing what to collect) — plus the worker's name tag and the PIN. Anything not
 ticked is simply never put in the file. Sending changes nothing on the sender's round.
 
@@ -451,6 +454,15 @@ the next `DataRefreshNotifier.RebuildBookings`.
 
 Clearing a skip (the paper view's **Clear**) puts the due date back but **does not** put the booking back — the day
 is gone and nothing remembers it. Book it in again if it is wanted.
+
+**Cancelling booked-in work unbooks it the same way.** `Job.CancelJob` takes the visit off any day it was
+booked for — but only a visit that never happened; a clean already done stays on the day it was done.
+Left booked, the work list kept a booking summary row counting work that every list filters out: a day
+with nothing behind it, which is exactly how it was reported. The UI paths that cancel
+(`WorkPlanner.MarkJobCancled`, the paper view's *Cancel Job*, the customer page's toolbar) call
+`Booking.RemoveJobFromBooking` first, for the same cached-day reason as `MarkJobSkipped`, and `Job.Load`
+unbooks cancelled-never-done work older files still carry — memory only, the file catches up on the next
+save, like the other tidy ups done on load.
 
 `BookJobFormcs.BookForDate` is how a caller says which day the form should open on — it is used once and resets to
 today, so a caller with no day in mind cannot pick up somebody else's. Without it the form opened on today and the
