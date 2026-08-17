@@ -224,6 +224,8 @@ namespace Kernel
             //tmp = JobFormattedOwed;
             RaisePropertyChanged("JobFormattedOwed");
             RaisePropertyChanged("JobFormattedDueTime");
+            RaisePropertyChanged("DueTextColour");
+            RaisePropertyChanged("OwedTextColour");
             RaisePropertyChanged("ShowOwed");
             RaisePropertyChanged("PaymentPending");
             RaisePropertyChanged("PaymentPendingText");
@@ -514,6 +516,63 @@ namespace Kernel
             }
         }
         private Color _owedColorCode;
+
+        /// <summary>
+        /// when the work is due, as a colour to write the words in rather than
+        /// a colour to sit them on.
+        ///
+        /// The chip colours above are picked to be read white on colour and
+        /// are unreadable as text on a card - Yellow and LightBlue on white
+        /// most of all - so the card rows on the work list have their own.
+        /// The same states, said in colours that can be read on either theme,
+        /// and the same ones Layouts/AllJobs uses so the two pages agree.
+        /// </summary>
+        [XmlIgnore]
+        public Color DueTextColour
+        {
+            get
+            {
+                if (IsCompleted)
+                    return Color.FromArgb("#6B7280");
+
+                if (HaveCanceled)
+                    return Color.FromArgb("#C62828");
+
+                //today and late are what the round is worked off, so they are
+                //the two that stand out; anything still to come is quiet
+                if (DueDate.Date == UsfulFuctions.DateNow.Date)
+                    return Color.FromArgb("#EF6C00");
+
+                if (DueDate.Ticks > UsfulFuctions.DateNow.Ticks)
+                    return Color.FromArgb("#6B7280");
+
+                return Color.FromArgb("#C62828");
+            }
+        }
+
+        /// <summary>
+        /// what the customer owes, as a colour to write it in. See
+        /// <see cref="DueTextColour"/> for why this is not OwedColorCode
+        /// </summary>
+        [XmlIgnore]
+        public Color OwedTextColour
+        {
+            get
+            {
+                MatchCustomer();
+
+                if (_customer == null)
+                    return Colors.Transparent;
+
+                if (_customer.Balance > 0)
+                    return Color.FromArgb("#C62828");
+
+                if (_customer.Balance < 0)
+                    return Color.FromArgb("#2E7D32");
+
+                return Color.FromArgb("#6B7280");
+            }
+        }
 
         public bool HaveJobNotes
         {
