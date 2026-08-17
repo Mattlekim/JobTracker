@@ -53,6 +53,71 @@ namespace Kernel
         /// </summary>
         public bool InheritsLegacyReferences { get; set; }
 
+        /// <summary>
+        /// an account that is closed or no longer imported from. it is not
+        /// offered when a statement is imported, and that is all archiving
+        /// does - everything imported from it stays tracked against it,
+        /// which is why there is an archive and no delete
+        /// </summary>
+        public bool Archived { get; set; }
+
+        /// <summary>
+        /// what this account's statement files look like - the column
+        /// headings, normalised and joined. remembered from the last import
+        /// so the next file can be recognised as this account's without
+        /// anybody saying so. csv and pdf apart, like the layouts
+        /// </summary>
+        public string CsvSignature { get; set; } = string.Empty;
+        public string PdfSignature { get; set; } = string.Empty;
+
+        public string Signature(bool pdf)
+        {
+            return pdf ? PdfSignature : CsvSignature;
+        }
+
+        public void RememberSignature(bool pdf, string signature)
+        {
+            if (string.IsNullOrEmpty(signature))
+                return;
+
+            if (pdf)
+                PdfSignature = signature;
+            else
+                CsvSignature = signature;
+        }
+
+        /// <summary>
+        /// a file's column headings boiled down to something comparable -
+        /// lower case, trimmed, joined. empty when the file has no headings
+        /// to speak of, which is also what makes it never match anything
+        /// </summary>
+        public static string SignatureOf(string[] header)
+        {
+            if (header == null || header.Length == 0)
+                return string.Empty;
+
+            string signature = string.Join("|", header.Select(x => (x ?? string.Empty).Trim().ToLowerInvariant()));
+
+            //a row of blanks is not a heading
+            return signature.Replace("|", string.Empty).Length == 0 ? string.Empty : signature;
+        }
+
+        /// <summary>
+        /// the account whose remembered statements look like this file, for
+        /// guessing which account an import is. only an answer when exactly
+        /// one active account matches - two accounts at the same bank have
+        /// the same headings, and guessing between them would guess wrong
+        /// half the time
+        /// </summary>
+        public static BankAccount FindBySignature(string signature, bool pdf)
+        {
+            if (string.IsNullOrEmpty(signature))
+                return null;
+
+            List<BankAccount> matches = _Accounts.FindAll(x => !x.Archived && x.Signature(pdf) == signature);
+            return matches.Count == 1 ? matches[0] : null;
+        }
+
         public static BankAccount Add(string name)
         {
             BankAccount account = new BankAccount()
@@ -74,6 +139,12 @@ namespace Kernel
             List<BankAccount> tmp = new List<BankAccount>();
             tmp.AddRange(_Accounts);
             return tmp;
+        }
+
+        /// <summary>the accounts statements can be imported against - everything not archived</summary>
+        public static List<BankAccount> QueryActive()
+        {
+            return _Accounts.FindAll(x => !x.Archived);
         }
 
         public static int Count

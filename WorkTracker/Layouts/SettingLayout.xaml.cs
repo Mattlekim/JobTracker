@@ -454,10 +454,6 @@ public partial class SettingLayout : ContentPage
         ShowTagNames();
         ShowRoundNames();
 
-        //an account can appear while this page sits behind an import - the
-        //first import makes one when there are none at all
-        ShowBankAccounts();
-
         //not read from a file - it is only ever whatever it was set to since
         //the app started
         cb_screenshotMode.IsChecked = ScreenshotMode.On;
@@ -741,94 +737,20 @@ public partial class SettingLayout : ContentPage
         DisplayAlert("Reset", "Import settings have been reset", "Ok");
     }
 
-    /// <summary>
-    /// the bank accounts statements are imported against. each keeps its own
-    /// statement layout, and its id is what the statements and expenses
-    /// imported from it are tracked by - which is why there is a rename here
-    /// and no delete
-    /// </summary>
-    private void ShowBankAccounts()
+    //the Banking section is only doors - the pages behind them do the work
+    private void bnt_bankAccounts_Clicked(object sender, EventArgs e)
     {
-        vsl_bankAccounts.Clear();
-
-        List<BankAccount> accounts = BankAccount.Query();
-
-        if (accounts.Count == 0)
-        {
-            vsl_bankAccounts.Add(new Label()
-            {
-                Text = "No accounts yet - one is made by itself the first time a statement is imported. Add one here first if you want it called something better than 'My Bank'.",
-                FontSize = 12,
-                TextColor = Colors.Grey,
-            });
-            return;
-        }
-
-        foreach (BankAccount account in accounts)
-        {
-            HorizontalStackLayout row = new HorizontalStackLayout() { Spacing = 10 };
-
-            row.Add(new Label() { Text = account.Name, VerticalOptions = LayoutOptions.Center });
-
-            Button rename = new Button()
-            {
-                Text = "Rename",
-                FontSize = 13,
-                Padding = new Thickness(12, 4),
-                BackgroundColor = Colors.Transparent,
-                TextColor = Color.FromArgb("#1E88E5"),
-                BorderColor = Color.FromArgb("#1E88E5"),
-                BorderWidth = 2,
-            };
-            rename.Clicked += (s, e) => RenameBankAccount(account);
-            row.Add(rename);
-
-            vsl_bankAccounts.Add(row);
-        }
+        Navigation.PushAsync(new BankAccounts());
     }
 
-    private async void bnt_addBankAccount_Clicked(object sender, EventArgs e)
+    private void bnt_keptStatements_Clicked(object sender, EventArgs e)
     {
-        string name = await DisplayPromptAsync("Add Account",
-            "What is the account called? The name is how it is offered when a statement is imported.",
-            "Add", "Cancel");
-
-        name = name?.Trim();
-        if (string.IsNullOrEmpty(name))
-            return;
-
-        //the import question offers accounts by name, so two accounts with
-        //one name could never be told apart there
-        if (BankAccount.NameTaken(name))
-        {
-            await DisplayAlert("Add Account", $"There is already an account called '{name}'.", "Ok");
-            return;
-        }
-
-        BankAccount.Add(name);
-        BankAccount.Save();
-        ShowBankAccounts();
+        Navigation.PushAsync(new KeptStatements());
     }
 
-    private async void RenameBankAccount(BankAccount account)
+    private void bnt_expenseRules_Clicked(object sender, EventArgs e)
     {
-        string name = await DisplayPromptAsync("Rename Account",
-            "Statements and expenses already imported stay with the account - only the name changes.",
-            "Rename", "Cancel", initialValue: account.Name);
-
-        name = name?.Trim();
-        if (string.IsNullOrEmpty(name) || name == account.Name)
-            return;
-
-        if (BankAccount.NameTaken(name, account.Id))
-        {
-            await DisplayAlert("Rename Account", $"There is already an account called '{name}'.", "Ok");
-            return;
-        }
-
-        account.Name = name;
-        BankAccount.Save();
-        ShowBankAccounts();
+        Navigation.PushAsync(new ExpenseRules());
     }
 
     /// <summary>
@@ -1294,12 +1216,15 @@ public partial class SettingLayout : ContentPage
         if (await DisplayAlert("WARING!!!", "This can not be undone. Are you sure you wish to delete all data?", "Yes", "No"))
             if (await DisplayAlert("WARING!!!", "Are you sure", "Yes Delete It All", "No Don't Delete Anything"))
             {
+                //the bank accounts deliberately stay: like the settings,
+                //they are how the app is set up rather than what it has
+                //recorded, and everything ever imported was tracked against
+                //their ids
                 Job.DeleteData();
                 Customer.DeleteData();
                 Payment.DeleteData();
                 Expense.DeleteData();
                 ExpenseRule.DeleteData();
-                BankAccount.DeleteData();
                 StatementRecord.DeleteData();
                 GoCardlessRequest.DeleteData();
                 BalanceAdjustment.DeleteData();
@@ -1309,15 +1234,9 @@ public partial class SettingLayout : ContentPage
                 Payment.Save();
                 Expense.Save();
                 ExpenseRule.Save();
-                BankAccount.Save();
                 StatementRecord.Save();
                 GoCardlessRequest.Save();
                 BalanceAdjustment.Save();
-
-                //rewritten without the one-layout-for-everything columns an
-                //old settings file carried, so the next start cannot turn
-                //them back into an account that was just deleted
-                Settings.Save();
                 DataRefreshNotifier.NotifyDataChanged();
                 await DisplayAlert("Complete", "All data erased", "Ok");
             }

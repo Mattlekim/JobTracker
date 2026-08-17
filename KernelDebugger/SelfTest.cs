@@ -500,6 +500,7 @@ public static class SelfTest
         hsbc.Ref = 4;
         hsbc.Amount = 5;
         hsbc.DebitAndCreditTogether = true;
+        hsbc.Archived = true;
 
         BankAccount.Save(folder);
         BankAccount.DeleteData();
@@ -519,6 +520,36 @@ public static class SelfTest
         Check("the second account's layout survived",
             readHsbc != null && readHsbc.Amount == 5 && readHsbc.DebitAndCreditTogether,
             readHsbc == null ? "account missing" : $"amount {readHsbc.Amount}");
+        Check("the archive survived the save",
+            readHsbc != null && readHsbc.Archived, "came back in use");
+        Check("an archived account is not offered for imports",
+            BankAccount.QueryActive().Count == 1 && BankAccount.QueryActive()[0].Name == "Starling",
+            $"{BankAccount.QueryActive().Count} offered");
+
+        //the headings an account's statements are recognised by
+        string heading = BankAccount.SignatureOf(new[] { "Date", " Description", "Amount" });
+        Check("headings boil down the same however they are written",
+            heading == BankAccount.SignatureOf(new[] { "date", "description ", "AMOUNT" }), "they differ");
+        Check("no headings is no signature",
+            BankAccount.SignatureOf(null) == string.Empty
+                && BankAccount.FindBySignature(string.Empty, false) == null,
+            "a blank matched something");
+
+        readStarling.RememberSignature(false, heading);
+        Check("the account whose statements look like this is guessed",
+            BankAccount.FindBySignature(heading, false) == readStarling, "not found");
+
+        //the archived account sharing the look does not muddle the guess -
+        //it is not offered, so it is not guessed either
+        readHsbc.RememberSignature(false, heading);
+        Check("an archived account does not muddle the guess",
+            BankAccount.FindBySignature(heading, false) == readStarling, "it did");
+
+        //back in use, two accounts at the same bank look the same, and
+        //guessing between them would guess wrong half the time
+        readHsbc.Archived = false;
+        Check("two accounts at the same bank are not guessed between",
+            BankAccount.FindBySignature(heading, false) == null, "one was guessed");
 
         //the layout out of an old settings file becomes the first account
         BankAccount.DeleteData();
