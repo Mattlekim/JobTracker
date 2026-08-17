@@ -677,14 +677,18 @@ Until then, sign-in cannot complete: the values are not registered with Google, 
 setup instructions instead. To test the real flow before the app has its own credentials, create a Desktop-app
 OAuth client and paste the Client ID and Secret into the settings fields.
 
-Because of that the whole Cloud Sync section on the settings page reads *Coming Soon* and is greyed out
-(`IsEnabled="false"` on `sec_cloud`), rather than being hidden — hiding it only has people hunting for it. Take the
-greying off in `Layouts/SettingLayout.xaml` when the real credentials go in.
+Because of that the settings page has **no Cloud Sync section at all** — it was shown greyed out as *Coming
+Soon* for a while and has since been taken out until the feature is real. The engine (`CloudSync.cs`, and the
+`CloudSync.Start()` call in `AppShell`) is still in place; when the real credentials go in, the section and its
+handlers come back in `Layouts/SettingLayout.xaml` — the old ones are in the git history of that page.
 
 ## Experimental features
 
 GoCardless is marked **Experimental** where a user meets it — the settings section heading, an orange badge inside
-it, the toolbar item on `Layouts/ViewCustomerDetails` and the title of the action sheet that page puts up. The
+it, the toolbar item on `Layouts/ViewCustomerDetails` and the title of the action sheet that page puts up. **Work
+Sharing** carries the same marking on the settings page — section heading and badge — while sending work out is
+still being proven; only the settings section says so, because the sending buttons it shows are gated behind it
+anyway and receiving somebody's work should not greet them with a warning. The
 `GoCardless` entry in the preferred-payment picker on `Layouts/NewCustomer` is deliberately *not* labelled: that
 string is saved on the customer as the payment method, so changing the wording changes stored data.
 

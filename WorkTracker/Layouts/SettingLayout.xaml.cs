@@ -299,10 +299,7 @@ public partial class SettingLayout : ContentPage
         NavigatingFrom += SettingLayout_NavigatingFrom;
 
         ShowAppVersion();
-        RefreshCloudSection();
         RefreshGoCardlessSection();
-        CloudSync.StatusChanged += (status) =>
-            MainThread.BeginInvokeOnMainThread(() => l_cloudStatus.Text = status);
     }
 
     /// <summary>
@@ -364,85 +361,6 @@ public partial class SettingLayout : ContentPage
         {
         }
         return string.Empty;
-    }
-
-    private void RefreshCloudSection()
-    {
-        vsl_cloudSetup.IsVisible = !CloudSync.IsSignedIn;
-        vsl_cloudConnected.IsVisible = CloudSync.IsSignedIn;
-
-        //when the app ships with its own google credentials all that is
-        //left for the user is the connect button
-        vsl_cloudClientFields.IsVisible = !CloudSync.HasBuiltInClient;
-        if (!CloudSync.HasBuiltInClient)
-        {
-            e_cloudClientId.Text = Preferences.Get("CloudSync_ClientId", string.Empty);
-            e_cloudClientSecret.Text = Preferences.Get("CloudSync_ClientSecret", string.Empty);
-        }
-
-        sw_cloudAuto.IsToggled = CloudSync.AutoSync;
-        l_cloudStatus.Text = $"Last sync: {CloudSync.LastSyncText}";
-    }
-
-    private async void bnt_cloudConnect_Clicked(object sender, EventArgs e)
-    {
-        if (vsl_cloudClientFields.IsVisible)
-        {
-            CloudSync.ClientId = e_cloudClientId.Text?.Trim();
-            CloudSync.ClientSecret = e_cloudClientSecret.Text?.Trim();
-        }
-
-        if (!CloudSync.HasUsableClientId)
-        {
-            await DisplayAlert("Cloud Sync",
-                "You need a Client ID first.\n\n" +
-                "1. Go to console.cloud.google.com and create a project\n" +
-                "2. Enable the 'Google Drive API'\n" +
-                "3. Create OAuth credentials of type 'Desktop app'\n" +
-                "4. Paste the Client ID (and Client Secret) here", "Ok");
-            return;
-        }
-
-        try
-        {
-            //opens the google login page in the browser; the app catches
-            //the redirect itself so there is nothing to type or copy
-            using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-            bool ok = await CloudSync.SignInWithBrowserAsync(cts.Token);
-            if (ok)
-            {
-                RefreshCloudSection();
-                await DisplayAlert("Cloud Sync", "Connected! Your data will now sync with Google Drive.", "Ok");
-                string result = await CloudSync.SyncNowAsync();
-                l_cloudStatus.Text = result;
-            }
-            else
-                await DisplayAlert("Cloud Sync", "Sign in was not completed. Try again.", "Ok");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Cloud Sync", $"Could not connect: {ex.Message}", "Ok");
-        }
-    }
-
-    private async void bnt_cloudSyncNow_Clicked(object sender, EventArgs e)
-    {
-        l_cloudStatus.Text = "Syncing...";
-        string result = await CloudSync.SyncNowAsync();
-        l_cloudStatus.Text = result;
-    }
-
-    private async void bnt_cloudDisconnect_Clicked(object sender, EventArgs e)
-    {
-        if (!await DisplayAlert("Cloud Sync", "Disconnect Google Drive? Your local data stays on this device.", "Disconnect", "Cancel"))
-            return;
-        CloudSync.SignOut();
-        RefreshCloudSection();
-    }
-
-    private void sw_cloudAuto_Toggled(object sender, ToggledEventArgs e)
-    {
-        CloudSync.AutoSync = e.Value;
     }
 
     private void RefreshGoCardlessSection()
