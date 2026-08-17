@@ -129,18 +129,10 @@ public class Settings
         sd.DefaultResecdual = WorkPlanner.DefaultRearangeMessage;
         sd.DefaultNotComming = WorkPlanner.DefaultNotCommingMessage;
 
-        sd.Date = StatmentViewer.Date;
-        sd.Ref = StatmentViewer.Ref;
-        sd.Amount = StatmentViewer.Amount;
-        sd.DebitAndCreditTogether = StatmentViewer.DebitAndCreditTogether;
-
-        sd.PdfDate = StatmentViewer.PdfDate;
-        sd.PdfRef = StatmentViewer.PdfRef;
-        sd.PdfAmount = StatmentViewer.PdfAmount;
-        sd.PdfDebitAndCreditTogether = StatmentViewer.PdfDebitAndCreditTogether;
-
-        sd.DebitPlusOne = StatmentViewer.Debit + 1;
-        sd.PdfDebitPlusOne = StatmentViewer.PdfDebit + 1;
+        //the statement column layouts are not written here any more - each
+        //bank account keeps its own in bankaccounts.rjt. the fields stay on
+        //SettingsData so an old file still reads, and BankAccount turns what
+        //it finds there into the first account
 
         sd.ReceiptPhotoMaxSize = ReceiptPhoto.MaxSize;
         sd.ReceiptPhotoQuality = ReceiptPhoto.Quality;
@@ -211,22 +203,24 @@ public class Settings
                 WorkPlanner.DefaultRearangeMessage = sd.DefaultResecdual;
                 WorkPlanner.DefaultNotCommingMessage = sd.DefaultNotComming;
 
-                StatmentViewer.Date = sd.Date;
-                StatmentViewer.Ref = sd.Ref;
-                StatmentViewer.Amount = sd.Amount;
-                StatmentViewer.DebitAndCreditTogether = sd.DebitAndCreditTogether;
+                //the columns out of a settings file from before each bank
+                //account kept its own layout. stashed for BankAccount.Load,
+                //which turns them into the first account - 0,0,0 means the
+                //file predates statement imports and there is nothing to keep
+                BankAccount.LegacyDate = sd.Date;
+                BankAccount.LegacyRef = sd.Ref;
+                BankAccount.LegacyAmount = sd.Amount;
+                BankAccount.LegacyDebitAndCreditTogether = sd.DebitAndCreditTogether;
 
-                //settings saved before pdf import existed have no pdf columns, which reads back as
-                //0,0,0 - the viewer treats that as not chosen yet and asks for them
-                StatmentViewer.PdfDate = sd.PdfDate;
-                StatmentViewer.PdfRef = sd.PdfRef;
-                StatmentViewer.PdfAmount = sd.PdfAmount;
-                StatmentViewer.PdfDebitAndCreditTogether = sd.PdfDebitAndCreditTogether;
+                BankAccount.LegacyPdfDate = sd.PdfDate;
+                BankAccount.LegacyPdfRef = sd.PdfRef;
+                BankAccount.LegacyPdfAmount = sd.PdfAmount;
+                BankAccount.LegacyPdfDebitAndCreditTogether = sd.PdfDebitAndCreditTogether;
 
                 //0 is what settings saved before the money out column existed
-                //read back as, and means it has not been chosen
-                StatmentViewer.Debit = sd.DebitPlusOne - 1;
-                StatmentViewer.PdfDebit = sd.PdfDebitPlusOne - 1;
+                //read back as, and means it was never chosen
+                BankAccount.LegacyDebit = sd.DebitPlusOne - 1;
+                BankAccount.LegacyPdfDebit = sd.PdfDebitPlusOne - 1;
 
                 //0 from an older settings file, which the property turns back
                 //into the default
@@ -299,10 +293,7 @@ public partial class SettingLayout : ContentPage
         NavigatingFrom += SettingLayout_NavigatingFrom;
 
         ShowAppVersion();
-        RefreshCloudSection();
         RefreshGoCardlessSection();
-        CloudSync.StatusChanged += (status) =>
-            MainThread.BeginInvokeOnMainThread(() => l_cloudStatus.Text = status);
     }
 
     /// <summary>
@@ -364,85 +355,6 @@ public partial class SettingLayout : ContentPage
         {
         }
         return string.Empty;
-    }
-
-    private void RefreshCloudSection()
-    {
-        vsl_cloudSetup.IsVisible = !CloudSync.IsSignedIn;
-        vsl_cloudConnected.IsVisible = CloudSync.IsSignedIn;
-
-        //when the app ships with its own google credentials all that is
-        //left for the user is the connect button
-        vsl_cloudClientFields.IsVisible = !CloudSync.HasBuiltInClient;
-        if (!CloudSync.HasBuiltInClient)
-        {
-            e_cloudClientId.Text = Preferences.Get("CloudSync_ClientId", string.Empty);
-            e_cloudClientSecret.Text = Preferences.Get("CloudSync_ClientSecret", string.Empty);
-        }
-
-        sw_cloudAuto.IsToggled = CloudSync.AutoSync;
-        l_cloudStatus.Text = $"Last sync: {CloudSync.LastSyncText}";
-    }
-
-    private async void bnt_cloudConnect_Clicked(object sender, EventArgs e)
-    {
-        if (vsl_cloudClientFields.IsVisible)
-        {
-            CloudSync.ClientId = e_cloudClientId.Text?.Trim();
-            CloudSync.ClientSecret = e_cloudClientSecret.Text?.Trim();
-        }
-
-        if (!CloudSync.HasUsableClientId)
-        {
-            await DisplayAlert("Cloud Sync",
-                "You need a Client ID first.\n\n" +
-                "1. Go to console.cloud.google.com and create a project\n" +
-                "2. Enable the 'Google Drive API'\n" +
-                "3. Create OAuth credentials of type 'Desktop app'\n" +
-                "4. Paste the Client ID (and Client Secret) here", "Ok");
-            return;
-        }
-
-        try
-        {
-            //opens the google login page in the browser; the app catches
-            //the redirect itself so there is nothing to type or copy
-            using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-            bool ok = await CloudSync.SignInWithBrowserAsync(cts.Token);
-            if (ok)
-            {
-                RefreshCloudSection();
-                await DisplayAlert("Cloud Sync", "Connected! Your data will now sync with Google Drive.", "Ok");
-                string result = await CloudSync.SyncNowAsync();
-                l_cloudStatus.Text = result;
-            }
-            else
-                await DisplayAlert("Cloud Sync", "Sign in was not completed. Try again.", "Ok");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Cloud Sync", $"Could not connect: {ex.Message}", "Ok");
-        }
-    }
-
-    private async void bnt_cloudSyncNow_Clicked(object sender, EventArgs e)
-    {
-        l_cloudStatus.Text = "Syncing...";
-        string result = await CloudSync.SyncNowAsync();
-        l_cloudStatus.Text = result;
-    }
-
-    private async void bnt_cloudDisconnect_Clicked(object sender, EventArgs e)
-    {
-        if (!await DisplayAlert("Cloud Sync", "Disconnect Google Drive? Your local data stays on this device.", "Disconnect", "Cancel"))
-            return;
-        CloudSync.SignOut();
-        RefreshCloudSection();
-    }
-
-    private void sw_cloudAuto_Toggled(object sender, ToggledEventArgs e)
-    {
-        CloudSync.AutoSync = e.Value;
     }
 
     private void RefreshGoCardlessSection()
@@ -823,6 +735,22 @@ public partial class SettingLayout : ContentPage
     {
         StatmentViewer.Reset();
         DisplayAlert("Reset", "Import settings have been reset", "Ok");
+    }
+
+    //the Banking section is only doors - the pages behind them do the work
+    private void bnt_bankAccounts_Clicked(object sender, EventArgs e)
+    {
+        Navigation.PushAsync(new BankAccounts());
+    }
+
+    private void bnt_keptStatements_Clicked(object sender, EventArgs e)
+    {
+        Navigation.PushAsync(new KeptStatements());
+    }
+
+    private void bnt_expenseRules_Clicked(object sender, EventArgs e)
+    {
+        Navigation.PushAsync(new ExpenseRules());
     }
 
     /// <summary>
@@ -1288,6 +1216,10 @@ public partial class SettingLayout : ContentPage
         if (await DisplayAlert("WARING!!!", "This can not be undone. Are you sure you wish to delete all data?", "Yes", "No"))
             if (await DisplayAlert("WARING!!!", "Are you sure", "Yes Delete It All", "No Don't Delete Anything"))
             {
+                //the bank accounts deliberately stay: like the settings,
+                //they are how the app is set up rather than what it has
+                //recorded, and everything ever imported was tracked against
+                //their ids
                 Job.DeleteData();
                 Customer.DeleteData();
                 Payment.DeleteData();

@@ -74,6 +74,24 @@ namespace Kernel
         /// <summary>size of the kept file, used to spot the same file being imported again</summary>
         public long FileSize { get; set; }
 
+        /// <summary>
+        /// the bank account the statement was imported against. -1 on a
+        /// record from before accounts existed, and on a PayPal export,
+        /// which has no account
+        /// </summary>
+        public int BankAccountId { get; set; } = -1;
+
+        /// <summary>the account's name, for the kept statements list. empty when there is no account to name</summary>
+        [XmlIgnore]
+        public string AccountName
+        {
+            get
+            {
+                BankAccount account = BankAccount.Get(BankAccountId);
+                return account == null ? string.Empty : account.Name;
+            }
+        }
+
         public const string StatementFolder = "statements";
 
         public const string FilePrefix = "statements";
@@ -169,15 +187,19 @@ namespace Kernel
         /// <summary>
         /// the same statement already kept in a tax year. matched on the
         /// file's name and size, which is enough to recognise the file the
-        /// bank hands out again without reading the whole thing back
+        /// bank hands out again without reading the whole thing back.
+        /// a record from before accounts existed carries no account and
+        /// counts as the same file whichever account is importing now -
+        /// it is the same file, kept before there was anything to say so
         /// </summary>
-        public static StatementRecord FindSameFile(string originalFileName, long fileSize, int taxYear)
+        public static StatementRecord FindSameFile(string originalFileName, long fileSize, int taxYear, int bankAccountId = -1)
         {
             if (string.IsNullOrWhiteSpace(originalFileName))
                 return null;
 
             return _Records.FirstOrDefault(x => x.FileSize == fileSize
                 && x.TaxYear == taxYear
+                && (x.BankAccountId == bankAccountId || x.BankAccountId == -1)
                 && string.Equals(x.OriginalFileName, originalFileName, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -190,8 +212,9 @@ namespace Kernel
         /// </summary>
         /// <param name="sourcePath">the file the user picked</param>
         /// <param name="dates">the transaction dates read off it</param>
+        /// <param name="bankAccountId">the account it was imported against, -1 when there is none</param>
         /// <returns>the records added, one per tax year newly filed</returns>
-        public static List<StatementRecord> Keep(string sourcePath, string originalFileName, List<DateTime> dates)
+        public static List<StatementRecord> Keep(string sourcePath, string originalFileName, List<DateTime> dates, int bankAccountId = -1)
         {
             List<StatementRecord> added = new List<StatementRecord>();
 
@@ -224,8 +247,16 @@ namespace Kernel
 
             foreach (int taxYear in YearsFor(dates))
             {
-                if (FindSameFile(name, sourceSize, taxYear) != null)
+                StatementRecord same = FindSameFile(name, sourceSize, taxYear, bankAccountId);
+                if (same != null)
+                {
+                    //a record kept before accounts existed learns whose it is
+                    //the first time the file comes past again. memory only -
+                    //the file catches up on the next save
+                    if (same.BankAccountId == -1)
+                        same.BankAccountId = bankAccountId;
                     continue;
+                }
 
                 List<DateTime> inYear = DatesIn(dates, taxYear);
 
@@ -252,6 +283,7 @@ namespace Kernel
                     Transactions = inYear.Count,
                     FileTransactions = dates == null ? 0 : dates.Count,
                     FileSize = sourceSize,
+                    BankAccountId = bankAccountId,
                 }));
             }
 

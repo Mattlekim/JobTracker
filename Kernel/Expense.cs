@@ -174,6 +174,38 @@ namespace Kernel
             return $"stmt:{date:yyyyMMdd}:{who}:{amount.ToString("0.00", CultureInfo.InvariantCulture)}#{occurrence}";
         }
 
+        /// <summary>
+        /// the same id with the account it came off worked into it. with more
+        /// than one account, the same amount to the same payee on the same
+        /// day out of two accounts is two transactions, not a re-import -
+        /// which the account-blind id above would have swallowed. a PayPal
+        /// export has no account and keeps the plain id, exactly as before
+        /// </summary>
+        public static string StatementReference(BankAccount account, DateTime date, string payee, float amount, int occurrence)
+        {
+            if (account == null)
+                return StatementReference(date, payee, amount, occurrence);
+
+            string who = StatementText.Normalise(payee);
+            return $"stmt:a{account.Id}:{date:yyyyMMdd}:{who}:{amount.ToString("0.00", CultureInfo.InvariantCulture)}#{occurrence}";
+        }
+
+        /// <summary>
+        /// the expense a statement line was recorded as, if it ever was.
+        /// tries the account-tagged reference and, on the account that
+        /// inherited them, the plain reference from before accounts existed -
+        /// an expense recorded back then must not come in again as new
+        /// </summary>
+        public static Expense FindFromStatement(BankAccount account, DateTime date, string payee, float amount, int occurrence)
+        {
+            Expense expense = FindByReference(StatementReference(account, date, payee, amount, occurrence));
+
+            if (expense == null && account != null && account.InheritsLegacyReferences)
+                expense = FindByReference(StatementReference(date, payee, amount, occurrence));
+
+            return expense;
+        }
+
         /// <summary>true when this statement line has already been recorded</summary>
         public static bool AlreadyImported(string statementReference)
         {

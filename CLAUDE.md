@@ -90,7 +90,7 @@ Anything the taxman cares about is kept one file per tax year (UK, 6 April to 5 
 
 `<year>` is the year the tax year starts in, so `expenses-2026.rjt` is 2026/27. Folders read as `2026-27`.
 
-Everything else — customers, jobs, quotes, remembered payees, direct debits, settings — is global and never split,
+Everything else — customers, jobs, quotes, remembered payees, bank accounts, direct debits, settings — is global and never split,
 because last year's figures are meaningless without the customers they came from.
 
 `Kernel/YearlyStore.cs` does the file handling. The important part is `WriteIfChanged`: a year is only written when
@@ -613,18 +613,45 @@ A statement is read once and then looked at from two sides:
 - `Layouts/StatementExpenses` — money going out, flagged as expenses or ignored.
 
 `StatmentViewer` still owns the column setup (which column is the date, the reference, the amount, and now the
-money out column) and remembers csv and pdf layouts apart. `ImportExport/StatementFile` picks and reads the file
-for both pages. Both list their side as cards saying what will happen to each line before anything is imported —
-keep the two looking and reading the same when either is changed.
+money out column). The layouts belong to **`Kernel/BankAccount.cs`**: each account remembers its own csv and pdf
+layouts (kept apart, as they always were), so statements from two different banks can both be imported without one
+bank's columns overwriting the other's. Accounts live in `bankaccounts.rjt` (a global file: in every backup,
+synced like the rest) and are looked after on `Layouts/BankAccounts`, reached through the **Banking** section on
+the settings page — which is only doors: that page, `Layouts/KeptStatements` and `Layouts/ExpenseRules` do the
+work. An account is added, renamed and **archived — never deleted**: the statements and expenses imported from one
+are tracked against its id, which is also why a rename is safe and why *Delete All Data* leaves the accounts
+alone (like the settings, they are how the app is set up rather than what it has recorded). Archiving only takes
+the account out of the import question, said plainly on the page; everything imported from it stays, and
+unarchiving puts it back. The layout the app kept in the settings file before accounts existed becomes the first
+account on load (`BankAccount.EnsureLegacyAccount`, fed by `Settings.Load` stashing the old fields), so nobody
+re-teaches columns they already taught.
+
+`ImportExport/StatementFile` picks and reads the file for both pages, and settles which account the statement is
+from. With one active account there is no question at all — the first import quietly makes the one it needs. With
+more than one, picking wrong files everything on the statement against the wrong account, so the choice is guarded
+three ways: each account remembers what its statement files' **headings** look like (`CsvSignature`/`PdfSignature`,
+stamped on every import) and the file is matched to the account it resembles; the offer shows **the top of the
+file** — headings and first few lines — so the answer is checked against something real, not memory; and a pick
+that goes against what the file looks like is asked about a second time, preview included. A file nothing
+recognises still shows the preview before it is filed. `BankAccount.FindBySignature` only ever guesses when
+exactly **one** active account matches — two accounts at the same bank print the same headings, and guessing
+between them would guess wrong half the time. Archived accounts are neither offered nor guessed; when every
+account is archived the import says so and stops, rather than inventing a new account.
 
 The money in side reads the statement into `IncomingLine` once and both the list and the import run off that, so
 what the list promises is exactly what the import does. `Payment.AlreadyRecorded` is the single definition of
-"this one is already in", used by the badge and by `Payment.AddToCustomer`.
+"this one is already in", used by the badge and by `Payment.AddToCustomer`. A payment deliberately carries no
+account — it is about the customer, and the tax figures do not care which account income landed in.
 
-Nothing is ever imported twice. Every outgoing gets an id built from the date, the normalised payee and the
-amount (`Expense.StatementReference`), stored on `Expense.ExternalReference`, so re-importing the same statement —
-or the next one, which overlaps it — finds the expense already there. Identical transactions on the same day are
-told apart by an occurrence number, so two identical fuel stops still count twice.
+Nothing is ever imported twice — and with more than one account, "twice" is asked per account. Every outgoing gets
+an id built from the account, the date, the normalised payee and the amount (`Expense.StatementReference`), stored
+on `Expense.ExternalReference`, so re-importing the same statement — or the next one, which overlaps it — finds the
+expense already there, while the same fuel stop paid once from each of two accounts is two expenses, as it should
+be. Identical transactions on the same day are told apart by an occurrence number, so two identical fuel stops on
+one account still count twice. Expenses recorded before accounts existed carry the old account-less id; the
+migrated account is marked `InheritsLegacyReferences` and `Expense.FindFromStatement` tries both forms for it, so
+nothing already imported comes back as new. A PayPal export has no account and keeps the old id shape for the same
+reason. All of this is covered by the KernelDebugger self test.
 
 The statement file itself is kept (`Kernel/StatementRecord.cs`), filed under the tax year it covers, so the
 evidence the figures were read off travels with them into backups and the cloud. A statement that straddles
@@ -632,7 +659,9 @@ evidence the figures were read off travels with them into backups and the cloud.
 single year still has all of its evidence, rather than half of it sitting in a year nobody asked for. Each record
 holds its own year's date range and transaction count alongside the whole file's, which is what `Crossover` keys
 off. It is copied once the date column is known — which is why `StatmentViewer.ArchiveStatement` runs there and not
-at the file picker. `Layouts/KeptStatements` lists them.
+at the file picker. Each record carries the account it was imported against (`BankAccountId`, -1 on records from
+before accounts existed and on PayPal exports); `Layouts/KeptStatements` lists them, naming the account on each
+card once there is more than one account to tell apart.
 
 `Kernal/csvImporter.cs` understands quoted fields: a field in quotes keeps its commas, the quotes are not part of
 the value, and `""` inside one is a single quote. It used to cut the line at every comma, which is fine for a bank
@@ -677,14 +706,18 @@ Until then, sign-in cannot complete: the values are not registered with Google, 
 setup instructions instead. To test the real flow before the app has its own credentials, create a Desktop-app
 OAuth client and paste the Client ID and Secret into the settings fields.
 
-Because of that the whole Cloud Sync section on the settings page reads *Coming Soon* and is greyed out
-(`IsEnabled="false"` on `sec_cloud`), rather than being hidden — hiding it only has people hunting for it. Take the
-greying off in `Layouts/SettingLayout.xaml` when the real credentials go in.
+Because of that the settings page has **no Cloud Sync section at all** — it was shown greyed out as *Coming
+Soon* for a while and has since been taken out until the feature is real. The engine (`CloudSync.cs`, and the
+`CloudSync.Start()` call in `AppShell`) is still in place; when the real credentials go in, the section and its
+handlers come back in `Layouts/SettingLayout.xaml` — the old ones are in the git history of that page.
 
 ## Experimental features
 
 GoCardless is marked **Experimental** where a user meets it — the settings section heading, an orange badge inside
-it, the toolbar item on `Layouts/ViewCustomerDetails` and the title of the action sheet that page puts up. The
+it, the toolbar item on `Layouts/ViewCustomerDetails` and the title of the action sheet that page puts up. **Work
+Sharing** carries the same marking on the settings page — section heading and badge — while sending work out is
+still being proven; only the settings section says so, because the sending buttons it shows are gated behind it
+anyway and receiving somebody's work should not greet them with a warning. The
 `GoCardless` entry in the preferred-payment picker on `Layouts/NewCustomer` is deliberately *not* labelled: that
 string is saved on the customer as the payment method, so changing the wording changes stored data.
 

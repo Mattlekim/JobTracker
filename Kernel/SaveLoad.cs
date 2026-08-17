@@ -613,6 +613,84 @@ namespace Kernel
         }
     }
 
+    public struct BankAccountSaveData
+    {
+        public List<BankAccount> Accounts;
+        public int NextAccountId;
+    }
+
+    public partial class BankAccount
+    {
+        private static string _FilePath = "bankaccounts.rjt";
+
+        public static void Save(string dir = null)
+        {
+            string fileLocation = string.Empty;
+            if (dir != null && dir != string.Empty)
+            {
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                fileLocation = Path.Combine(fileLocation, _FilePath);
+            }
+            else
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+
+            BankAccountSaveData basd = new BankAccountSaveData();
+            basd.Accounts = new List<BankAccount>();
+            basd.Accounts.AddRange(_Accounts);
+            basd.NextAccountId = _IdGenerator;
+
+            using (FileStream fs = File.Create(fileLocation))
+            {
+                XmlSerializer xs = new XmlSerializer(typeof(BankAccountSaveData));
+                xs.Serialize(fs, basd);
+            }
+            SyncNotifier.NotifySaved();
+        }
+
+        public static void Load(string dir = null)
+        {
+            string fileLocation = string.Empty;
+            if (dir != null && dir != string.Empty)
+            {
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), dir);
+                fileLocation = Path.Combine(fileLocation, _FilePath);
+            }
+            else
+                fileLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), _FilePath);
+
+            BankAccountSaveData basd = new BankAccountSaveData();
+            try
+            {
+                using (FileStream fs = File.OpenRead(fileLocation))
+                {
+                    XmlSerializer xs = new XmlSerializer(typeof(BankAccountSaveData));
+#pragma warning disable CS8605 // Unboxing a possibly null value.
+                    basd = (BankAccountSaveData)xs.Deserialize(fs);
+#pragma warning restore CS8605 // Unboxing a possibly null value.
+
+                    _Accounts.Clear();
+                    if (basd.Accounts != null)
+                        _Accounts.AddRange(basd.Accounts);
+                    _IdGenerator = basd.NextAccountId;
+                }
+            }
+            catch
+            {
+            }
+
+            //an id handed out twice would muddle two accounts' statements
+            //together, so a file whose counter is behind its accounts is
+            //put right rather than trusted
+            foreach (BankAccount account in _Accounts)
+                if (account.Id >= _IdGenerator)
+                    _IdGenerator = account.Id + 1;
+
+            //the layout out of an old settings file becomes the first
+            //account, so columns already taught are not asked for again
+            EnsureLegacyAccount(dir);
+        }
+    }
+
     public struct StatementRecordSaveData
     {
         public List<StatementRecord> Records;

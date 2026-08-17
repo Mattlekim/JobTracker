@@ -60,6 +60,11 @@ public partial class KeptStatements : ContentPage
         content.Add(new Label { Text = record.FormattedPeriod, FontSize = 13 });
         content.Add(new Label { Text = record.FormattedImported, FontSize = 12, TextColor = Colors.Grey });
 
+        //which account it came off - only worth saying once there is more
+        //than one account for it to have come off
+        if (BankAccount.Count > 1 && !string.IsNullOrEmpty(record.AccountName))
+            content.Add(new Label { Text = $"Account: {record.AccountName}", FontSize = 12, TextColor = Colors.Grey });
+
         if (record.Crossover)
             content.Add(new Label
             {

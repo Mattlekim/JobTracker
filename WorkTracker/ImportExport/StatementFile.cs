@@ -41,6 +41,32 @@ public static class StatementFile
             //user set up for it
             StatmentViewer.SourceIsPayPal = !isPdf && PayPalStatement.Apply(file);
 
+            //which account the statement is from - its remembered layout is
+            //what the columns are read off, and its id is what the kept file
+            //and the expenses off it are tracked against. a PayPal export is
+            //its own source and has no account. backing out of the question
+            //backs out of the import
+            if (StatmentViewer.SourceIsPayPal)
+                StatmentViewer.ActiveAccount = null;
+            else
+            {
+                BankAccount account = await ChooseAccountAsync(page, file, isPdf);
+                if (account == null)
+                    return null;
+
+                //the file's headings are remembered as what this account's
+                //statements look like, so the next one can be recognised
+                //without asking
+                string signature = BankAccount.SignatureOf(file.Header);
+                if (!string.IsNullOrEmpty(signature) && account.Signature(isPdf) != signature)
+                {
+                    account.RememberSignature(isPdf, signature);
+                    BankAccount.Save();
+                }
+
+                StatmentViewer.ActiveAccount = account;
+            }
+
             //the picked file is kept to one side, because the statement is
             //filed away once the columns are known and by then the picker's
             //own copy of it may be gone
@@ -59,6 +85,106 @@ public static class StatementFile
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// which account is this statement from. not a question until there is
+    /// more than one active account to choose between - a round with one
+    /// bank sees nothing new, and more accounts are added under Banking on
+    /// the settings page.
+    ///
+    /// with more than one, picking the wrong account files everything on
+    /// the statement against it - so the file's headings are matched to the
+    /// account whose statements they look like, the top of the file is
+    /// shown so the answer can be checked against something real, and a
+    /// pick that goes against what the file looks like is asked about twice
+    /// </summary>
+    private static async Task<BankAccount> ChooseAccountAsync(Page page, CSVFile file, bool isPdf)
+    {
+        List<BankAccount> active = BankAccount.QueryActive();
+
+        //archived accounts are not offered - that is what archiving is
+        if (active.Count == 0 && BankAccount.Count > 0)
+        {
+            await page.DisplayAlert("All Accounts Archived",
+                "Every bank account is archived, so there is nothing to import this against. Unarchive one under Settings, Banking, Bank Accounts and import again.", "Ok");
+            return null;
+        }
+
+        if (active.Count == 0)
+            return BankAccount.FirstOrMake();
+
+        if (active.Count == 1)
+            return active[0];
+
+        string signature = BankAccount.SignatureOf(file.Header);
+        BankAccount guess = BankAccount.FindBySignature(signature, isPdf);
+        string preview = PreviewOf(file);
+
+        if (guess != null && await page.DisplayAlert($"Looks Like {guess.Name}",
+                $"This file looks like {guess.Name}'s statements.\n\nThe top of the file:\n{preview}\n\nImport it against {guess.Name}?",
+                $"Yes, {guess.Name}", "Pick An Account"))
+            return guess;
+
+        string picked = await page.DisplayActionSheet("Which account is this statement from?", "Cancel", null,
+            active.Select(x => x.Name).ToArray());
+
+        BankAccount chosen = active.FirstOrDefault(x => x.Name == picked);
+        if (chosen == null)
+            return null;
+
+        if (guess != null && chosen != guess)
+        {
+            //picking against what the file looks like is exactly the moment
+            //to look twice
+            if (!await page.DisplayAlert("Are You Sure?",
+                    $"This file looks like {guess.Name}'s statements, not {chosen.Name}'s.\n\nThe top of the file:\n{preview}\n\nImport it against {chosen.Name} anyway?",
+                    $"Yes, {chosen.Name}", "Cancel"))
+                return null;
+        }
+        else if (guess == null)
+        {
+            //nothing recognised, so the pick is all there is to go on -
+            //show what is about to be filed against it before anything is
+            if (!await page.DisplayAlert($"Import Against {chosen.Name}?",
+                    $"The top of the file:\n{preview}\n\nIf this is not {chosen.Name}'s statement, cancel and pick again.",
+                    $"Import As {chosen.Name}", "Cancel"))
+                return null;
+        }
+
+        return chosen;
+    }
+
+    /// <summary>
+    /// the top of the file, short enough for an alert - the headings and
+    /// the first few lines, each cut down to fit. enough to recognise whose
+    /// statement it is without opening anything
+    /// </summary>
+    private static string PreviewOf(CSVFile file)
+    {
+        List<string> lines = new List<string>();
+
+        if (file.Header != null && file.Header.Length > 0)
+            lines.Add(OneLine(file.Header));
+
+        if (file.data != null)
+            foreach (string[] row in file.data)
+            {
+                if (row == null)
+                    continue;
+
+                lines.Add(OneLine(row));
+                if (lines.Count >= 4)
+                    break;
+            }
+
+        return lines.Count == 0 ? "(the file has nothing to show)" : string.Join("\n", lines);
+    }
+
+    private static string OneLine(string[] row)
+    {
+        string line = string.Join(", ", row.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()));
+        return line.Length <= 80 ? line : line.Substring(0, 77) + "...";
     }
 
     /// <summary>

@@ -18,6 +18,10 @@ namespace WorkTracker
             Payment.Load();
             Expense.Load();
             ExpenseRule.Load();
+
+            //after Settings.Load: the layout an old settings file kept is
+            //stashed there, and this is what turns it into the first account
+            BankAccount.Load();
             StatementRecord.Load();
             GoCardlessRequest.Load();
             BalanceAdjustment.Load();
