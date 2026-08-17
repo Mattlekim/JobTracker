@@ -88,7 +88,12 @@ public partial class KeptStatements : ContentPage
         };
 
         if (record.FileKept)
-            buttons.Add(RowButton("Open", "#1E88E5", (s, e) => Open(record)));
+        {
+            //Open reads the statement here in the app; Share hands the file
+            //to another app or another place, as Open used to
+            buttons.Add(RowButton("Open", "#1E88E5", (s, e) => Navigation.PushAsync(new StatementReader(record))));
+            buttons.Add(RowButton("Share", "#2E7D32", (s, e) => ShareOut(record)));
+        }
         buttons.Add(RowButton("Delete", "#E53935", (s, e) => Delete(record)));
         content.Add(buttons);
 
@@ -110,7 +115,7 @@ public partial class KeptStatements : ContentPage
         return button;
     }
 
-    private async void Open(StatementRecord record)
+    private async void ShareOut(StatementRecord record)
     {
         try
         {
@@ -118,7 +123,7 @@ public partial class KeptStatements : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Could Not Open", ex.Message, "Ok");
+            await DisplayAlert("Could Not Share", ex.Message, "Ok");
         }
     }
 

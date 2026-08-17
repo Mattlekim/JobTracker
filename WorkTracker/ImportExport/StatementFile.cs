@@ -212,9 +212,10 @@ public static class StatementFile
 
     /// <summary>
     /// Reads the statement off the UI thread - a long pdf takes a moment - asking for the password
-    /// if the bank locked the file.
+    /// if the bank locked the file. Public because the statement reader falls back to it for a pdf
+    /// the platform cannot draw.
     /// </summary>
-    private static async Task<CSVFile> ImportPdfAsync(Page page, string path)
+    public static async Task<CSVFile> ImportPdfAsync(Page page, string path)
     {
         string password = null;
 
