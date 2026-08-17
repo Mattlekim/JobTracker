@@ -5,20 +5,14 @@ public partial class StatmentViewer : ContentPage
 {
 	public static CSVFile CsvFile;
 
-	public static int Date = -1, Ref = -1, Amount = -1;
-    public static bool DebitAndCreditTogether = false;
-
     /// <summary>
-    /// the column money going out is printed in, for banks that keep money in
-    /// and money out in separate columns. -1 when the statement has no such
-    /// column, either because the amount column carries both or because the
-    /// user said there is not one
+    /// the account the open statement belongs to, chosen when the file was
+    /// picked. its remembered layouts are what the columns are read from and
+    /// written back to - each account keeps its own csv and pdf layouts, so
+    /// two banks' statements no longer fight over one set of columns. null
+    /// only for a PayPal export, which is its own source and has no account
     /// </summary>
-    public static int Debit = -1;
-
-    /// <summary>a pdf statement has different columns to the same bank's csv, so the two are remembered apart</summary>
-    public static int PdfDate = -1, PdfRef = -1, PdfAmount = -1, PdfDebit = -1;
-    public static bool PdfDebitAndCreditTogether = false;
+    public static BankAccount ActiveAccount;
 
     /// <summary>set by whoever loaded the file, before this page is pushed</summary>
     public static bool SourceIsPdf = false;
@@ -66,60 +60,72 @@ public partial class StatmentViewer : ContentPage
     //for on one, and nothing is written back
     private readonly bool _isPayPal = SourceIsPayPal;
 
+    //captured like _isPdf, so a page already built keeps working off the
+    //statement it was built for
+    private readonly BankAccount _account = ActiveAccount;
+
     private int DateColumn
     {
-        get => _isPayPal ? PayPalDate : _isPdf ? PdfDate : Date;
-        set { if (_isPayPal) PayPalDate = value; else if (_isPdf) PdfDate = value; else Date = value; }
+        get => _isPayPal ? PayPalDate : _account == null ? -1 : _isPdf ? _account.PdfDate : _account.Date;
+        set { if (_isPayPal) PayPalDate = value; else if (_account != null) { if (_isPdf) _account.PdfDate = value; else _account.Date = value; } }
     }
 
     private int RefColumn
     {
-        get => _isPayPal ? PayPalRef : _isPdf ? PdfRef : Ref;
-        set { if (_isPayPal) PayPalRef = value; else if (_isPdf) PdfRef = value; else Ref = value; }
+        get => _isPayPal ? PayPalRef : _account == null ? -1 : _isPdf ? _account.PdfRef : _account.Ref;
+        set { if (_isPayPal) PayPalRef = value; else if (_account != null) { if (_isPdf) _account.PdfRef = value; else _account.Ref = value; } }
     }
 
     private int AmountColumn
     {
-        get => _isPayPal ? PayPalAmount : _isPdf ? PdfAmount : Amount;
-        set { if (_isPayPal) PayPalAmount = value; else if (_isPdf) PdfAmount = value; else Amount = value; }
+        get => _isPayPal ? PayPalAmount : _account == null ? -1 : _isPdf ? _account.PdfAmount : _account.Amount;
+        set { if (_isPayPal) PayPalAmount = value; else if (_account != null) { if (_isPdf) _account.PdfAmount = value; else _account.Amount = value; } }
     }
 
     private int DebitColumn
     {
-        get => _isPayPal ? -1 : _isPdf ? PdfDebit : Debit;
-        set { if (!_isPayPal) { if (_isPdf) PdfDebit = value; else Debit = value; } }
+        get => _isPayPal || _account == null ? -1 : _isPdf ? _account.PdfDebit : _account.Debit;
+        set { if (!_isPayPal && _account != null) { if (_isPdf) _account.PdfDebit = value; else _account.Debit = value; } }
     }
 
     private bool AmountIncludesDebits
     {
-        get => _isPayPal ? true : _isPdf ? PdfDebitAndCreditTogether : DebitAndCreditTogether;
-        set { if (!_isPayPal) { if (_isPdf) PdfDebitAndCreditTogether = value; else DebitAndCreditTogether = value; } }
+        get => _isPayPal ? true : _account == null ? false : _isPdf ? _account.PdfDebitAndCreditTogether : _account.DebitAndCreditTogether;
+        set { if (!_isPayPal && _account != null) { if (_isPdf) _account.PdfDebitAndCreditTogether = value; else _account.DebitAndCreditTogether = value; } }
     }
 
     //the columns of whichever statement is open, for pages that only read them
-    public static int ActiveDateColumn => SourceIsPayPal ? PayPalDate : SourceIsPdf ? PdfDate : Date;
-    public static int ActiveRefColumn => SourceIsPayPal ? PayPalRef : SourceIsPdf ? PdfRef : Ref;
-    public static int ActiveAmountColumn => SourceIsPayPal ? PayPalAmount : SourceIsPdf ? PdfAmount : Amount;
+    public static int ActiveDateColumn => SourceIsPayPal ? PayPalDate : ActiveAccount == null ? -1 : SourceIsPdf ? ActiveAccount.PdfDate : ActiveAccount.Date;
+    public static int ActiveRefColumn => SourceIsPayPal ? PayPalRef : ActiveAccount == null ? -1 : SourceIsPdf ? ActiveAccount.PdfRef : ActiveAccount.Ref;
+    public static int ActiveAmountColumn => SourceIsPayPal ? PayPalAmount : ActiveAccount == null ? -1 : SourceIsPdf ? ActiveAccount.PdfAmount : ActiveAccount.Amount;
 
     //PayPal signs its gross column, so money out sits in it alongside money
     //in and there is no separate column for it
-    public static int ActiveDebitColumn => SourceIsPayPal ? -1 : SourceIsPdf ? PdfDebit : Debit;
-    public static bool ActiveAmountIncludesDebits => SourceIsPayPal ? true : SourceIsPdf ? PdfDebitAndCreditTogether : DebitAndCreditTogether;
+    public static int ActiveDebitColumn => SourceIsPayPal || ActiveAccount == null ? -1 : SourceIsPdf ? ActiveAccount.PdfDebit : ActiveAccount.Debit;
+    public static bool ActiveAmountIncludesDebits => SourceIsPayPal ? true : ActiveAccount == null ? false : SourceIsPdf ? ActiveAccount.PdfDebitAndCreditTogether : ActiveAccount.DebitAndCreditTogether;
 
     private bool _selectingCollums = false;
     private int _currentThingToSelect = 0;
 
+    /// <summary>forgets every account's remembered layouts, so the columns are asked for afresh on the next import</summary>
     public static void Reset()
     {
-        Date = -1;
-        Ref = -1;
-        Amount = -1;
-        Debit = -1;
+        foreach (BankAccount account in BankAccount.Query())
+        {
+            account.Date = -1;
+            account.Ref = -1;
+            account.Amount = -1;
+            account.Debit = -1;
+            account.DebitAndCreditTogether = false;
 
-        PdfDate = -1;
-        PdfRef = -1;
-        PdfAmount = -1;
-        PdfDebit = -1;
+            account.PdfDate = -1;
+            account.PdfRef = -1;
+            account.PdfAmount = -1;
+            account.PdfDebit = -1;
+            account.PdfDebitAndCreditTogether = false;
+        }
+
+        BankAccount.Save();
     }
 
     /// <summary>
@@ -498,7 +504,11 @@ public partial class StatmentViewer : ContentPage
         _currentThingToSelect = 0;
         l_nextField.IsVisible = false;
         bnt_noMoneyOut.IsVisible = false;
-        Settings.Save();
+
+        //the columns just taught are the account's own layout. a PayPal
+        //export reads its columns off its headings and never saves them
+        if (!_isPayPal && _account != null)
+            BankAccount.Save();
         BuildGrid();
         ShowMoneyOutState();
         ArchiveStatement();
@@ -613,8 +623,10 @@ public partial class StatmentViewer : ContentPage
 
             //a statement that runs across 5 April is kept in both tax years.
             //Keep leaves alone any year it is already filed in, so picking
-            //the same file twice does not make a second copy
-            if (StatementRecord.Keep(SourceFilePath, SourceFileName, dates).Count > 0)
+            //the same file twice does not make a second copy. the account it
+            //came off rides on the record; a PayPal export has no account
+            if (StatementRecord.Keep(SourceFilePath, SourceFileName, dates,
+                    _account == null ? -1 : _account.Id).Count > 0)
                 StatementRecord.Save();
         }
         catch

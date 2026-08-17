@@ -126,6 +126,7 @@
 	  <Compile Include="..\Kernel\Job.cs" Link="Kernal\Job.cs" />
 	  <Compile Include="..\Kernel\JobDisplay.cs" Link="Kernal\JobDisplay.cs" />
 	  <Compile Include="..\Kernel\BalanceAdjustment.cs" Link="Kernal\BalanceAdjustment.cs" />
+	  <Compile Include="..\Kernel\BankAccount.cs" Link="Kernal\BankAccount.cs" />
 	  <Compile Include="..\Kernel\Location.cs" Link="Kernal\Location.cs" />
 	  <Compile Include="..\Kernel\Payment.cs" Link="Kernal\Payment.cs" />
 	  <Compile Include="..\Kernel\PaymentMethod.cs" Link="Kernal\PaymentMethod.cs" />

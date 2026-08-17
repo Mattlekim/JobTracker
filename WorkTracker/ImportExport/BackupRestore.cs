@@ -137,6 +137,10 @@ public static class BackupRestore
             Payment.Load();
             Expense.Load();
             ExpenseRule.Load();
+
+            //after Settings.Load, so a backup from before bank accounts
+            //existed still turns its one layout into the first account
+            BankAccount.Load();
             StatementRecord.Load();
             GoCardlessRequest.Load();
             BalanceAdjustment.Load();

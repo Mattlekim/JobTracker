@@ -82,6 +82,11 @@ public partial class StatementExpenses : ContentPage
         //on the same forecourt stay two expenses rather than one
         Dictionary<string, int> seen = new Dictionary<string, int>();
 
+        //the reference carries the account the statement belongs to, so the
+        //same transaction on two accounts is two expenses. null for a PayPal
+        //export, which keeps the plain account-less reference
+        BankAccount account = StatmentViewer.ActiveAccount;
+
         foreach (string[] row in file.data)
         {
             if (row == null)
@@ -105,12 +110,12 @@ public partial class StatementExpenses : ContentPage
                 Amount = (float)amount,
             };
 
-            string key = Expense.StatementReference(line.Date, line.Reference, line.Amount, 0);
+            string key = Expense.StatementReference(account, line.Date, line.Reference, line.Amount, 0);
             int occurrence = seen.TryGetValue(key, out int count) ? count : 0;
             seen[key] = occurrence + 1;
 
-            line.Id = Expense.StatementReference(line.Date, line.Reference, line.Amount, occurrence);
-            line.Logged = Expense.FindByReference(line.Id);
+            line.Id = Expense.StatementReference(account, line.Date, line.Reference, line.Amount, occurrence);
+            line.Logged = Expense.FindFromStatement(account, line.Date, line.Reference, line.Amount, occurrence);
             line.Rule = ExpenseRule.FindMatch(line.Reference);
 
             _lines.Add(line);

@@ -245,6 +245,20 @@
                 <Label Text="This only shows or hides the sending buttons - on the work list, a booked day and the calendar. Work somebody sends to you always opens, whatever this is set to." FontSize="12" TextColor="Grey"></Label>
             </VerticalStackLayout>
 
+            <!--  BANK ACCOUNTS  -->
+            <!-- each account keeps its own statement layout, and what is
+                 imported is tracked against its id - so an account can be
+                 renamed but never deleted -->
+            <Button Text="▸ Bank Accounts" ClassId="sec_bankAccounts" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
+            <VerticalStackLayout x:Name="sec_bankAccounts" IsVisible="false" Padding="10,0,10,10">
+                <Label Text="Each account remembers its own statement layout, so statements from different banks can all be imported. With more than one account, importing a statement asks which it is from." TextColor="Grey"></Label>
+                <Label></Label>
+                <VerticalStackLayout x:Name="vsl_bankAccounts" Spacing="6"></VerticalStackLayout>
+                <Label></Label>
+                <Button Text="Add Account" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_addBankAccount_Clicked"></Button>
+                <Label Text="An account cannot be deleted - the statements and expenses imported from it stay tracked against it. Rename it instead if it changes." FontSize="12" TextColor="Grey"></Label>
+            </VerticalStackLayout>
+
             <!--  GOCARDLESS  -->
             <!--  PAYPAL  -->
             <Button Text="▸ PayPal" ClassId="sec_paypal" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>

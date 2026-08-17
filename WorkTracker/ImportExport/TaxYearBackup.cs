@@ -70,6 +70,7 @@ public static class TaxYearBackup
         Customer.Save(Settings.SaveDataFolder);
         Job.Save(Settings.SaveDataFolder);
         ExpenseRule.Save(Settings.SaveDataFolder);
+        BankAccount.Save(Settings.SaveDataFolder);
         GoCardlessRequest.Save(Settings.SaveDataFolder);
         BalanceAdjustment.Save(Settings.SaveDataFolder);
         Settings.Save(Settings.SaveDataFolder);

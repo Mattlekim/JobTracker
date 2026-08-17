@@ -26,7 +26,7 @@ namespace UiInterface
         /// the round itself, which belongs to no tax year and is always the
         /// same handful of files
         /// </summary>
-        static readonly string[] GlobalFiles = { "customers.rjt", "jobs.rjt", "quotes.rjt", "expenserules.rjt", "directdebits.rjt", Kernel.Payment.IgnoreFilePath };
+        static readonly string[] GlobalFiles = { "customers.rjt", "jobs.rjt", "quotes.rjt", "expenserules.rjt", "bankaccounts.rjt", "directdebits.rjt", Kernel.Payment.IgnoreFilePath };
 
         /// <summary>
         /// the tax records, which are one file per tax year. a year that has
@@ -523,6 +523,7 @@ namespace UiInterface
                         Payment.Load();
                         Expense.Load();
                         ExpenseRule.Load();
+                        BankAccount.Load();
                         StatementRecord.Load();
                         GoCardlessRequest.Load();
                         DataRefreshNotifier.NotifyDataChanged();

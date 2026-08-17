@@ -41,6 +41,20 @@ public static class StatementFile
             //user set up for it
             StatmentViewer.SourceIsPayPal = !isPdf && PayPalStatement.Apply(file);
 
+            //which account the statement is from - its remembered layout is
+            //what the columns are read off, and its id is what the kept file
+            //and the expenses off it are tracked against. a PayPal export is
+            //its own source and has no account. backing out of the question
+            //backs out of the import
+            if (StatmentViewer.SourceIsPayPal)
+                StatmentViewer.ActiveAccount = null;
+            else
+            {
+                StatmentViewer.ActiveAccount = await ChooseAccountAsync(page);
+                if (StatmentViewer.ActiveAccount == null)
+                    return null;
+            }
+
             //the picked file is kept to one side, because the statement is
             //filed away once the columns are known and by then the picker's
             //own copy of it may be gone
@@ -59,6 +73,24 @@ public static class StatementFile
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// which account is this statement from. not a question until there is
+    /// more than one account to choose between - a round with one bank sees
+    /// nothing new, and more accounts are added on the settings page
+    /// </summary>
+    private static async Task<BankAccount> ChooseAccountAsync(Page page)
+    {
+        List<BankAccount> accounts = BankAccount.Query();
+
+        if (accounts.Count <= 1)
+            return BankAccount.FirstOrMake();
+
+        string[] names = accounts.Select(x => x.Name).ToArray();
+        string picked = await page.DisplayActionSheet("Which account is this statement from?", "Cancel", null, names);
+
+        return accounts.FirstOrDefault(x => x.Name == picked);
     }
 
     /// <summary>

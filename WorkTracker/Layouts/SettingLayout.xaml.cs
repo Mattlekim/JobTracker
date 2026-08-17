@@ -129,18 +129,10 @@ public class Settings
         sd.DefaultResecdual = WorkPlanner.DefaultRearangeMessage;
         sd.DefaultNotComming = WorkPlanner.DefaultNotCommingMessage;
 
-        sd.Date = StatmentViewer.Date;
-        sd.Ref = StatmentViewer.Ref;
-        sd.Amount = StatmentViewer.Amount;
-        sd.DebitAndCreditTogether = StatmentViewer.DebitAndCreditTogether;
-
-        sd.PdfDate = StatmentViewer.PdfDate;
-        sd.PdfRef = StatmentViewer.PdfRef;
-        sd.PdfAmount = StatmentViewer.PdfAmount;
-        sd.PdfDebitAndCreditTogether = StatmentViewer.PdfDebitAndCreditTogether;
-
-        sd.DebitPlusOne = StatmentViewer.Debit + 1;
-        sd.PdfDebitPlusOne = StatmentViewer.PdfDebit + 1;
+        //the statement column layouts are not written here any more - each
+        //bank account keeps its own in bankaccounts.rjt. the fields stay on
+        //SettingsData so an old file still reads, and BankAccount turns what
+        //it finds there into the first account
 
         sd.ReceiptPhotoMaxSize = ReceiptPhoto.MaxSize;
         sd.ReceiptPhotoQuality = ReceiptPhoto.Quality;
@@ -211,22 +203,24 @@ public class Settings
                 WorkPlanner.DefaultRearangeMessage = sd.DefaultResecdual;
                 WorkPlanner.DefaultNotCommingMessage = sd.DefaultNotComming;
 
-                StatmentViewer.Date = sd.Date;
-                StatmentViewer.Ref = sd.Ref;
-                StatmentViewer.Amount = sd.Amount;
-                StatmentViewer.DebitAndCreditTogether = sd.DebitAndCreditTogether;
+                //the columns out of a settings file from before each bank
+                //account kept its own layout. stashed for BankAccount.Load,
+                //which turns them into the first account - 0,0,0 means the
+                //file predates statement imports and there is nothing to keep
+                BankAccount.LegacyDate = sd.Date;
+                BankAccount.LegacyRef = sd.Ref;
+                BankAccount.LegacyAmount = sd.Amount;
+                BankAccount.LegacyDebitAndCreditTogether = sd.DebitAndCreditTogether;
 
-                //settings saved before pdf import existed have no pdf columns, which reads back as
-                //0,0,0 - the viewer treats that as not chosen yet and asks for them
-                StatmentViewer.PdfDate = sd.PdfDate;
-                StatmentViewer.PdfRef = sd.PdfRef;
-                StatmentViewer.PdfAmount = sd.PdfAmount;
-                StatmentViewer.PdfDebitAndCreditTogether = sd.PdfDebitAndCreditTogether;
+                BankAccount.LegacyPdfDate = sd.PdfDate;
+                BankAccount.LegacyPdfRef = sd.PdfRef;
+                BankAccount.LegacyPdfAmount = sd.PdfAmount;
+                BankAccount.LegacyPdfDebitAndCreditTogether = sd.PdfDebitAndCreditTogether;
 
                 //0 is what settings saved before the money out column existed
-                //read back as, and means it has not been chosen
-                StatmentViewer.Debit = sd.DebitPlusOne - 1;
-                StatmentViewer.PdfDebit = sd.PdfDebitPlusOne - 1;
+                //read back as, and means it was never chosen
+                BankAccount.LegacyDebit = sd.DebitPlusOne - 1;
+                BankAccount.LegacyPdfDebit = sd.PdfDebitPlusOne - 1;
 
                 //0 from an older settings file, which the property turns back
                 //into the default
@@ -459,6 +453,10 @@ public partial class SettingLayout : ContentPage
         ShowJobNames();
         ShowTagNames();
         ShowRoundNames();
+
+        //an account can appear while this page sits behind an import - the
+        //first import makes one when there are none at all
+        ShowBankAccounts();
 
         //not read from a file - it is only ever whatever it was set to since
         //the app started
@@ -741,6 +739,96 @@ public partial class SettingLayout : ContentPage
     {
         StatmentViewer.Reset();
         DisplayAlert("Reset", "Import settings have been reset", "Ok");
+    }
+
+    /// <summary>
+    /// the bank accounts statements are imported against. each keeps its own
+    /// statement layout, and its id is what the statements and expenses
+    /// imported from it are tracked by - which is why there is a rename here
+    /// and no delete
+    /// </summary>
+    private void ShowBankAccounts()
+    {
+        vsl_bankAccounts.Clear();
+
+        List<BankAccount> accounts = BankAccount.Query();
+
+        if (accounts.Count == 0)
+        {
+            vsl_bankAccounts.Add(new Label()
+            {
+                Text = "No accounts yet - one is made by itself the first time a statement is imported. Add one here first if you want it called something better than 'My Bank'.",
+                FontSize = 12,
+                TextColor = Colors.Grey,
+            });
+            return;
+        }
+
+        foreach (BankAccount account in accounts)
+        {
+            HorizontalStackLayout row = new HorizontalStackLayout() { Spacing = 10 };
+
+            row.Add(new Label() { Text = account.Name, VerticalOptions = LayoutOptions.Center });
+
+            Button rename = new Button()
+            {
+                Text = "Rename",
+                FontSize = 13,
+                Padding = new Thickness(12, 4),
+                BackgroundColor = Colors.Transparent,
+                TextColor = Color.FromArgb("#1E88E5"),
+                BorderColor = Color.FromArgb("#1E88E5"),
+                BorderWidth = 2,
+            };
+            rename.Clicked += (s, e) => RenameBankAccount(account);
+            row.Add(rename);
+
+            vsl_bankAccounts.Add(row);
+        }
+    }
+
+    private async void bnt_addBankAccount_Clicked(object sender, EventArgs e)
+    {
+        string name = await DisplayPromptAsync("Add Account",
+            "What is the account called? The name is how it is offered when a statement is imported.",
+            "Add", "Cancel");
+
+        name = name?.Trim();
+        if (string.IsNullOrEmpty(name))
+            return;
+
+        //the import question offers accounts by name, so two accounts with
+        //one name could never be told apart there
+        if (BankAccount.NameTaken(name))
+        {
+            await DisplayAlert("Add Account", $"There is already an account called '{name}'.", "Ok");
+            return;
+        }
+
+        BankAccount.Add(name);
+        BankAccount.Save();
+        ShowBankAccounts();
+    }
+
+    private async void RenameBankAccount(BankAccount account)
+    {
+        string name = await DisplayPromptAsync("Rename Account",
+            "Statements and expenses already imported stay with the account - only the name changes.",
+            "Rename", "Cancel", initialValue: account.Name);
+
+        name = name?.Trim();
+        if (string.IsNullOrEmpty(name) || name == account.Name)
+            return;
+
+        if (BankAccount.NameTaken(name, account.Id))
+        {
+            await DisplayAlert("Rename Account", $"There is already an account called '{name}'.", "Ok");
+            return;
+        }
+
+        account.Name = name;
+        BankAccount.Save();
+        ShowBankAccounts();
     }
 
     /// <summary>
@@ -1211,6 +1299,7 @@ public partial class SettingLayout : ContentPage
                 Payment.DeleteData();
                 Expense.DeleteData();
                 ExpenseRule.DeleteData();
+                BankAccount.DeleteData();
                 StatementRecord.DeleteData();
                 GoCardlessRequest.DeleteData();
                 BalanceAdjustment.DeleteData();
@@ -1220,9 +1309,15 @@ public partial class SettingLayout : ContentPage
                 Payment.Save();
                 Expense.Save();
                 ExpenseRule.Save();
+                BankAccount.Save();
                 StatementRecord.Save();
                 GoCardlessRequest.Save();
                 BalanceAdjustment.Save();
+
+                //rewritten without the one-layout-for-everything columns an
+                //old settings file carried, so the next start cannot turn
+                //them back into an account that was just deleted
+                Settings.Save();
                 DataRefreshNotifier.NotifyDataChanged();
                 await DisplayAlert("Complete", "All data erased", "Ok");
             }

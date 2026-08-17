@@ -47,6 +47,7 @@ public static class SelfTest
             ASharedWorkListSurvivesTheTripThereAndBack(folder);
             CancellingBookedInWorkTakesItOffTheDay();
             AWriteOffLeavesARecord();
+            EachBankAccountKeepsItsOwnLayoutAndItsOwnReferences(folder);
         }
         catch (Exception ex)
         {
@@ -471,6 +472,142 @@ public static class SelfTest
         return Job.Query().Find(x => x.Address != null
             && x.Address.PropertyNameNumber == number
             && x.Address.Street == street);
+    }
+
+    /// <summary>
+    /// two accounts keep two layouts, the layout out of an old settings file
+    /// becomes the first account, and an expense recorded before accounts
+    /// existed is still recognised - on the account that inherited it and on
+    /// no other
+    /// </summary>
+    private static void EachBankAccountKeepsItsOwnLayoutAndItsOwnReferences(string folder)
+    {
+        Console.WriteLine();
+        Console.WriteLine("Each bank account keeps its own layout and its own references");
+
+        BankAccount.DeleteData();
+        Expense.DeleteData();
+
+        //two accounts, two layouts, through a save and back
+        BankAccount starling = BankAccount.Add("Starling");
+        starling.Date = 0;
+        starling.Ref = 1;
+        starling.Amount = 2;
+        starling.Debit = 3;
+
+        BankAccount hsbc = BankAccount.Add("HSBC");
+        hsbc.Date = 2;
+        hsbc.Ref = 4;
+        hsbc.Amount = 5;
+        hsbc.DebitAndCreditTogether = true;
+
+        BankAccount.Save(folder);
+        BankAccount.DeleteData();
+        BankAccount.Load(folder);
+
+        Check("both accounts came back", BankAccount.Count == 2, $"{BankAccount.Count} came back");
+
+        BankAccount readStarling = BankAccount.Query().Find(x => x.Name == "Starling");
+        BankAccount readHsbc = BankAccount.Query().Find(x => x.Name == "HSBC");
+
+        Check("the two accounts have their own ids",
+            readStarling != null && readHsbc != null && readStarling.Id != readHsbc.Id,
+            "an id was lost or shared");
+        Check("the first account's layout survived",
+            readStarling != null && readStarling.Ref == 1 && readStarling.Debit == 3,
+            readStarling == null ? "account missing" : $"ref {readStarling.Ref}, debit {readStarling.Debit}");
+        Check("the second account's layout survived",
+            readHsbc != null && readHsbc.Amount == 5 && readHsbc.DebitAndCreditTogether,
+            readHsbc == null ? "account missing" : $"amount {readHsbc.Amount}");
+
+        //the layout out of an old settings file becomes the first account
+        BankAccount.DeleteData();
+        BankAccount.LegacyDate = 1;
+        BankAccount.LegacyRef = 2;
+        BankAccount.LegacyAmount = 3;
+        BankAccount.LegacyDebit = 4;
+
+        string migrationFolder = Path.Combine(folder, "migration");
+        Directory.CreateDirectory(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), migrationFolder));
+        BankAccount.Load(migrationFolder);
+
+        BankAccount migrated = BankAccount.Count == 1 ? BankAccount.Query()[0] : null;
+        Check("the old layout became the one account", migrated != null, $"{BankAccount.Count} account(s)");
+        Check("with the columns that were taught",
+            migrated != null && migrated.Date == 1 && migrated.Ref == 2 && migrated.Amount == 3 && migrated.Debit == 4,
+            migrated == null ? "no account" : $"date {migrated.Date}, ref {migrated.Ref}");
+        Check("and it inherits the old references",
+            migrated != null && migrated.InheritsLegacyReferences, "flag not set");
+
+        //0,0,0 is a settings file from before imports existed, not a layout
+        BankAccount.DeleteData();
+        BankAccount.LegacyDate = 0;
+        BankAccount.LegacyRef = 0;
+        BankAccount.LegacyAmount = 0;
+        BankAccount.LegacyPdfDate = -1;
+        BankAccount.LegacyPdfRef = -1;
+        BankAccount.LegacyPdfAmount = -1;
+
+        string emptyFolder = Path.Combine(folder, "empty");
+        Directory.CreateDirectory(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), emptyFolder));
+        BankAccount.Load(emptyFolder);
+
+        Check("a settings file with no layout makes no account", BankAccount.Count == 0, $"{BankAccount.Count} made");
+
+        //an expense recorded before accounts existed is recognised by the
+        //account that inherited it, and by no other account - the same
+        //transaction on another account is another transaction
+        BankAccount inheritor = BankAccount.Add("My Bank");
+        inheritor.InheritsLegacyReferences = true;
+        BankAccount other = BankAccount.Add("Second Account");
+
+        DateTime day = new DateTime(2026, 5, 10);
+
+        Expense old = new Expense()
+        {
+            Date = day,
+            Amount = 25.50f,
+            Merchant = "Garage",
+            ExternalReference = Expense.StatementReference(day, "GARAGE FUEL", 25.50f, 0),
+        };
+        Expense.Add(old);
+
+        Check("the inheriting account still finds it",
+            Expense.FindFromStatement(inheritor, day, "GARAGE FUEL", 25.50f, 0) == old, "not found");
+        Check("another account does not",
+            Expense.FindFromStatement(other, day, "GARAGE FUEL", 25.50f, 0) == null, "matched across accounts");
+
+        //a new expense carries its account in the reference and is found
+        //through it
+        Expense fresh = new Expense()
+        {
+            Date = day,
+            Amount = 12f,
+            Merchant = "Ladder Shop",
+            ExternalReference = Expense.StatementReference(other, day, "LADDER SHOP", 12f, 0),
+        };
+        Expense.Add(fresh);
+
+        Check("an account-tagged reference is found on its account",
+            Expense.FindFromStatement(other, day, "LADDER SHOP", 12f, 0) == fresh, "not found");
+        Check("and not on a different account",
+            Expense.FindFromStatement(inheritor, day, "LADDER SHOP", 12f, 0) == null, "matched across accounts");
+
+        //no account - a PayPal export - is the plain reference, unchanged
+        Check("no account means the reference from before",
+            Expense.StatementReference(null, day, "GARAGE FUEL", 25.50f, 0)
+                == Expense.StatementReference(day, "GARAGE FUEL", 25.50f, 0),
+            "the two differ");
+
+        //leave nothing behind for whatever runs next
+        BankAccount.DeleteData();
+        Expense.DeleteData();
+        BankAccount.LegacyDate = -1;
+        BankAccount.LegacyRef = -1;
+        BankAccount.LegacyAmount = -1;
+        BankAccount.LegacyDebit = -1;
     }
 
     private static void Reset()
