@@ -594,22 +594,18 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     {
 
 
-        altColour = false;
         //lv_Jobs.ItemsSource = null;
 
         //lv_Jobs.ItemsSource = GetJobs(fullrefresh);
 
         Job.RefreshJobs();
         _tmpJobs = GetJobs();
-        bool darkTheme = Application.Current.PlatformAppTheme == AppTheme.Dark;
-        for (int i = 0; i < _tmpJobs.Count; i++)
-        {
-            if (darkTheme)
-                _tmpJobs[i].AltColour = altColour ? MainColorDark : altColorDark;
-            else
-                _tmpJobs[i].AltColour = altColour ? MainColor : altColor;
-            altColour = !altColour;
-        }
+
+        //the rows used to be striped light and dark down the list to tell one
+        //from the next. they are cards now, like Layouts/AllJobs, so the gap
+        //between them is what does that and there is nothing to work out here.
+        //AltColour itself stays - the calendar and the customer page still
+        //stripe their own lists with it
 
         //swap the whole collection in one go: clearing and re-adding one job at a
         //time makes the list re-layout on every add, which is what made this page slow
@@ -832,7 +828,6 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
   
 
-    private bool altColour = false;
     public static Color altColor = Color.FromArgb("#EDF2F7");
     public static Color altColorDark = Color.FromArgb("#262A2E");
     public static Color MainColor = Colors.White;

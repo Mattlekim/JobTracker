@@ -826,6 +826,28 @@ rather than the settings list, because a round taken off that list still has its
 toolbar is what makes this usable on an existing round: filling one in a house at a time through the job form is
 not something anybody will do.
 
+## What a house looks like on a list
+
+`Layouts/WorkPlanner` and `Layouts/AllJobs` draw a house **the same way**: a card with the address in bold, the
+price beside it, and when it is due and what is owed on the line under. It is the same round looked at two ways
+and it should not read as two different apps. The work list was a striped spreadsheet-ish row before this; the
+stripes are gone, because the gap between cards is what tells one house from the next now (`AltColour` stays —
+the calendar and the customer page still stripe their own lists with it).
+
+What the work list keeps on top of that card is what that page is *for*: the tick box for picking work out, the
+info button, and **the tags** — what the work is, whose round it is on, how long it takes, TNB/ENB, a direct
+debit waiting, and what was different about the visit. That is the page the round is worked off, so what is on
+the job stays on show.
+
+**The due and owed colours are not the tag colours.** `DueColorCode`/`OwedColorCode` are chip *backgrounds*, made
+to be read white-on-colour — as text on a card, Yellow and LightBlue cannot be read at all. `JobDisplay` therefore
+has `DueTextColour` and `OwedTextColour` alongside them, saying the same states in colours that work as text on
+either theme, and they are the ones `AllJobs` already used. Anything drawing a job as text rather than as a chip
+wants those two.
+
+Everything the row can be tapped for survived the change: street, town, area, type, price, round and money owed
+each still filter the list (see below), and the swipes, the hold, and the right-click menu are untouched.
+
 ## Filtering the work list
 
 Two things narrow `Layouts/WorkPlanner`, and they are not the same kind of thing:
