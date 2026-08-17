@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.StatementReader"
+             Title="Statement">
+
+    <Grid>
+        <ScrollView x:Name="sv_page">
+            <VerticalStackLayout x:Name="vsl_content" Padding="8" Spacing="6"></VerticalStackLayout>
+        </ScrollView>
+
+        <ActivityIndicator x:Name="ai_busy" IsRunning="false" HorizontalOptions="Center" VerticalOptions="Center"></ActivityIndicator>
+    </Grid>
+
+</ContentPage>

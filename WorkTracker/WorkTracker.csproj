@@ -210,6 +210,9 @@
 	  <MauiXaml Update="Layouts\BankAccounts.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Layouts\StatementReader.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Layouts\IgnoredPayments.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

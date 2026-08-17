@@ -663,6 +663,15 @@ at the file picker. Each record carries the account it was imported against (`Ba
 before accounts existed and on PayPal exports); `Layouts/KeptStatements` lists them, naming the account on each
 card once there is more than one account to tell apart.
 
+A kept statement **opens inside the app** (`Layouts/StatementReader`, the Open button on the kept statements
+page; Share is the old behaviour of handing the file to another app). A pdf is drawn page by page as the bank
+printed it — by the **platform's** renderer (`PdfPageImages`: Android's `PdfRenderer`, Windows' own pdf engine),
+because PdfPig reads text out of a pdf and cannot draw one. A platform with no renderer written (iOS/Mac) or a
+pdf the platform cannot open — a password-locked one — falls back to the rows the import reads, which can still
+ask for the password, and the page says when it is showing rows rather than the paper. A csv shows as the table
+it is, scrolling both ways. Nothing here silently shows nothing: every dead end says what happened and points at
+Share as the way out.
+
 `Kernal/csvImporter.cs` understands quoted fields: a field in quotes keeps its commas, the quotes are not part of
 the value, and `""` inside one is a single quote. It used to cut the line at every comma, which is fine for a bank
 that quotes nothing and wrong for PayPal, which quotes everything — one payer called `"Smith, John"` put every
