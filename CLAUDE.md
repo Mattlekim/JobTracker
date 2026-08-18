@@ -857,6 +857,21 @@ itself — how often the house comes round and which round it is on — through 
 is read off the whole job through that page's grouping. The `AltColour` stripes are only the customer page's
 now; the gap between cards is what tells one house from the next everywhere else.
 
+**The booked work page and the calendar's day list read street by street**, the way All Jobs does: a small
+street heading, then that street's houses under it with the number alone on each card
+(`AddressStyle="NumberOnly"`, which also takes the street off the card's folded lines — it is the heading).
+`Controles/StreetSplit.WithHeadings` is the one splitter: it sorts street by street and up each street by
+house number — the same three keys All Jobs sorts on, keyed off the **real** street (`Job.SortStreet`) with
+the heading drawn from the display name, so screenshot mode masks what is on screen without changing what
+groups together. Each page's rows are then a mix of `StreetHeading` and `Job`, told apart by
+`StreetSplitTemplateSelector` — the heading template is a label and nothing else, so a heading cannot be
+swiped, held or tapped like work. On the booked work page the split lives inside `BookingGroup`, whose
+`Jobs` list keeps the actual work for everything done to a day (sending, tagging, moving, cancelling); on
+the calendar it is `ShowDaysWork`, and the owed view stays a flat list because it is sorted by what is owed,
+not walked up a street. Done work now stays on its street — chip on the booked page, folded line on the
+calendar — rather than sinking to the bottom of the day, so a street is one run of houses however far
+through it the day is.
+
 What the work list keeps on top of that card is what that page is *for*: the tick box for picking work out, the
 info button, and **the tags** — what the work is, whose round it is on, how long it takes, TNB/ENB, a direct
 debit waiting, and what was different about the visit. That is the page the round is worked off, so what is on

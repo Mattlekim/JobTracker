@@ -254,7 +254,9 @@ public class JobCard : ContentView
 
     private readonly Border _border;
     private readonly HorizontalStackLayout _cancelledLine;
+    private readonly Label _cancelledStreet;
     private readonly HorizontalStackLayout _collapsedLine;
+    private readonly Label _collapsedStreet;
     private readonly Grid _grid;
     private readonly CheckBox _check;
     private readonly HorizontalStackLayout _addressStack;
@@ -293,14 +295,14 @@ public class JobCard : ContentView
 
         _cancelledLine = new HorizontalStackLayout() { Opacity = 0.4, Spacing = 6 };
         _cancelledLine.Children.Add(Struck("JobFormattedHouseNumber", true));
-        _cancelledLine.Children.Add(Struck("JobFormattedStreetOnly", true));
+        _cancelledLine.Children.Add(_cancelledStreet = Struck("JobFormattedStreetOnly", true));
         _cancelledLine.Children.Add(Struck("JobFormattedCity", false));
         Label cancelledWord = new Label() { Text = "Cancelled", TextColor = OverdueRed, FontAttributes = FontAttributes.Bold };
         _cancelledLine.Children.Add(cancelledWord);
 
         _collapsedLine = new HorizontalStackLayout() { Opacity = 0.4, Spacing = 6 };
         _collapsedLine.Children.Add(Plain("JobFormattedHouseNumber", true));
-        _collapsedLine.Children.Add(Plain("JobFormattedStreetOnly", true));
+        _collapsedLine.Children.Add(_collapsedStreet = Plain("JobFormattedStreetOnly", true));
         _collapsedLine.Children.Add(Plain("JobFormattedCity", false));
 
         //tapping the folded line opens it back up. the fold is the job's own
@@ -477,6 +479,11 @@ public class JobCard : ContentView
 
         Gate(_addressStack, _addressStyle == AddressStyles.Full);
         Gate(_where, _addressStyle == AddressStyles.NumberOnly);
+
+        //number-only means the street is the heading above the row, so the
+        //fold lines stop repeating it too
+        Gate(_cancelledStreet, _addressStyle == AddressStyles.Full);
+        Gate(_collapsedStreet, _addressStyle == AddressStyles.Full);
 
         Gate(_placeStack, _showPlace);
 
