@@ -44,12 +44,19 @@
                      is the heading above the row, so the address is the
                      number alone; the due date is off because the day heading
                      already is the date, and the Done chip is on because this
-                     list keeps done and not-done side by side -->
+                     list keeps done and not-done side by side.
+
+                     ShowExtraChips is left at its default, which is on, so
+                     TNB and ENB are on the rows here the way they are on the
+                     work list and the calendar. This is the page they matter
+                     most on: a booked day is a day with a date on it, so it
+                     is the one list that says which of tomorrow's houses want
+                     telling tonight. It was off only because the hand written
+                     row this control replaced never had the chips. -->
                 <controls:JobCard Job="{Binding .}"
                                   AddressStyle="NumberOnly"
                                   ShowDue="False"
-                                  ShowDoneChip="True"
-                                  ShowExtraChips="False">
+                                  ShowDoneChip="True">
                     <!-- holding a row brings up everything that can be
                          done to it, the swipe actions included. the
                          behaviour is what does it on a phone; the pointer

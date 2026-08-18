@@ -881,6 +881,11 @@ itself — how often the house comes round and which round it is on — through 
 is read off the whole job through that page's grouping. The `AltColour` stripes are only the customer page's
 now; the gap between cards is what tells one house from the next everywhere else.
 
+`ShowExtraChips` — TNB, ENB and a direct debit on its way — is **on everywhere**, the booked work page
+included. It was off on that page alone, for no better reason than that the hand written row the control
+replaced had never had the chips, so the one list with a date on it was the one list that did not say which
+houses want telling the night before. That is the page they matter most on. Do not turn it off again.
+
 **The booked work page and the calendar's day list read street by street**, the way All Jobs does: a small
 street heading, then that street's houses under it with the number alone on each card
 (`AddressStyle="NumberOnly"`, which also takes the street off the card's folded lines — it is the heading).
