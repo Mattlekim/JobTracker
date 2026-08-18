@@ -29,7 +29,57 @@ public static class BackupRestore
             && fileName.EndsWith(Extension, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string _pending;
+    /// <summary>
+    /// Is this a backup, by what is inside it.
+    ///
+    /// The name cannot be relied on. What the phone hands over is a
+    /// content:// uri belonging to whichever app sent it, and plenty of them
+    /// carry no name at all - one out of the downloads list is a number, and
+    /// a mail app hands over whatever it happened to cache the attachment as.
+    /// Judged on the name alone those all came out as "not something Work
+    /// Tracker recognises", which is a backup refused for having travelled by
+    /// the ordinary route onto a new phone - the one route that matters.
+    ///
+    /// A .rbf is a zip of the data folder, so it says what it is: any of the
+    /// app's own files at the top of it is proof enough, and nothing else the
+    /// phone might hand over looks like that. A .rwk is not a zip at all, so
+    /// there is nothing here for a work list to be mistaken for.
+    /// </summary>
+    public static bool ContentsLookLikeBackup(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return false;
+
+        try
+        {
+            using (ZipArchive zip = ZipFile.OpenRead(path))
+                foreach (ZipArchiveEntry entry in zip.Entries)
+                {
+                    string name = (entry.FullName ?? string.Empty).Replace('\\', '/');
+
+                    if (name.EndsWith(".rjt", StringComparison.OrdinalIgnoreCase)
+                        || name.Equals("settings.txt", StringComparison.OrdinalIgnoreCase)
+                        || name.StartsWith("receipts/", StringComparison.OrdinalIgnoreCase)
+                        || name.StartsWith("statements/", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+        }
+        catch
+        {
+            //not a zip, or one we cannot read - either way it is not a backup
+        }
+
+        return false;
+    }
+
+    /// <summary>a backup by either its name or what is in it</summary>
+    public static bool IsBackup(string path, string fileName)
+    {
+        return LooksLikeBackup(fileName) || ContentsLookLikeBackup(path);
+    }
+
+    //  set on whichever thread copied the file in and read on the main one
+    private static volatile string _pending;
 
     /// <summary>
     /// the phone has handed us a backup to open. it is kept rather than acted
@@ -60,6 +110,20 @@ public static class BackupRestore
         string path = _pending;
         _pending = null;
         return path;
+    }
+
+    /// <summary>
+    /// what is waiting, without claiming it.
+    ///
+    /// A backup that opened the app arrives before there is a page to put the
+    /// question on, and taking it first and finding nowhere to ask second
+    /// threw the file away for good - the app opened, nothing was said and
+    /// nothing was restored. So it is looked at first and only taken once
+    /// there is somewhere to ask.
+    /// </summary>
+    public static string PeekPending()
+    {
+        return _pending;
     }
 
     /// <summary>
@@ -105,28 +169,44 @@ public static class BackupRestore
         if (string.IsNullOrWhiteSpace(fileName))
             fileName = Path.GetFileName(path ?? string.Empty);
 
-        if (!LooksLikeBackup(fileName))
-        {
-            await page.DisplayAlert("Unsupported File",
-                $"This is not a backup file. You need a {Extension} file.", "Ok");
-            return false;
-        }
-
+        //the file first, because what is in it is the better answer to
+        //whether it is a backup and there is nothing to look inside if it
+        //cannot be read
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
             await page.DisplayAlert("Restore Backup", "That backup could not be read.", "Ok");
             return false;
         }
 
+        //the name is only the first way of telling. a backup handed over by
+        //the downloads list or a mail app arrives named something else - or
+        //nothing at all - and refusing those turned away exactly the backups
+        //that reach a new phone by the ordinary route
+        if (!IsBackup(path, fileName))
+        {
+            await page.DisplayAlert("Unsupported File",
+                $"This is not a backup file. You need a {Extension} file.", "Ok");
+            return false;
+        }
+
+        //a nameless one still has to be called something in the question
+        string shownAs = LooksLikeBackup(fileName) ? fileName : $"{fileName} (a Work Tracker backup)";
+
         if (!await page.DisplayAlert("Restore Backup",
-                $"{fileName}\n\nEverything on this device is replaced by what is in this backup. Anything done since it was made will be lost.",
+                $"{shownAs}\n\nEverything on this device is replaced by what is in this backup. Anything done since it was made will be lost.",
                 "Restore", "Cancel"))
             return false;
 
         try
         {
-            ZipFile.ExtractToDirectory(path,
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), true);
+            string dataFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+            //the data folder is made by whatever wrote to it first, and on a
+            //phone the app was only just installed on nothing has yet
+            if (!Directory.Exists(dataFolder))
+                Directory.CreateDirectory(dataFolder);
+
+            ZipFile.ExtractToDirectory(path, dataFolder, true);
 
             //settings first: the job types live in there and the jobs are
             //read against them, the same order as the app starts in
@@ -149,6 +229,10 @@ public static class BackupRestore
         }
         catch (Exception ex)
         {
+            //a restore that fell over is the one failure worth being able to
+            //chase afterwards - what is on the device is half of two rounds
+            WorkTracker.CrashLogger.Log("BackupRestore.RestoreAsync", ex);
+
             await page.DisplayAlert("Restore Backup",
                 $"There was a problem restoring that backup: {ex.Message}", "Ok");
             return false;

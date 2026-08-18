@@ -297,21 +297,11 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         _selectingJobs = false;
 
         //one switch for the whole list, which also clears what was picked
+        //and puts the swipes back - the rows are bound to it, so there is
+        //nothing to go round the list turning on and off by hand
         Job.SetSelectionMode(false);
-        _selectedJobs.Clear();
         ShowSelectionBar();
 
-        var vt = lv_Jobs.GetVisualTreeDescendants();
-        CheckBox cb;
-        SwipeView sv;
-        foreach (object o in vt)
-        {
-            sv = o as SwipeView;
-            if (sv != null)
-            {
-                sv.IsEnabled = true;
-            }
-        }
         UpdateToolBarNoraml();
     }
 
@@ -330,11 +320,13 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         if (!_selectingJobs)
             return;
 
-        l_selectedCount.Text = _selectedJobs.Count switch
+        int picked = Picked().Count;
+
+        l_selectedCount.Text = picked switch
         {
             0 => "Tap the jobs you want",
             1 => "1 job picked",
-            _ => $"{_selectedJobs.Count} jobs picked",
+            _ => $"{picked} jobs picked",
         };
 
         //the same button does both, and says which it is about to do
@@ -356,13 +348,40 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         return pickable;
     }
 
+    /// <summary>
+    /// The work that is picked.
+    ///
+    /// Read off the jobs themselves rather than kept in a list of ids beside
+    /// them. There used to be both, and they came apart: turning the tick
+    /// boxes off clears every job's tick, each cleared tick fired the box's
+    /// CheckedChanged, and that took the job's id back out of the list the
+    /// booking was about to be built from. Picking five houses and then being
+    /// handed an empty booking form was exactly that - and it only happened
+    /// for the rows that were on screen, which is why it came and went.
+    ///
+    /// One place the answer lives, so nothing can disagree with the ticks.
+    /// </summary>
+    private List<Job> Picked()
+    {
+        List<Job> picked = new List<Job>();
+
+        foreach (Job j in Job.Selected())
+            if (j != null && j.CustomerId != -1)
+                picked.Add(j);
+
+        return picked;
+    }
+
     /// <summary>true while every job on the list is picked</summary>
     private bool EverythingPicked
     {
         get
         {
             List<Job> pickable = Pickable();
-            return pickable.Count > 0 && _selectedJobs.Count >= pickable.Count;
+
+            //every job on the list, not a count against one - what is picked
+            //can include work a filter has since taken off the list
+            return pickable.Count > 0 && pickable.TrueForAll(x => x.IsSelected);
         }
     }
 
@@ -413,14 +432,6 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             return;
 
         j.IsSelected = !j.IsSelected;
-
-        if (j.IsSelected)
-        {
-            if (!_selectedJobs.Contains(j.Id))
-                _selectedJobs.Add(j.Id);
-        }
-        else
-            _selectedJobs.Remove(j.Id);
 
         ShowSelectionBar();
     }
@@ -2021,28 +2032,33 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         RefreshPage();
     }
 
-    public List<int> _selectedJobs = new List<int>();
+    /// <summary>the job whose tick box last changed, and when</summary>
+    private Job _lastTicked;
+    private DateTime _tickedAt = DateTime.MinValue;
 
     /// <summary>
-    /// the tick box on a card. it only follows what the box now says, so
-    /// nothing here can argue with a tick that has just been put in
+    /// The tick box on a row.
+    ///
+    /// It decides nothing. The box is bound both ways to Job.IsSelected, so
+    /// the tick is already on the job by the time this runs - all this does
+    /// is keep the count above the list honest and note that the box, rather
+    /// than the row, is what was tapped.
+    ///
+    /// That matters because this fires for a row being recycled as well as
+    /// for a finger: a virtualised row is handed a different job every time
+    /// it comes back round, and the binding ticks or unticks the box to suit.
+    /// Anything deciding what is picked in here decides it off the wrong job.
     /// </summary>
-    private void Card_SelectionToggled(object sender, JobCardEventArgs e)
+    private void Row_SelectionToggled(object sender, CheckedChangedEventArgs e)
     {
-        Job j = e.Job;
+        CheckBox box = sender as CheckBox;
+        Job j = box == null ? null : box.BindingContext as Job;
 
-        if (j == null || j.CustomerId == -1)
-            return;
-
-        j.IsSelected = e.Selected;
-
-        if (e.Selected)
+        if (j != null)
         {
-            if (!_selectedJobs.Contains(j.Id))
-                _selectedJobs.Add(j.Id);
+            _lastTicked = j;
+            _tickedAt = DateTime.Now;
         }
-        else
-            _selectedJobs.Remove(j.Id);
 
         ShowSelectionBar();
     }
@@ -2164,72 +2180,30 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     {
         if (_selectingJobs)
         {
-            if (_selectedJobs.Count == 0)
+            //  What was picked is taken FIRST and turning the tick boxes off
+            //  comes after.
+            //
+            //  Turning them off unticks every job, and the whole point of the
+            //  ticks is that they are what is picked - so read after, there is
+            //  nothing left to book. That is what was behind "it says five
+            //  jobs and the booking form is empty".
+            List<Job> jobsToBookin = Picked();
+
+            if (jobsToBookin.Count == 0)
             {
-                await DisplayAlert("No Jobs", "You have not selected any jobs to text", "Ok");
+                await DisplayAlert("No Jobs", "You have not picked any jobs to book in", "Ok");
                 return;
             }
 
-
             UpdateToolBarNoraml();
 
-
-            //the ids of what was picked are read below, so they are left
-            //alone here - it is the tick boxes that are being put away
             _selectingJobs = false;
             Job.SetSelectionMode(false);
             ShowSelectionBar();
 
-            var vt = lv_Jobs.GetVisualTreeDescendants();
-
-            CheckBox cb;
-            SwipeView sv;
-            foreach (object o in vt)
-            {
-                cb = o as CheckBox;
-                if (cb != null)
-                {
-                    cb.IsVisible = false;
-                }
-                sv = o as SwipeView;
-                if (sv != null)
-                {
-                    sv.IsEnabled = true;
-                }
-            }
-
-            //now lets do some stuff and check each customer for texting
-
-            string msgBody = string.Empty;
-            List<Job> jobs;
-            List<Job> jobsToBookin = new List<Job>();
-            foreach (int i in _selectedJobs)
-            {
-                jobs = Job.Query(QueryType.JobId, i);
-                if (jobs.Count > 0)
-                {
-                    if (jobs[0].TNB)
-                    {
-                        if (msgBody == String.Empty)
-                            msgBody = "The following customers will be texted";
-
-                        msgBody = $"{msgBody}\n{jobs[0].JobFormattedStreet}";
-                    }
-                    jobsToBookin.Add(jobs[0]);
-                }
-            }
-
 
             BookJobFormcs.jobs = jobsToBookin;
             await Navigation.PushAsync(new BookJobFormcs());
-            /*  if (msgBody.Length > 0)
-              {
-                  if (await DisplayAlert("Send Text Messages?", msgBody, "Yes", "No"))
-                  {
-                      TextCustomer(jobsToBookin);
-                  }
-
-              }*/
             return;
         }
     }
@@ -2250,10 +2224,9 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         List<Job> picked = new List<Job>();
         List<Job> alreadyOut = new List<Job>();
 
-        foreach (int id in _selectedJobs)
+        foreach (Job j in Picked())
         {
-            Job j = Job.Query(QueryType.JobId, id).FirstOrDefault();
-            if (j == null || j.CustomerId == -1 || j.IsCompleted || j.HaveCanceled)
+            if (j.IsCompleted || j.HaveCanceled)
                 continue;
 
             //work already with somebody is not sent again - two copies of the
@@ -2293,13 +2266,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
     private async void bnt_setRound_Clicked(object sender, EventArgs e)
     {
-        List<Job> picked = new List<Job>();
-        foreach (int id in _selectedJobs)
-        {
-            Job j = Job.Query(QueryType.JobId, id).FirstOrDefault();
-            if (j != null && j.CustomerId != -1)
-                picked.Add(j);
-        }
+        List<Job> picked = Picked();
 
         if (picked.Count == 0)
         {
@@ -2378,12 +2345,16 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     /// </summary>
     private void StartSelectingJobs(Job first = null)
     {
-        SwipeView sv;
-
         _selectingJobs = true;
 
         //nothing carried over from the last time
-        _selectedJobs.Clear();
+        Job.ClearSelection();
+
+        //one switch for the whole list: it puts a tick box on every row and
+        //takes the swipes off. both are bindings on the row, so a row
+        //scrolled into view later gives the same answer as one that was
+        //already there - reaching into the list and setting them is what
+        //left half the rows greyed out and half not
         Job.SetSelectionMode(true);
 
         UpdateToolBarSelectJobs();
@@ -2392,37 +2363,6 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             ToggleSelected(first);
 
         ShowSelectionBar();
-
-        var v = lv_Jobs.GetVisualTreeDescendants();
-
-    
-        foreach (object o in v)
-        {
-      /*      cb = o as CheckBox;
-            if (cb != null)
-            {
-                if (Convert.ToInt32(cb.ClassId) >= 0)
-                {
-                    cb.IsVisible = true;
-                    Grid g = cb.Parent as Grid;
-
-
-                    ColumnDefinition cold = g.ColumnDefinitions[0];
-                    cold.Width = new GridLength(0.2, GridUnitType.Star);
-                }
-                cb.IsChecked = false;
-            }
-      */
-            sv = o as SwipeView;
-            if (sv != null)
-            {
-                //winui disables the whole subtree (checkboxes included) when a
-                //parent is disabled, and mouse users cannot swipe anyway
-                if (DeviceInfo.Platform != DevicePlatform.WinUI)
-                    sv.IsEnabled = false;
-                sv.Close();
-            }
-        }
     }
 
     public static string DefaultTNBMessage = "Hi window cleaner here, we will be cleaning your windows <date>. If applicable can you please unlock your gate. Many Thanks";
@@ -2749,6 +2689,12 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         if ((DateTime.Now - _rowTappedAt).TotalMilliseconds < 400)
             return;
 
+        //a tap on the tick box belongs to the tick box. taken as a row tap
+        //as well it would put straight back what had just been picked
+        if (ReferenceEquals(j, _lastTicked)
+            && (DateTime.Now - _tickedAt).TotalMilliseconds < 400)
+            return;
+
         _rowTappedAt = DateTime.Now;
 
         if (_selectingJobs)
@@ -2784,28 +2730,14 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     {
         bnt_cancel_booking.IsVisible = false;
         bnt_reschedule_booking.IsVisible = false;
-          _selectingJobs = false;
+        _selectingJobs = false;
+
+        //one switch: the ticks go, the boxes go and the swipes come back,
+        //on every row rather than on the ones that happen to be on screen
         Job.SetSelectionMode(false);
         UpdateToolBarNoraml();
+        ShowSelectionBar();
 
-            _selectedJobs.Clear();
-            ShowSelectionBar();
-        var vt = lv_Jobs.GetVisualTreeDescendants();
-            CheckBox cb;
-            SwipeView sv;
-            foreach (object o in vt)
-            {
-                cb = o as CheckBox;
-                if (cb != null)
-                    cb.IsVisible = false;
-                sv = o as SwipeView;
-                if (sv != null)
-                {
-                    sv.IsEnabled = true;
-                }
-            }
-
-        
         hsl_rescheduleDate.IsVisible = false;
         RefreshPage();
     }
@@ -2988,24 +2920,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
     private async void bnt_textCustomer_Clicked(object sender, EventArgs e)
     {
-        string msgBody = string.Empty;
-        List<Job> jobs;
-        List<Job> jobsToText = new List<Job>();
-        foreach (int i in _selectedJobs)
-        {
-            jobs = Job.Query(QueryType.JobId, i);
-            if (jobs.Count > 0)
-            {
-                if (jobs[0].TNB)
-                {
-                    if (msgBody == String.Empty)
-                        msgBody = "The following customers will be texted";
-
-                    msgBody = $"{msgBody}\n{jobs[0].JobFormattedStreet}";
-                }
-                jobsToText.Add(jobs[0]);
-            }
-        }
+        List<Job> jobsToText = Picked();
 
         if (jobsToText.Count == 0)
         {

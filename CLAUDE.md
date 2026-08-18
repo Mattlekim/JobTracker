@@ -141,6 +141,33 @@ The second kind is the one that matters: a backup off an email or out of Drive l
 reason, a backup saved with *Save To This Device* is written as `application/octet-stream` rather than left for
 the phone to guess at — that is what makes it openable again from where it landed.
 
+**A backup is told by what is in it, not by what it is called** (`BackupRestore.ContentsLookLikeBackup`, and
+`IsBackup` which tries the name first). The whole point of the second filter is that the uri carries no name, so
+insisting on one there refused exactly the backups that reach a new phone: a name is what a provider is free to
+drop, and both the routing in `MainActivity.TakeTheFile` and the guard at the top of `RestoreAsync` used to turn a
+nameless one away as *not something Work Tracker recognises*. A `.rbf` is a zip of the data folder, so any of the
+app's own files inside it (`*.rjt`, `settings.txt`, `receipts/`, `statements/`) is proof enough, and a `.rwk` is
+not a zip at all so there is nothing for the two to be confused over. **Do not put the name back as the only
+test.**
+
+**The file is looked at before it is claimed.** `TakePending` clears what it returns, and the offer used to take
+it and *then* look for a page — but on a cold start the file is what opened the app, so there is often no page
+with a handler behind it yet, and an alert on one of those either throws or never comes back. Either way the file
+had already been thrown away: the app opened, nothing was said and nothing was restored, which is exactly how it
+was reported. So `AppShell` peeks (`PeekPending`), waits for somewhere to ask (`WaitForSomewhereToAsk` /
+`ReadyPage`), and only takes the file once there is a page — leaving it pending for a later navigation otherwise.
+`OfferPendingBackup` and `OfferPendingShare` are `async void`, so both now catch: an exception out of one of those
+is the app going down, and it was going down on the alert.
+
+Two more things that made it come and go. The `Opened` events are static and a shell can be built more than once
+(the crash log page builds a fresh one), so subscribing per shell left every shell ever built listening and the
+oldest — long off screen — answered first and claimed the file; `AppShell.HookFileOpening` subscribes once and
+asks whichever shell is current. And `MainActivity` marks an intent once its file has been taken off it, so a
+file is not offered again every time Android hands the same intent back. The mark is what does that on its own —
+`OnNewIntent` deliberately does **not** call `SetIntent`, because API 35 binds it as
+`SetIntent(Intent, ComponentCaller)` with no one-argument form, and that method does not exist on anything older
+than Android 15.
+
 `MainActivity` is **`SingleTask`** so a file opened while the app is running reaches `OnNewIntent` rather than
 starting a second copy of the app. It must not be `SingleTop`: a MAUI app has one window and it belongs to one
 activity, so a second one takes the app down with *"This window is already associated with an active Activity"* —
@@ -837,7 +864,7 @@ not a list of cards. The extra-work and returned-work pages build their cards in
 rather than from `Job` rows, so they are not on it either.
 
 What differs between the pages is said in **options** on the control rather than in copies — plain properties
-set once in the template. The `Show*` bools turn pieces on and off (the tick box, the info button, the due
+set once in the template. The `Show*` bools turn pieces on and off (the info button, the due
 line, each kind of chip, the tags, the notes); an option that is on still waits for the job to agree, because
 the per-job question stays a binding underneath it. `CollapseCancelled` folds cancelled work to the struck-out
 line the work list uses, `CollapseCompleted` folds done work to the calendar's faded tap-to-reopen line — one
@@ -850,12 +877,17 @@ or always answered — owes, in credit, nothing owed) and `PriceStyle` (`Price �
 Everything **around** the card stays the page's own: the swipe actions, the hold, the row tap and the desktop
 context menu all go on the `JobCard` element in the template exactly as they went on the old Border. What is
 **inside** the card that can be tapped comes back out as events carrying the job, because a page cannot reach
-inside a template: `InfoClicked`, `SelectionToggled` (the tick box), and `PartTapped` for the work list's
+inside a template: `InfoClicked` and `PartTapped` for the work list's
 filter taps — gated by `EnableFilterTaps`, off by default, because a tap recogniser on a label swallows the
 tap a page's own row gesture was waiting for. All Jobs hands the card its one line the control cannot word
 itself — how often the house comes round and which round it is on — through `ExtraCaption`, because the round
 is read off the whole job through that page's grouping. The `AltColour` stripes are only the customer page's
 now; the gap between cards is what tells one house from the next everywhere else.
+
+`ShowExtraChips` — TNB, ENB and a direct debit on its way — is **on everywhere**, the booked work page
+included. It was off on that page alone, for no better reason than that the hand written row the control
+replaced had never had the chips, so the one list with a date on it was the one list that did not say which
+houses want telling the night before. That is the page they matter most on. Do not turn it off again.
 
 **The booked work page and the calendar's day list read street by street**, the way All Jobs does: a small
 street heading, then that street's houses under it with the number alone on each card
@@ -872,8 +904,8 @@ not walked up a street. Done work now stays on its street — chip on the booked
 calendar — rather than sinking to the bottom of the day, so a street is one run of houses however far
 through it the day is.
 
-What the work list keeps on top of that card is what that page is *for*: the tick box for picking work out, the
-info button, and **the tags** — what the work is, whose round it is on, how long it takes, TNB/ENB, a direct
+What the work list keeps on top of that card is what that page is *for*: the
+info button and **the tags** — what the work is, whose round it is on, how long it takes, TNB/ENB, a direct
 debit waiting, and what was different about the visit. That is the page the round is worked off, so what is on
 the job stays on show.
 
@@ -931,6 +963,29 @@ answer as every other row, and the booking summary rows never show one because t
 
 The way out is the bar across the top of the list, not just the toolbar item: on a phone the toolbar's Cancel is
 as likely as not to be behind the ... menu, which is no use as the way out of a mode you did not mean to be in.
+
+**The tick box is not on the card, and it must not go back on it.** It is drawn by the row in
+`WorkPlanner.xaml`, in a `Grid` column of its own **outside** the `SwipeView`, because the two cannot share a
+row. The swipe takes the touch the moment the finger moves at all, so a box under it was swallowed and only
+ticked if you dragged a little as you tapped; and turning the swipe off to stop that greys the box out with
+it, since `IsEnabled` goes down the whole tree. `Job.SwipeUnlessPicking` is what turns the swipe off while the
+ticks are on — a binding, like `SelectionModeEnabled`, so a row scrolled into view mid-pick is told the same
+as the rest. Only the work list binds it; the calendar has no ticks and keeps plain `EnabledSwipe`.
+
+**Nothing may reach into the list and set any of this.** `StartSelectingJobs` and its three opposite numbers
+used to walk `lv_Jobs.GetVisualTreeDescendants()` setting `cb.IsVisible` and `sv.IsEnabled` by hand. Only the
+rows realised at that moment were touched and recycled rows kept whatever they were left with, so **half the
+tick boxes came up greyed out and half did not** — the same virtualisation hole as the one above, in a
+different property. The walks are gone.
+
+**What is picked is the ticks, and only the ticks.** There used to be a `_selectedJobs` list of ids beside
+them, and it came apart: `SetSelectionMode(false)` unticks every job, each untick fires the box's
+`CheckedChanged`, and that took the id back out of the very list the booking was about to be built from —
+picking five houses and being handed an **empty booking form**, and only for the rows that were on screen,
+which is why it came and went. `Picked()` reads `Job.Selected()` now. For the same reason anything acting on
+what was picked must **take the list before turning the ticks off**, and `Row_SelectionToggled` decides
+nothing: it fires for a row being recycled as much as for a finger, so a handler that decided there would be
+deciding off the wrong job.
 
 **Select All** is on that bar (as *All*, turning into *None* once everything is picked) and on the toolbar in
 words. It picks the list **as it stands, filter and all** — booking a whole street in is tapping the street's tag

@@ -71,14 +71,20 @@ namespace WorkTracker
     //
     //  All that is left to go on is the type, and a file the phone has no
     //  type for is application/octet-stream. So Work Tracker is offered for
-    //  those, and the file is checked by name once it can be read: anything
-    //  that is not a .rbf is put back down without a word.
+    //  those, and what it really is is settled once it can be read.
+    //
+    //  Settled by what is *in* it, not by its name. A uri that carries no
+    //  name is exactly the case this filter is here for, so a name is the one
+    //  thing there is no point insisting on: a backup is a zip of the data
+    //  folder and a work list has its own magic bytes, and both say so from
+    //  the inside. Anything that is neither is said out loud rather than put
+    //  back down without a word.
     //
     //  The zip types are there because a .rbf is a zip, and an app that looks
     //  inside a file rather than at its name will say so. Being offered for a
     //  zip is the price of being offered for a backup that something has
-    //  looked inside - and it costs nothing, because the name is still what
-    //  decides whether anything happens.
+    //  looked inside - and it costs nothing, because a zip that is not one of
+    //  ours has none of our files in it and is turned away on that.
     [IntentFilter(new[] { Intent.ActionView },
         Categories = new[] { Intent.CategoryDefault, Intent.CategoryBrowsable },
         DataSchemes = new[] { "content", "file" },
@@ -110,6 +116,8 @@ namespace WorkTracker
         DataPathPattern = ".*\\\\..*\\\\..*\\\\.rwk")]
     public class MainActivity : MauiAppCompatActivity
     {
+        /// <summary>put on an intent once its file has been taken off it</summary>
+        private const string AlreadyTaken = "WorkTracker.FileTaken";
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
         {
@@ -138,6 +146,18 @@ namespace WorkTracker
         {
             base.OnNewIntent(intent);
 
+            //  The intent the activity is holding is deliberately left as it
+            //  is. SetIntent would say "this is the one now", but API 35
+            //  bound it as SetIntent(Intent, ComponentCaller) and the one
+            //  argument form is gone - and calling the two argument one would
+            //  go looking for a method that does not exist on any phone older
+            //  than android 15, which is most of them.
+            //
+            //  It costs nothing here. What stops a file being offered twice
+            //  is the mark put on the intent below, and the intent the
+            //  activity keeps holding is the one that has already been
+            //  marked, so a recreation finds it dealt with either way.
+
             //already running: the file arrives here instead
             TakeTheFile(intent);
         }
@@ -153,6 +173,15 @@ namespace WorkTracker
         {
             if (intent == null || intent.Action != Intent.ActionView || intent.Data == null)
                 return;
+
+            //  An intent is handed back on every recreation of the activity -
+            //  a rotation, a theme change, android rebuilding the app after
+            //  reclaiming it - and the file that opened the app would be
+            //  offered again each time. Marking it says this one has been
+            //  dealt with; it rides on the intent, so it survives with it.
+            if (intent.GetBooleanExtra(AlreadyTaken, false))
+                return;
+            intent.PutExtra(AlreadyTaken, true);
 
             Android.Net.Uri uri = intent.Data;
             string name = NameOf(uri);
@@ -170,6 +199,11 @@ namespace WorkTracker
             {
                 try
                 {
+                    //a display name is whatever the sending app wrote down
+                    //and can carry a path with it - only the last part of it
+                    //is ours to write into the cache
+                    name = System.IO.Path.GetFileName(name ?? string.Empty);
+
                     if (string.IsNullOrWhiteSpace(name))
                         name = "opened-file";
 
@@ -196,6 +230,18 @@ namespace WorkTracker
                         //named something else - or nothing - on the way, but
                         //the magic bytes say what it is
                         UiInterface.ImportExport.WorkShareOpen.FileWasOpened(copy);
+                    else if (UiInterface.ImportExport.BackupRestore.ContentsLookLikeBackup(copy))
+                        //  and the same for a backup, which is the case that
+                        //  matters: the downloads list hands over
+                        //  content://.../downloads/1000000123 and a mail app
+                        //  hands over whatever it cached the attachment as, so
+                        //  the .rbf on the end is gone by the time it gets
+                        //  here. Judged on the name alone every backup that
+                        //  arrived that way - which is how a backup reaches a
+                        //  new phone - was turned away as unrecognised. A
+                        //  backup is a zip of the data folder and says so from
+                        //  the inside, so that is what it is told by.
+                        UiInterface.ImportExport.BackupRestore.FileWasOpened(copy);
                     else
                         UiInterface.ImportExport.WorkShareOpen.UnreadableFileWasOpened(name);
                 }
