@@ -141,6 +141,30 @@ The second kind is the one that matters: a backup off an email or out of Drive l
 reason, a backup saved with *Save To This Device* is written as `application/octet-stream` rather than left for
 the phone to guess at — that is what makes it openable again from where it landed.
 
+**A backup is told by what is in it, not by what it is called** (`BackupRestore.ContentsLookLikeBackup`, and
+`IsBackup` which tries the name first). The whole point of the second filter is that the uri carries no name, so
+insisting on one there refused exactly the backups that reach a new phone: a name is what a provider is free to
+drop, and both the routing in `MainActivity.TakeTheFile` and the guard at the top of `RestoreAsync` used to turn a
+nameless one away as *not something Work Tracker recognises*. A `.rbf` is a zip of the data folder, so any of the
+app's own files inside it (`*.rjt`, `settings.txt`, `receipts/`, `statements/`) is proof enough, and a `.rwk` is
+not a zip at all so there is nothing for the two to be confused over. **Do not put the name back as the only
+test.**
+
+**The file is looked at before it is claimed.** `TakePending` clears what it returns, and the offer used to take
+it and *then* look for a page — but on a cold start the file is what opened the app, so there is often no page
+with a handler behind it yet, and an alert on one of those either throws or never comes back. Either way the file
+had already been thrown away: the app opened, nothing was said and nothing was restored, which is exactly how it
+was reported. So `AppShell` peeks (`PeekPending`), waits for somewhere to ask (`WaitForSomewhereToAsk` /
+`ReadyPage`), and only takes the file once there is a page — leaving it pending for a later navigation otherwise.
+`OfferPendingBackup` and `OfferPendingShare` are `async void`, so both now catch: an exception out of one of those
+is the app going down, and it was going down on the alert.
+
+Two more things that made it come and go. The `Opened` events are static and a shell can be built more than once
+(the crash log page builds a fresh one), so subscribing per shell left every shell ever built listening and the
+oldest — long off screen — answered first and claimed the file; `AppShell.HookFileOpening` subscribes once and
+asks whichever shell is current. And `MainActivity` marks an intent once its file has been taken off it, and
+`OnNewIntent` calls `SetIntent`, so a file is not offered again every time Android hands the same intent back.
+
 `MainActivity` is **`SingleTask`** so a file opened while the app is running reaches `OnNewIntent` rather than
 starting a second copy of the app. It must not be `SingleTop`: a MAUI app has one window and it belongs to one
 activity, so a second one takes the app down with *"This window is already associated with an active Activity"* —

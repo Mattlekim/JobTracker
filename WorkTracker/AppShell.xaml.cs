@@ -48,25 +48,22 @@ namespace WorkTracker
                 tab_work.CurrentItem = sc_workList;
             Navigated += AppShell_Navigated;
 
+            _instance = this;
+
             //a backup opened from a file manager, an email or the downloads
-            //list. it can land before this page exists - on a cold start it
-            //is what opened the app - so it is offered from here as well as
-            //when it arrives
-            UiInterface.ImportExport.BackupRestore.Opened += () =>
-                MainThread.BeginInvokeOnMainThread(OfferPendingBackup);
+            //list, and a shared work list, which arrives the same ways. both
+            //can land before this page exists - on a cold start the file is
+            //what opened the app - so they are offered from here as well as
+            //when they arrive. after _instance, which is what the hook works
+            //through
+            HookFileOpening();
 
             //a desktop opens a file by handing it to the app on the command
             //line
             UiInterface.ImportExport.BackupRestore.CheckCommandLine();
 
-            //a shared work list arrives the same ways a backup does, and can
-            //also land before there is a page to ask on
             WorkShare.LoadRecords();
-            UiInterface.ImportExport.WorkShareOpen.Opened += () =>
-                MainThread.BeginInvokeOnMainThread(OfferPendingShare);
             UiInterface.ImportExport.WorkShareOpen.CheckCommandLine();
-
-            _instance = this;
 
             //the squeegee tab only shows while there is extra work to get
             //at. after _instance: it is what the refresh works on
@@ -83,6 +80,43 @@ namespace WorkTracker
         }
 
         private static AppShell _instance;
+
+        private static bool _hookedFileOpening;
+
+        /// <summary>
+        /// Listens once, for the life of the app, for a file being opened
+        /// with Work Tracker.
+        ///
+        /// Both events are static and a shell can be built more than once -
+        /// the crash log page builds a fresh one, and so does a restart of the
+        /// app inside the same process. Subscribing from each shell left every
+        /// shell that had ever been built listening, and the oldest - long
+        /// since off screen - answered first, claimed the file and put its
+        /// question up on a page nobody could see. So the hook goes on once
+        /// and asks whichever shell is the current one.
+        /// </summary>
+        private static void HookFileOpening()
+        {
+            if (_hookedFileOpening)
+                return;
+            _hookedFileOpening = true;
+
+            UiInterface.ImportExport.BackupRestore.Opened += () =>
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    AppShell shell = _instance;
+                    if (shell != null)
+                        shell.OfferPendingBackup();
+                });
+
+            UiInterface.ImportExport.WorkShareOpen.Opened += () =>
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    AppShell shell = _instance;
+                    if (shell != null)
+                        shell.OfferPendingShare();
+                });
+        }
 
         /// <summary>
         /// Moves to the All Jobs page under Work.
@@ -323,38 +357,40 @@ namespace WorkTracker
             if (_askingAboutShare)
                 return;
 
-            //a file that was opened with the app and could not be dealt with
-            //gets told to the user, not swallowed - "nothing happened" is a
-            //bug report waiting to be written
-            string unreadable = UiInterface.ImportExport.WorkShareOpen.TakePendingUnreadable();
-            if (!string.IsNullOrWhiteSpace(unreadable))
-            {
-                _askingAboutShare = true;
-                try
-                {
-                    await (CurrentPage ?? (Page)this).DisplayAlert("Opened File",
-                        $"{unreadable} is not something Work Tracker recognises - it is not a backup (.rbf) or a shared work list (.rwk), or it could not be read. "
-                        + "If it should be one, it may have been renamed or damaged on the way.", "Ok");
-                }
-                catch
-                {
-                }
-                finally
-                {
-                    _askingAboutShare = false;
-                }
-                return;
-            }
+            //looked at rather than claimed, for the same reason the backup is:
+            //this runs while the shell is still being built, and taking the
+            //file before there was anywhere to ask lost it
+            bool haveUnreadable = !string.IsNullOrWhiteSpace(
+                UiInterface.ImportExport.WorkShareOpen.PeekPendingUnreadable());
 
-            string path = UiInterface.ImportExport.WorkShareOpen.TakePending();
-            if (string.IsNullOrWhiteSpace(path))
+            if (!haveUnreadable && string.IsNullOrWhiteSpace(
+                    UiInterface.ImportExport.WorkShareOpen.PeekPending()))
                 return;
 
             _askingAboutShare = true;
 
             try
             {
-                Page page = CurrentPage ?? this;
+                Page page = await WaitForSomewhereToAsk();
+                if (page == null)
+                    return;         //still nowhere: it stays pending
+
+                //a file that was opened with the app and could not be dealt
+                //with gets told to the user, not swallowed - "nothing
+                //happened" is a bug report waiting to be written
+                string unreadable = UiInterface.ImportExport.WorkShareOpen.TakePendingUnreadable();
+                if (!string.IsNullOrWhiteSpace(unreadable))
+                {
+                    await page.DisplayAlert("Opened File",
+                        $"{unreadable} is not something Work Tracker recognises - it is not a backup (.rbf) or a shared work list (.rwk), or it could not be read. "
+                        + "If it should be one, it may have been renamed or damaged on the way.", "Ok");
+                    return;
+                }
+
+                string path = UiInterface.ImportExport.WorkShareOpen.TakePending();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
                 WorkShareHeader header = WorkShare.ReadHeader(path);
 
                 if (header == null)
@@ -432,9 +468,13 @@ namespace WorkTracker
             }
             catch (Exception ex)
             {
+                CrashLogger.Log("AppShell.OfferPendingShare", ex);
+
                 try
                 {
-                    await (CurrentPage ?? (Page)this).DisplayAlert("Shared Work", ex.Message, "Ok");
+                    Page page = ReadyPage();
+                    if (page != null)
+                        await page.DisplayAlert("Shared Work", ex.Message, "Ok");
                 }
                 catch
                 {
@@ -454,26 +494,93 @@ namespace WorkTracker
         /// Only one question at a time: this is reached both when the file
         /// arrives and on every navigation, and being asked twice about the
         /// same file is how somebody ends up restoring it twice.
+        ///
+        /// The file is looked at before it is claimed. A backup that opened
+        /// the app lands while the shell is still being built, and taking it
+        /// first and then finding there was nowhere to put the question threw
+        /// it away for good - which is the "it opens the app and nothing
+        /// happens" this fixes. Now it is left where it is until there really
+        /// is a page, so a later navigation can still offer it.
         /// </summary>
         private async void OfferPendingBackup()
         {
             if (_askingAboutBackup)
                 return;
 
-            string path = UiInterface.ImportExport.BackupRestore.TakePending();
-            if (string.IsNullOrWhiteSpace(path))
+            if (string.IsNullOrWhiteSpace(UiInterface.ImportExport.BackupRestore.PeekPending()))
                 return;
 
             _askingAboutBackup = true;
 
             try
             {
-                Page page = CurrentPage ?? this;
+                Page page = await WaitForSomewhereToAsk();
+                if (page == null)
+                    return;         //still nowhere: it stays pending
+
+                string path = UiInterface.ImportExport.BackupRestore.TakePending();
+                if (string.IsNullOrWhiteSpace(path))
+                    return;
+
                 await UiInterface.ImportExport.BackupRestore.RestoreAsync(path, System.IO.Path.GetFileName(path), page);
+            }
+            catch (Exception ex)
+            {
+                //async void: an exception out of here is the app going down,
+                //and it used to go down on the alert itself
+                CrashLogger.Log("AppShell.OfferPendingBackup", ex);
             }
             finally
             {
                 _askingAboutBackup = false;
+            }
+        }
+
+        /// <summary>
+        /// waits until there is a page that can actually put an alert up, and
+        /// says so.
+        ///
+        /// A file opened from outside is what starts the app, so it arrives
+        /// before the shell has a page - and an alert on a page with no
+        /// handler behind it either throws or never comes back. Neither is
+        /// visible to whoever opened the file: both read as nothing having
+        /// happened. So the question waits for somewhere to be asked rather
+        /// than being asked into thin air.
+        /// </summary>
+        private async Task<Page> WaitForSomewhereToAsk()
+        {
+            //about ten seconds, which is longer than a cold start and short
+            //enough that a file opened into an app that never comes up is not
+            //held on to for ever
+            for (int i = 0; i < 40; i++)
+            {
+                Page page = ReadyPage();
+                if (page != null)
+                    return page;
+
+                await Task.Delay(250);
+            }
+
+            return null;
+        }
+
+        /// <summary>a page an alert can be put on, or null</summary>
+        private Page ReadyPage()
+        {
+            try
+            {
+                Page page = CurrentPage ?? (Page)this;
+
+                //the handler is what says the page is on screen rather than
+                //merely built - an alert on one that is not goes nowhere
+                if (page?.Handler?.MauiContext == null)
+                    return null;
+
+                return page;
+            }
+            catch
+            {
+                return null;
             }
         }
     }

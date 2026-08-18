@@ -16,7 +16,8 @@ using Kernel;
 /// </summary>
 public static class WorkShareOpen
 {
-    private static string _pending;
+    //  set on whichever thread copied the file in, read on the main one
+    private static volatile string _pending;
 
     /// <summary>the phone has handed us a .rwk to open</summary>
     public static void FileWasOpened(string path)
@@ -45,7 +46,17 @@ public static class WorkShareOpen
         return path;
     }
 
-    private static string _pendingUnreadable;
+    /// <summary>
+    /// what is waiting, without claiming it. A file that opened the app is
+    /// here before there is a page to ask on, and taking it before there is
+    /// somewhere to ask lost it for good
+    /// </summary>
+    public static string PeekPending()
+    {
+        return _pending;
+    }
+
+    private static volatile string _pendingUnreadable;
 
     /// <summary>
     /// a file was opened with the app and turned out to be nothing the app
@@ -68,6 +79,12 @@ public static class WorkShareOpen
         string name = _pendingUnreadable;
         _pendingUnreadable = null;
         return name;
+    }
+
+    /// <summary>what could not be dealt with, without claiming it</summary>
+    public static string PeekPendingUnreadable()
+    {
+        return _pendingUnreadable;
     }
 
     /// <summary>

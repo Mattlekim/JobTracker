@@ -171,9 +171,20 @@ namespace Kernel
 
         public static bool _Loaded = false;
 
+        /// <summary>
+        /// the file on disk is not the one that was read - read it again.
+        ///
+        /// A failed read is forgotten here as well. LoadFailed stops anything
+        /// being written, which is right while the unreadable file is still
+        /// the one on disk - but a restore has just put a different file
+        /// there, and left set it would have quietly blocked every save that
+        /// followed the restore.
+        /// </summary>
         public static void Reset()
         {
             _Loaded = false;
+            LoadFailed = false;
+            LoadError = string.Empty;
         }
 
         private static void FixBaseIdBug()
