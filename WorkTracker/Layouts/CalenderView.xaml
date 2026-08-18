@@ -5,25 +5,6 @@
              x:Class="UiInterface.Layouts.CalenderView"
              Title="Calendar">
 
-    <ContentPage.Resources>
-        <!-- the same card Layouts/AllJobs and the work list draw a house on.
-             it is the same round looked at another way, so a house should
-             read the same way here too. the card gap is what tells one house
-             from the next now, which is why the rows no longer stripe with
-             AltColour -->
-        <Style x:Key="JobCard" TargetType="Border">
-            <Setter Property="StrokeThickness" Value="0" />
-            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
-            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
-            <Setter Property="Margin" Value="12,0,12,6" />
-            <Setter Property="Padding" Value="12,10" />
-        </Style>
-        <Style x:Key="JobCaption" TargetType="Label">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
-        </Style>
-    </ContentPage.Resources>
-
     <!-- the tag bar is pinned above the list rather than riding along in its
          header: it is set while working through the day, and would be no use
          scrolled off the top of the page -->
@@ -170,14 +151,18 @@
                             </SwipeItems>
                         </SwipeView.RightItems>
 
-                        <!-- one house, drawn the way Layouts/AllJobs draws it: a
-                             card, the address in bold with the price beside it,
-                             the town and area quiet underneath, when it is due
-                             and what is owed said in colour rather than sat on
-                             it, and the tags under that. Same round, another
-                             page - it should not read as a different app. -->
-                        <Border Style="{StaticResource JobCard}">
-                        <VerticalStackLayout>
+                        <!-- one house, drawn by the shared card control
+                             (Controles/JobCard) that every work list uses.
+                             This is the one list that mixes booked, unbooked
+                             and cancelled work, so those chips are on; done
+                             work folds to the faded line that taps back
+                             open, which the card handles itself -->
+                        <controls:JobCard Job="{Binding .}"
+                                          ShowInfo="True"
+                                          ShowBookedChip="True"
+                                          ShowCancelledChip="True"
+                                          CollapseCompleted="True"
+                                          InfoClicked="Card_Info">
                             <!-- swipe gestures only work with touch, so desktop
                                  (right click) gets the same actions as a menu -->
                             <FlyoutBase.ContextFlyout>
@@ -194,90 +179,7 @@
                                     <MenuFlyoutItem Text="Add Expense" CommandParameter="{Binding Id}" Clicked="On_Job_Expense" />
                                 </MenuFlyout>
                             </FlyoutBase.ContextFlyout>
-                            <!-- completed jobs show as this narrow faded row; tap to expand -->
-                            <HorizontalStackLayout IsVisible="{Binding CollapsedInList}" Opacity="0.4" Spacing="6">
-                                <HorizontalStackLayout.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="CollapsedJob_Tapped"></TapGestureRecognizer>
-                                </HorizontalStackLayout.GestureRecognizers>
-                                <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" />
-                                <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding JobFormattedCity}" LineBreakMode="TailTruncation" />
-                            </HorizontalStackLayout>
-                            <!-- fixed rows rather than a wrapping layout, so
-                                 nothing depends on a measure pass that could
-                                 collapse inside a virtualised list -->
-                            <Grid IsVisible="{Binding ExpandedInList}" ColumnSpacing="8" RowSpacing="2">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"></ColumnDefinition>
-                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                </Grid.ColumnDefinitions>
-
-                                <!-- the address, which is what somebody stood at
-                                     a gate is actually reading. the street takes
-                                     whatever width is left and truncates rather
-                                     than pushing the price off the row -->
-                                <HorizontalStackLayout Grid.Row="0" Grid.Column="0" Spacing="6" VerticalOptions="Center">
-                                    <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" FontSize="15" VerticalOptions="Center" />
-                                    <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" FontSize="15" VerticalOptions="Center" LineBreakMode="TailTruncation" />
-                                </HorizontalStackLayout>
-
-                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" FontSize="15" TextColor="#2E7D32" VerticalOptions="Center"></Label>
-
-                                <!-- an icon with no words to it, so it carries a
-                                     tooltip. Same size as the one on the work
-                                     list - it is the same button and it should
-                                     not move or change size between pages -->
-                                <ImageButton Grid.Row="0" Grid.Column="2" Grid.RowSpan="3" Source="info.png" HeightRequest="34" WidthRequest="34" Padding="5" CornerRadius="17" BackgroundColor="#1E88E5" HorizontalOptions="Center" VerticalOptions="Center" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"
-                                             ToolTipProperties.Text="Everything about this job - price, notes, when it is due and who it is for"></ImageButton>
-
-                                <!-- the town and the area, quiet under the street -->
-                                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Spacing="6">
-                                    <Label Text="{Binding JobFormattedCity}" Style="{StaticResource JobCaption}" LineBreakMode="TailTruncation" />
-                                    <Label Text="{Binding JobFormattedArea}" Style="{StaticResource JobCaption}" LineBreakMode="TailTruncation" />
-                                </HorizontalStackLayout>
-
-                                <!-- when it is due and what is owed, said in colour
-                                     rather than sat on it. the chip colours are made
-                                     to be read white on colour and cannot be read as
-                                     text on a card - see JobDisplay.DueTextColour -->
-                                <Label Grid.Row="2" Grid.Column="0" Text="{Binding JobFormattedDueTime}" FontSize="12" TextColor="{Binding DueTextColour}" VerticalOptions="Center"></Label>
-
-                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding JobFormattedOwed}" FontSize="12" TextColor="{Binding OwedTextColour}" IsVisible="{Binding ShowOwed}" VerticalOptions="Center" LineBreakMode="TailTruncation"></Label>
-
-                                <!-- the tags: what the work is, whether it is booked
-                                     in, how long it takes and anything owing about it -->
-                                <HorizontalStackLayout Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Spacing="4" Margin="0,4,0,0">
-                                    <Label Text="Bookin" TextColor="White" BackgroundColor="OrangeRed" IsVisible="{Binding IsBookedIn}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <Label Text="{Binding Name}" FontAttributes="Bold" Padding="6,2" BackgroundColor="#EF6C00" TextColor="White" FontSize="12" IsVisible="{Binding HaveJobName}" LineBreakMode="TailTruncation"></Label>
-                                    <Label Text="Canceled" TextColor="White" BackgroundColor="Red" IsVisible="{Binding HaveCanceled}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <Label Text="One off" TextColor="White" BackgroundColor="#546E7A" IsVisible="{Binding ShowOneOff}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <!-- how long the job takes, which is what the
-                                         day's own total is made of -->
-                                    <Label Text="{Binding LengthText}" TextColor="White" BackgroundColor="#5D4037" IsVisible="{Binding HaveLength}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <Label Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <!-- direct debit requested, waiting for the money to come through -->
-                                    <Label Text="{Binding PaymentPendingText}" TextColor="White" BackgroundColor="#6A1B9A" IsVisible="{Binding PaymentPending}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                </HorizontalStackLayout>
-
-                                <!-- what was different about this visit. its own line,
-                                     because a day's worth of tags is longer than a row -->
-                                <Label Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding TagsText}" TextColor="White" BackgroundColor="#00838F" IsVisible="{Binding HaveTags}" Padding="6,2" FontSize="12" FontAttributes="Bold" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start" Margin="0,2,0,0"></Label>
-
-                                <!-- notes get their own line under the tags -->
-                                <Label Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" BackgroundColor="#FB8C00" Text="{Binding JobFormattedStringNotes}" TextColor="White" Padding="6,2" FontSize="12" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start" Margin="0,2,0,0"></Label>
-                            </Grid>
-                        </VerticalStackLayout>
-                        </Border>
+                        </controls:JobCard>
                     </SwipeView>
                 </DataTemplate>
             </CollectionView.ItemTemplate>

@@ -9,23 +9,6 @@
          mode rebuilds it. an item put on here is thrown away by the first
          rebuild and never comes back, which is what happened to Search. -->
 
-    <ContentPage.Resources>
-        <!-- the same card Layouts/AllJobs draws a house on. it is the same
-             round looked at two ways, so a house should read the same way on
-             both pages - see the comment on the row template below -->
-        <Style x:Key="JobCard" TargetType="Border">
-            <Setter Property="StrokeThickness" Value="0" />
-            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
-            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
-            <Setter Property="Margin" Value="12,0,12,6" />
-            <Setter Property="Padding" Value="12,10" />
-        </Style>
-        <Style x:Key="JobCaption" TargetType="Label">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
-        </Style>
-    </ContentPage.Resources>
-
     <Grid x:Name="g_root">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"></RowDefinition>
@@ -370,19 +353,22 @@
                             </SwipeItems>
                         </SwipeView.RightItems>
 
-                        <!--  one house, drawn the way Layouts/AllJobs draws it:
-                              a card, the address in bold with the price beside
-                              it, when it is due and what is owed underneath.
-                              It is the same round looked at two ways and it
-                              should not read as two different apps.
-
-                              What that page has no need of stays: the tick box
-                              for picking work out, the info button, and the
-                              tags - which is the one thing this list shows
-                              more of, because a tag says what happened at the
-                              house and this is the page you work off.  -->
-
-                        <Border Style="{StaticResource JobCard}">
+                        <!--  one house, drawn by the shared card control
+                              (Controles/JobCard) that every work list uses.
+                              What this page turns on is what it is for: the
+                              tick box for picking work out, the info button,
+                              the round chip and the filter taps - the taps
+                              come back as PartTapped because the page cannot
+                              reach inside the template.  -->
+                        <controls:JobCard Job="{Binding .}"
+                                          ShowSelection="True"
+                                          ShowInfo="True"
+                                          ShowRoundChip="True"
+                                          EnableFilterTaps="True"
+                                          CollapseCancelled="True"
+                                          InfoClicked="Card_Info"
+                                          SelectionToggled="Card_SelectionToggled"
+                                          PartTapped="Card_PartTapped">
                         <!-- Holding a row starts picking jobs out, with that
                              one already picked.
 
@@ -390,159 +376,34 @@
                              pointer events below are never raised for a
                              finger, so on android the hold is left to android
                              itself. They still do the timing on a desktop. -->
-                        <Border.Behaviors>
+                        <controls:JobCard.Behaviors>
                             <controls:LongPressBehavior/>
-                        </Border.Behaviors>
-                        <Border.GestureRecognizers>
+                        </controls:JobCard.Behaviors>
+                        <controls:JobCard.GestureRecognizers>
                             <TapGestureRecognizer Tapped="job_Row_Tapped" CommandParameter="{Binding .}"/>
                             <PointerGestureRecognizer PointerPressed="Job_PointerPressed"
                                                       PointerMoved="Job_PointerMoved"
                                                       PointerReleased="Job_PointerReleased"
                                                       PointerExited="Job_PointerReleased"/>
-                        </Border.GestureRecognizers>
-                        <VerticalStackLayout>
-                            <!-- swipe gestures only work with touch, so desktop
-                                 (right click) gets the same actions as a menu -->
-                            <FlyoutBase.ContextFlyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding Id}" Clicked="On_Job_Compleated" />
-                                    <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding Id}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}" />
-                                    <MenuFlyoutItem Text="More" CommandParameter="{Binding Id}" Clicked="On_Job_More" />
-                                    <MenuFlyoutItem Text="Tag" CommandParameter="{Binding Id}" Clicked="On_Job_Tag" />
-                                    <MenuFlyoutItem Text="Do It Again" CommandParameter="{Binding Id}" Clicked="On_Job_DoAgain" IsEnabled="{Binding CanDoAgain}" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
-                                    <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding Id}" Clicked="On_Job_Canceled" />
-                                    <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding Id}" Clicked="On_Job_Detials" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="Add Expense" CommandParameter="{Binding Id}" Clicked="On_Job_Expense" />
-                                </MenuFlyout>
-                            </FlyoutBase.ContextFlyout>
-                            <!-- cancelled jobs collapse to this greyed single line -->
-                            <HorizontalStackLayout IsVisible="{Binding HaveCanceled}" Opacity="0.4" Spacing="6">
-                                <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" TextDecorations="Strikethrough" />
-                                <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" TextDecorations="Strikethrough" LineBreakMode="TailTruncation" />
-                                <Label Text="{Binding JobFormattedCity}" TextDecorations="Strikethrough" LineBreakMode="TailTruncation" />
-                                <Label Text="Cancelled" TextColor="#C62828" FontAttributes="Bold" />
-                            </HorizontalStackLayout>
-                            <!-- fixed rows rather than a wrapping layout, so
-                                 nothing depends on a measure pass that could
-                                 collapse inside a virtualised list -->
-                            <Grid IsVisible="{Binding NotCanceled}" ColumnSpacing="8" RowSpacing="2">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                    <RowDefinition Height="Auto"></RowDefinition>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                    <ColumnDefinition Width="*"></ColumnDefinition>
-                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
-                                </Grid.ColumnDefinitions>
-
-                                <!-- picking work out. the box belongs to the whole
-                                     card rather than to any one line of it -->
-                                <CheckBox
-                                    BackgroundColor="Transparent"
-                                    Grid.Row="0" Grid.Column="0" Grid.RowSpan="6"
-                                    VerticalOptions="Center"
-                                    IsVisible="{Binding SelectionModeEnabled}"
-                                    IsChecked="{Binding IsSelected}"
-                                    CheckedChanged="cb_streetSelected"  ClassId="{Binding Id}"></CheckBox>
-
-                                <!-- the address, which is the one thing somebody
-                                     stood at a gate is actually reading. the street
-                                     takes whatever width is left and truncates
-                                     rather than pushing the price off the row -->
-                                <HorizontalStackLayout Grid.Row="0" Grid.Column="1" Spacing="6" VerticalOptions="Center">
-                                    <Label Text="{Binding JobFormattedHouseNumber}" FontAttributes="Bold" FontSize="15" VerticalOptions="Center"></Label>
-                                    <Label Text="{Binding JobFormattedStreetOnly}" FontAttributes="Bold" FontSize="15" VerticalOptions="Center" LineBreakMode="TailTruncation">
-                                        <Label.GestureRecognizers>
-                                            <TapGestureRecognizer Tapped="Job_Street_Filter"></TapGestureRecognizer>
-                                        </Label.GestureRecognizers>
-                                    </Label>
-                                </HorizontalStackLayout>
-
-                                <Label Grid.Row="0" Grid.Column="2" Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" FontSize="15" TextColor="#2E7D32" VerticalOptions="Center">
-                                    <Label.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="Job_Price_Filter"></TapGestureRecognizer>
-                                    </Label.GestureRecognizers>
-                                </Label>
-
-                                <!-- an icon with no words to it, so it carries a
-                                     tooltip: a long press brings it up on a
-                                     phone, hovering does on a desktop.
-
-                                     Same size as the one on the calendar - it
-                                     is the same button and it should not move
-                                     or change size between the two pages. -->
-                                <ImageButton Grid.Row="0" Grid.Column="3" Grid.RowSpan="3" Source="info.png" HeightRequest="34" WidthRequest="34" Padding="5" CornerRadius="17" BackgroundColor="#1E88E5" HorizontalOptions="Center" VerticalOptions="Center" Clicked="bnt_info_Clicked"  ClassId="{Binding Id}"
-                                             ToolTipProperties.Text="Everything about this job - price, notes, when it is due and who it is for"></ImageButton>
-
-                                <!-- the town and the area, quiet under the street -->
-                                <HorizontalStackLayout Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Spacing="6">
-                                    <Label Text="{Binding JobFormattedCity}" Style="{StaticResource JobCaption}" LineBreakMode="TailTruncation">
-                                        <Label.GestureRecognizers>
-                                            <TapGestureRecognizer Tapped="Job_City_Filter"></TapGestureRecognizer>
-                                        </Label.GestureRecognizers>
-                                    </Label>
-                                    <Label Text="{Binding JobFormattedArea}" Style="{StaticResource JobCaption}" LineBreakMode="TailTruncation">
-                                        <Label.GestureRecognizers>
-                                            <TapGestureRecognizer Tapped="Job_Area_Filter"></TapGestureRecognizer>
-                                        </Label.GestureRecognizers>
-                                    </Label>
-                                </HorizontalStackLayout>
-
-                                <!-- when it is due and what is owed, said in colour
-                                     rather than sat on it. the chip colours are made
-                                     to be read white on colour and cannot be read as
-                                     text on a card - see JobDisplay.DueTextColour -->
-                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding JobFormattedDueTime}" FontSize="12" TextColor="{Binding DueTextColour}" VerticalOptions="Center"></Label>
-
-                                <Label Grid.Row="2" Grid.Column="2" Text="{Binding JobFormattedOwed}" FontSize="12" TextColor="{Binding OwedTextColour}" IsVisible="{Binding ShowOwed}" VerticalOptions="Center" LineBreakMode="TailTruncation">
-                                    <Label.GestureRecognizers>
-                                        <TapGestureRecognizer Tapped="Money_Owed_Filter"></TapGestureRecognizer>
-                                    </Label.GestureRecognizers>
-                                </Label>
-
-                                <!-- the tags. this is the page the round is worked
-                                     off, so what is on the job stays on show: what
-                                     the work is, whose round it is on, how long it
-                                     takes and anything owing about it -->
-                                <HorizontalStackLayout Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" Spacing="4" Margin="0,4,0,0">
-                                    <Label Text="{Binding Name}" IsVisible="{Binding HaveJobName}" FontAttributes="Bold" Padding="6,2" BackgroundColor="#EF6C00" TextColor="White" FontSize="12" LineBreakMode="TailTruncation">
-                                        <Label.GestureRecognizers>
-                                            <TapGestureRecognizer Tapped="Job_Type_Filter"></TapGestureRecognizer>
-                                        </Label.GestureRecognizers>
-                                    </Label>
-                                    <Label Text="{Binding Round}" TextColor="White" BackgroundColor="#5E35B1" IsVisible="{Binding HaveRound}" Padding="6,2" FontSize="12" FontAttributes="Bold" LineBreakMode="TailTruncation">
-                                        <Label.GestureRecognizers>
-                                            <TapGestureRecognizer Tapped="Job_Round_Filter"></TapGestureRecognizer>
-                                        </Label.GestureRecognizers>
-                                    </Label>
-                                    <Label Text="One off" TextColor="White" BackgroundColor="#546E7A" IsVisible="{Binding ShowOneOff}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <!-- how long the job takes, its own estimate or
-                                         the round's usual - the day is planned off it -->
-                                    <Label Text="{Binding LengthText}" TextColor="White" BackgroundColor="#5D4037" IsVisible="{Binding HaveLength}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <Label Text="TNB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding TNB}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <Label Text="ENB" TextColor="White" BackgroundColor="#C62828" IsVisible="{Binding ENB}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                    <!-- direct debit requested, waiting for the money to come through -->
-                                    <Label Text="{Binding PaymentPendingText}" TextColor="White" BackgroundColor="#6A1B9A" IsVisible="{Binding PaymentPending}" Padding="6,2" FontSize="12" FontAttributes="Bold"></Label>
-                                </HorizontalStackLayout>
-
-                                <!-- what was different about this visit. its own line,
-                                     because a day's worth of tags is longer than a row -->
-                                <Label Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding TagsText}" TextColor="White" BackgroundColor="#00838F" IsVisible="{Binding HaveTags}" Padding="6,2" FontSize="12" FontAttributes="Bold" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start" Margin="0,2,0,0"></Label>
-
-                                <!-- notes get their own line under the tags -->
-                                <Label Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3" BackgroundColor="#FB8C00" Text="{Binding JobFormattedStringNotes}" TextColor="White" Padding="6,2" FontSize="12" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" VerticalOptions="Center" HorizontalOptions="Start" Margin="0,2,0,0"></Label>
-                            </Grid>
-                        </VerticalStackLayout>
-                        </Border>
+                        </controls:JobCard.GestureRecognizers>
+                        <!-- swipe gestures only work with touch, so desktop
+                             (right click) gets the same actions as a menu -->
+                        <FlyoutBase.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding Id}" Clicked="On_Job_Compleated" />
+                                <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding Id}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}" />
+                                <MenuFlyoutItem Text="More" CommandParameter="{Binding Id}" Clicked="On_Job_More" />
+                                <MenuFlyoutItem Text="Tag" CommandParameter="{Binding Id}" Clicked="On_Job_Tag" />
+                                <MenuFlyoutItem Text="Do It Again" CommandParameter="{Binding Id}" Clicked="On_Job_DoAgain" IsEnabled="{Binding CanDoAgain}" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
+                                <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding Id}" Clicked="On_Job_Canceled" />
+                                <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding Id}" Clicked="On_Job_Detials" />
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Add Expense" CommandParameter="{Binding Id}" Clicked="On_Job_Expense" />
+                            </MenuFlyout>
+                        </FlyoutBase.ContextFlyout>
+                        </controls:JobCard>
 
                     </SwipeView>
 

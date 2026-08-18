@@ -828,12 +828,34 @@ not something anybody will do.
 
 ## What a house looks like on a list
 
-`Layouts/WorkPlanner` and `Layouts/AllJobs` draw a house **the same way**: a card with the address in bold, the
-price beside it, and when it is due and what is owed on the line under. It is the same round looked at two ways
-and it should not read as two different apps. The work list was a striped spreadsheet-ish row before this; the
-stripes are gone, because the gap between cards is what tells one house from the next now. The booked work page
-and the calendar's day list draw the same card too — same address-price-due-owed organisation, their own swipe
-actions kept — so `AltColour` striping is only the customer page's now.
+**`Controles/JobCard` is the one place a house on a list is drawn**: a card with the address in bold, the price
+beside it, the town and area quiet underneath, when it is due and what is owed said in colour as text, and the
+tags under that. The work list, the booked work page, the calendar's day list and All Jobs all put this control
+in their row template rather than each writing the row — it is the same round looked at four ways and it should
+not read as four different apps. The paper view is deliberately not one of them: that page is a printed sheet,
+not a list of cards. The extra-work and returned-work pages build their cards in code from work-share data
+rather than from `Job` rows, so they are not on it either.
+
+What differs between the pages is said in **options** on the control rather than in copies — plain properties
+set once in the template. The `Show*` bools turn pieces on and off (the tick box, the info button, the due
+line, each kind of chip, the tags, the notes); an option that is on still waits for the job to agree, because
+the per-job question stays a binding underneath it. `CollapseCancelled` folds cancelled work to the struck-out
+line the work list uses, `CollapseCompleted` folds done work to the calendar's faded tap-to-reopen line — one
+fold per page, not both. The three styles say how things are worded: `AddressStyle` (the number alone when the
+street is already the heading, as on All Jobs, falling back to whoever lives there), `DueStyle` (the worked
+relative wording, or the date written out with how far past it is), `OwedStyle` (only when something is owed,
+or always answered — owes, in credit, nothing owed) and `PriceStyle` (`Price £12`, or the bare figure off
+`EffectivePrice`).
+
+Everything **around** the card stays the page's own: the swipe actions, the hold, the row tap and the desktop
+context menu all go on the `JobCard` element in the template exactly as they went on the old Border. What is
+**inside** the card that can be tapped comes back out as events carrying the job, because a page cannot reach
+inside a template: `InfoClicked`, `SelectionToggled` (the tick box), and `PartTapped` for the work list's
+filter taps — gated by `EnableFilterTaps`, off by default, because a tap recogniser on a label swallows the
+tap a page's own row gesture was waiting for. All Jobs hands the card its one line the control cannot word
+itself — how often the house comes round and which round it is on — through `ExtraCaption`, because the round
+is read off the whole job through that page's grouping. The `AltColour` stripes are only the customer page's
+now; the gap between cards is what tells one house from the next everywhere else.
 
 What the work list keeps on top of that card is what that page is *for*: the tick box for picking work out, the
 info button, and **the tags** — what the work is, whose round it is on, how long it takes, TNB/ENB, a direct

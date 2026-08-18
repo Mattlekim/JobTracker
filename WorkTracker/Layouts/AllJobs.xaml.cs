@@ -286,71 +286,16 @@ public partial class AllJobs : ContentPage
         AllJobsRow row = new AllJobsRow();
         row.Job = job;
 
-        //the street is already the heading above the row, so the house only
-        //has to say which one it is. A house with no number at all falls back
-        //to whoever lives there, which is the next best way to tell it apart
-        string number = job.JobFormattedHouseNumber.Trim();
-        Customer c = job.GetCustomer();
-        string who = c == null ? string.Empty : $"{c.FName} {c.SName}".Trim();
-
-        if (number.Length > 0)
-            row.Where = number;
-        else if (who.Length > 0)
-            row.Where = who;
-        else
-            row.Where = "(no address)";
-
-        row.Price = Money(job.EffectivePrice);
-
-        //days past the day it fell due. positive is overdue, which is the way
-        //round somebody stood in front of the house wants to read it
-        int days = (int)(UsfulFuctions.DateNow.Date - job.DueDate.Date).TotalDays;
-        row.Due = $"Due {job.DueDate.ToString("ddd d MMM yyyy")}";
-
-        if (days > 0)
-        {
-            row.Due = $"{row.Due} · {days} day{(days == 1 ? string.Empty : "s")} overdue";
-            row.DueColour = Color.FromArgb("#C62828");
-        }
-        else if (days == 0)
-        {
-            row.Due = $"{row.Due} · today";
-            row.DueColour = Color.FromArgb("#2E7D32");
-        }
-        else
-        {
-            row.DueColour = Color.FromArgb("#6B7280");
-        }
-
+        //the card - Controles/JobCard - draws everything else off the job
+        //itself. This line is the page's own, because the round is read off
+        //the whole job through the grouping above (Job.RoundsOfEveryJob),
+        //which the card cannot know
         List<string> about = new List<string>();
         about.Add(HowOften(job));
 
         about.Add(RoundName(RoundOf(job)));
 
         row.HowOftenAndRound = string.Join(" · ", about);
-
-        float balance = c == null ? 0 : c.Balance;
-
-        if (c == null)
-        {
-            row.Balance = string.Empty;
-            row.BalanceColour = Colors.Transparent;
-        }
-        else if (balance > 0)
-        {
-            row.Balance = $"Owes {Money(balance)}";
-            row.BalanceColour = Color.FromArgb("#C62828");
-        }
-        else if (balance < 0)
-        {
-            row.Balance = $"{Money(Math.Abs(balance))} in credit";
-            row.BalanceColour = Color.FromArgb("#2E7D32");
-        }
-        else
-        {
-            row.Balance = "Nothing owed";
-            row.BalanceColour = Color.FromArgb("#6B7280");
-        }
 
         return row;
     }
@@ -483,17 +428,7 @@ public class AllJobsRow
         get { return !IsJob && Level == HeadingLevel.Street; }
     }
 
-    public string Where { get; set; }
-
-    public string Price { get; set; }
-
-    public string Due { get; set; }
-
-    public Color DueColour { get; set; }
-
+    /// <summary>how often the house comes round and which round it is on -
+    /// the one line the shared card cannot word for itself</summary>
     public string HowOftenAndRound { get; set; }
-
-    public string Balance { get; set; }
-
-    public Color BalanceColour { get; set; }
 }

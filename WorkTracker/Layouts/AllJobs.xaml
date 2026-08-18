@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:UiInterface.Layouts"
+             xmlns:controls="clr-namespace:UiInterface.Controles"
              x:Class="UiInterface.Layouts.AllJobs"
              Title="All Jobs">
 
@@ -76,26 +77,27 @@
                         <Label Text="{Binding Heading}" IsVisible="{Binding IsPlaceHeading}" Style="{StaticResource PlaceHeading}" />
                         <Label Text="{Binding Heading}" IsVisible="{Binding IsStreetHeading}" Style="{StaticResource StreetHeading}" />
 
-                        <Border IsVisible="{Binding IsJob}" Style="{StaticResource Card}" Margin="12,0,12,6" Padding="12,10">
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
-
-                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding Where}" FontAttributes="Bold" FontSize="15"
-                                       LineBreakMode="TailTruncation" VerticalOptions="Center" />
-
-                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding Price}" FontAttributes="Bold" FontSize="15"
-                                       TextColor="#2E7D32" VerticalOptions="Center" />
-
-                                <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Due}" FontSize="12"
-                                       TextColor="{Binding DueColour}" />
-
-                                <Label Grid.Row="2" Grid.Column="0" Text="{Binding HowOftenAndRound}" FontSize="12"
-                                       TextColor="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" LineBreakMode="TailTruncation" />
-
-                                <Label Grid.Row="2" Grid.Column="1" Text="{Binding Balance}" FontSize="12"
-                                       TextColor="{Binding BalanceColour}" />
-
-                            </Grid>
-                        </Border>
+                        <!--  the same card control every work list draws a
+                              house with (Controles/JobCard). The street is
+                              the heading above the row, so the address is the
+                              number alone; the due date is written out with
+                              how far past it is, because this page is read
+                              over rather than worked off; and the money is
+                              always answered - owes, in credit or nothing
+                              owed. How often the house comes round is the
+                              page's own line, because the round is read off
+                              the whole job through the page's grouping.  -->
+                        <controls:JobCard IsVisible="{Binding IsJob}"
+                                          Job="{Binding Job}"
+                                          ExtraCaption="{Binding HowOftenAndRound}"
+                                          AddressStyle="NumberOnly"
+                                          DueStyle="LongDate"
+                                          OwedStyle="Always"
+                                          PriceStyle="Effective"
+                                          ShowPlace="False"
+                                          ShowChips="False"
+                                          ShowTags="False"
+                                          ShowNotes="False" />
 
                     </VerticalStackLayout>
 

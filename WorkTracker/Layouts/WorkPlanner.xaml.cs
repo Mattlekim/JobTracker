@@ -1,6 +1,7 @@
 ﻿namespace UiInterface.Layouts;
 using System.Diagnostics;
 using Kernel;
+using UiInterface.Controles;
 using System.Collections.ObjectModel;
 //the hold that starts picking jobs out is timed with one of these
 using Microsoft.Maui.Dispatching;
@@ -1328,24 +1329,34 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     }
 
     /// <summary>
-    /// The job whose tag was tapped. The booking summary rows at the top of
-    /// the list are not real jobs and have nothing worth filtering by, so
-    /// they answer null.
-    ///
-    /// The tags used to ask the last job *selected* whether it was a booking
-    /// row. That is not the row that was tapped - and it is nothing at all
-    /// until something has been selected, so a tag tapped as the first thing
-    /// done on a freshly opened list took the app down with it.
+    /// A filter tap on a card - the street, the price, a chip. The card says
+    /// which piece and which job, because a page cannot reach inside a row
+    /// template. The booking summary rows at the top of the list are not
+    /// real jobs and have nothing worth filtering by, so they are ignored -
+    /// they used to be told apart through the last job *selected*, which was
+    /// not the row that was tapped and was nothing at all on a freshly
+    /// opened list, and a tag tapped first thing took the app down with it.
     /// </summary>
-    private static Job TaggedJob(object sender)
+    private void Card_PartTapped(object sender, JobCardEventArgs e)
     {
-        Job j = (sender as Element)?.BindingContext as Job;
-        return j == null || j.CustomerId == -1 ? null : j;
+        Job j = e.Job;
+        if (j == null || j.CustomerId == -1)
+            return;
+
+        switch (e.Part)
+        {
+            case JobCardPart.Street: Job_Street_Filter(j); break;
+            case JobCardPart.City: Job_City_Filter(j); break;
+            case JobCardPart.Area: Job_Area_Filter(j); break;
+            case JobCardPart.Price: Job_Price_Filter(j); break;
+            case JobCardPart.Owed: Money_Owed_Filter(j); break;
+            case JobCardPart.Type: Job_Type_Filter(j); break;
+            case JobCardPart.Round: Job_Round_Filter(j); break;
+        }
     }
 
-    private void Job_Type_Filter(object sender, EventArgs e)
+    private void Job_Type_Filter(Job j)
     {
-        Job j = TaggedJob(sender);
         if (j == null)
             return;
 
@@ -1402,9 +1413,8 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         return tmpJobList;
     }
 
-    private void Job_Street_Filter(object sender, EventArgs e)
+    private void Job_Street_Filter(Job j)
     {
-        Job j = TaggedJob(sender);
         if (j?.Address == null)
             return;
 
@@ -1412,9 +1422,8 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             x => x.Address != null && x.Address.Street == j.Address.Street);
     }
 
-    private void Job_City_Filter(object sender, EventArgs e)
+    private void Job_City_Filter(Job j)
     {
-        Job j = TaggedJob(sender);
         if (j?.Address == null)
             return;
 
@@ -1422,9 +1431,8 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             x => x.Address != null && x.Address.City == j.Address.City);
     }
 
-    private void Job_Area_Filter(object sender, EventArgs e)
+    private void Job_Area_Filter(Job j)
     {
-        Job j = TaggedJob(sender);
         if (j?.Address == null)
             return;
 
@@ -1436,9 +1444,8 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     /// everything on the same round as the job whose round was tapped. this
     /// is the one people work by: a round is a day's work, or a patch
     /// </summary>
-    private void Job_Round_Filter(object sender, EventArgs e)
+    private void Job_Round_Filter(Job j)
     {
-        Job j = TaggedJob(sender);
         if (j == null || !j.HaveRound)
             return;
 
@@ -1446,9 +1453,8 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             x => string.Equals(x.Round ?? string.Empty, j.Round, StringComparison.CurrentCultureIgnoreCase));
     }
 
-    private void Job_Price_Filter(object sender, EventArgs e)
+    private void Job_Price_Filter(Job j)
     {
-        Job j = TaggedJob(sender);
         if (j == null)
             return;
 
@@ -1462,9 +1468,8 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     /// on somebody who owes turns up everybody who owes - which is the round
     /// to knock on before the next one starts
     /// </summary>
-    private void Money_Owed_Filter(object sender, EventArgs e)
+    private void Money_Owed_Filter(Job j)
     {
-        Job j = TaggedJob(sender);
         if (j == null)
             return;
 
@@ -2019,20 +2024,19 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     public List<int> _selectedJobs = new List<int>();
 
     /// <summary>
-    /// the tick box on a row. it only follows what the box now says, so
+    /// the tick box on a card. it only follows what the box now says, so
     /// nothing here can argue with a tick that has just been put in
     /// </summary>
-    private void cb_streetSelected(object sender, CheckedChangedEventArgs e)
+    private void Card_SelectionToggled(object sender, JobCardEventArgs e)
     {
-        CheckBox ck = sender as CheckBox;
-        Job j = ck?.BindingContext as Job;
+        Job j = e.Job;
 
         if (j == null || j.CustomerId == -1)
             return;
 
-        j.IsSelected = ck.IsChecked;
+        j.IsSelected = e.Selected;
 
-        if (ck.IsChecked)
+        if (e.Selected)
         {
             if (!_selectedJobs.Contains(j.Id))
                 _selectedJobs.Add(j.Id);
@@ -3035,11 +3039,9 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         page.Navigation.PushAsync(new JobStatus());
     }
 
-    private void bnt_info_Clicked(object sender, EventArgs e)
+    private void Card_Info(object sender, JobCardEventArgs e)
     {
-        ImageButton ib = sender as ImageButton;
-        Job j = Job.Query(QueryType.JobId, Convert.ToInt32(ib.ClassId)).FirstOrDefault();
-        ShowJobInfo(j, this);
+        ShowJobInfo(e.Job, this);
     }
 
     private void p_priceToUse_SelectedIndexChanged(object sender, EventArgs e)

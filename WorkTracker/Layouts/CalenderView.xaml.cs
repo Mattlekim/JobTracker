@@ -2,6 +2,7 @@ namespace UiInterface.Layouts;
 
 using Microsoft.Maui.Controls.Shapes;
 using Kernel;
+using UiInterface.Controles;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
@@ -1535,22 +1536,9 @@ public partial class CalenderView : ContentPage
 
     
 
-    private void CollapsedJob_Tapped(object sender, TappedEventArgs e)
+    private void Card_Info(object sender, JobCardEventArgs e)
     {
-        if ((sender as Element)?.BindingContext is Job j)
-            j.CollapsedInList = false;
-    }
-
-    private void bnt_info_Clicked(object sender, EventArgs e)
-    {
-        ImageButton ib = sender as ImageButton;
-        Job j = Job.Query(QueryType.JobId, Convert.ToInt32(ib.ClassId)).FirstOrDefault();
-        WorkPlanner.ShowJobInfo(j, this);
-    }
-
-    private void Job_Street_Filter(object sender, EventArgs e)
-    {
-
+        WorkPlanner.ShowJobInfo(e.Job, this);
     }
 
 }
