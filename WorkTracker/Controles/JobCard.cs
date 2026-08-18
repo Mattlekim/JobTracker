@@ -21,9 +21,6 @@ public class JobCardEventArgs : EventArgs
     public Job Job { get; set; }
 
     public JobCardPart Part { get; set; }
-
-    /// <summary>what the tick box now says, on SelectionToggled</summary>
-    public bool Selected { get; set; }
 }
 
 /// <summary>
@@ -64,10 +61,6 @@ public class JobCard : ContentView
     private static readonly Color QuietGrey = Color.FromArgb("#6B7280");
 
     public event EventHandler<JobCardEventArgs> InfoClicked;
-
-    /// <summary>the tick box changed. the card only reports it - what being
-    /// picked means belongs to the page</summary>
-    public event EventHandler<JobCardEventArgs> SelectionToggled;
 
     /// <summary>a filter tap - the street, the price, a chip. only raised
     /// while EnableFilterTaps is on, because the recognisers would otherwise
@@ -116,7 +109,6 @@ public class JobCard : ContentView
         Effective,
     }
 
-    private bool _showSelection = false;
     private bool _showInfo = false;
     private bool _showPlace = true;
     private bool _showDue = true;
@@ -136,11 +128,6 @@ public class JobCard : ContentView
     private DueStyles _dueStyle = DueStyles.Relative;
     private OwedStyles _owedStyle = OwedStyles.WhenOwed;
     private PriceStyles _priceStyle = PriceStyles.Prefixed;
-
-    /// <summary>the tick box for picking work out. it only shows while the
-    /// whole list is picking - Job.SelectionModeEnabled - like everything
-    /// else, an option that is on still waits for the job to agree</summary>
-    public bool ShowSelection { get { return _showSelection; } set { _showSelection = value; Apply(); } }
 
     /// <summary>the round info button, raising InfoClicked</summary>
     public bool ShowInfo { get { return _showInfo; } set { _showInfo = value; Apply(); } }
@@ -258,7 +245,6 @@ public class JobCard : ContentView
     private readonly HorizontalStackLayout _collapsedLine;
     private readonly Label _collapsedStreet;
     private readonly Grid _grid;
-    private readonly CheckBox _check;
     private readonly HorizontalStackLayout _addressStack;
     private readonly Label _number;
     private readonly Label _street;
@@ -318,16 +304,17 @@ public class JobCard : ContentView
         _grid = new Grid() { ColumnSpacing = 8, RowSpacing = 2 };
         for (int i = 0; i < 7; i++)
             _grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-        _grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto)); //the tick box
+        //  Column 0 is left empty on purpose: the tick box for picking work
+        //  out is NOT on the card. Every page that picks work also swipes its
+        //  rows, and the two cannot share a row - the swipe takes the touch
+        //  the moment the finger moves, so a box in here needed a drag before
+        //  it would tick, and turning the swipe off greys the box out with it
+        //  (IsEnabled goes down the whole tree). So picking lives outside the
+        //  SwipeView, in the page's own row - see Layouts/WorkPlanner.xaml.
+        _grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto)); //spare
         _grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star)); //the address side
         _grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto)); //the money side
         _grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto)); //the info button
-
-        //the tick box belongs to the whole card rather than to any one line
-        _check = new CheckBox() { BackgroundColor = Colors.Transparent, VerticalOptions = LayoutOptions.Center };
-        _check.SetBinding(CheckBox.IsCheckedProperty, "IsSelected");
-        _check.CheckedChanged += (s, e) => SelectionToggled?.Invoke(this, new JobCardEventArgs() { Job = Job, Selected = e.Value });
-        Put(_check, 0, 0, rowSpan: 7);
 
         //the address, which is what somebody stood at a gate is actually
         //reading. the street takes whatever width is left and truncates
@@ -474,7 +461,6 @@ public class JobCard : ContentView
         else
             Gate(_grid, true);
 
-        Gate(_check, _showSelection, "SelectionModeEnabled");
         Gate(_info, _showInfo);
 
         Gate(_addressStack, _addressStyle == AddressStyles.Full);

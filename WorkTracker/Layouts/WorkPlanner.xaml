@@ -297,9 +297,41 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate >
 
+                    <!-- The row is the tick box and then the work, and the
+                         tick box is deliberately OUTSIDE the SwipeView.
+
+                         Inside it, it could not be made to work. The swipe
+                         takes the touch as soon as the finger moves at all,
+                         so a tap on the box was swallowed and it only ticked
+                         if you dragged a little as you tapped; and turning
+                         the swipe off to stop that greys the box out with it,
+                         because IsEnabled goes down the whole tree. Out here
+                         the box gets the finger either way.
+
+                         SwipeUnlessPicking is off while the list is picking
+                         work (Kernel/JobDisplay.cs), so the swipe is a binding
+                         like everything else about a row and a row scrolled
+                         into view mid-pick is told the same as the rest. It
+                         must never be set by reaching into the list: that is
+                         what left half the rows greyed out and half not. -->
+                    <Grid ColumnSpacing="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- bound to the job both ways, so the tick IS what
+                             is picked - there is no second list to drift -->
+                        <CheckBox Grid.Column="0"
+                                  IsVisible="{Binding SelectionModeEnabled}"
+                                  IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                  CheckedChanged="Row_SelectionToggled"
+                                  BackgroundColor="Transparent"
+                                  VerticalOptions="Center"/>
+
                     <!-- a short drag opens the actions, so the list can be
                          worked one handed -->
-                    <SwipeView x:Name="sv" SwipeStarted="swip_started" SwipeEnded="swip_ended" IsEnabled="{Binding EnabledSwipe}">
+                    <SwipeView Grid.Column="1" x:Name="sv" SwipeStarted="swip_started" SwipeEnded="swip_ended" IsEnabled="{Binding SwipeUnlessPicking}">
 
                         <SwipeView.LeftItems  >
                             <SwipeItems >
@@ -356,18 +388,17 @@
                         <!--  one house, drawn by the shared card control
                               (Controles/JobCard) that every work list uses.
                               What this page turns on is what it is for: the
-                              tick box for picking work out, the info button,
-                              the round chip and the filter taps - the taps
-                              come back as PartTapped because the page cannot
-                              reach inside the template.  -->
+                              info button, the round chip and the filter taps -
+                              the taps come back as PartTapped because the
+                              page cannot reach inside the template. Picking
+                              work is not on the card; the tick box is above,
+                              outside the swipe.  -->
                         <controls:JobCard Job="{Binding .}"
-                                          ShowSelection="True"
                                           ShowInfo="True"
                                           ShowRoundChip="True"
                                           EnableFilterTaps="True"
                                           CollapseCancelled="True"
                                           InfoClicked="Card_Info"
-                                          SelectionToggled="Card_SelectionToggled"
                                           PartTapped="Card_PartTapped">
                         <!-- Holding a row starts picking jobs out, with that
                              one already picked.
@@ -406,7 +437,7 @@
                         </controls:JobCard>
 
                     </SwipeView>
-
+                    </Grid>
 
                 </DataTemplate>
             </CollectionView.ItemTemplate>

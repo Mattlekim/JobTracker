@@ -861,7 +861,7 @@ not a list of cards. The extra-work and returned-work pages build their cards in
 rather than from `Job` rows, so they are not on it either.
 
 What differs between the pages is said in **options** on the control rather than in copies — plain properties
-set once in the template. The `Show*` bools turn pieces on and off (the tick box, the info button, the due
+set once in the template. The `Show*` bools turn pieces on and off (the info button, the due
 line, each kind of chip, the tags, the notes); an option that is on still waits for the job to agree, because
 the per-job question stays a binding underneath it. `CollapseCancelled` folds cancelled work to the struck-out
 line the work list uses, `CollapseCompleted` folds done work to the calendar's faded tap-to-reopen line — one
@@ -874,7 +874,7 @@ or always answered — owes, in credit, nothing owed) and `PriceStyle` (`Price �
 Everything **around** the card stays the page's own: the swipe actions, the hold, the row tap and the desktop
 context menu all go on the `JobCard` element in the template exactly as they went on the old Border. What is
 **inside** the card that can be tapped comes back out as events carrying the job, because a page cannot reach
-inside a template: `InfoClicked`, `SelectionToggled` (the tick box), and `PartTapped` for the work list's
+inside a template: `InfoClicked` and `PartTapped` for the work list's
 filter taps — gated by `EnableFilterTaps`, off by default, because a tap recogniser on a label swallows the
 tap a page's own row gesture was waiting for. All Jobs hands the card its one line the control cannot word
 itself — how often the house comes round and which round it is on — through `ExtraCaption`, because the round
@@ -901,8 +901,8 @@ not walked up a street. Done work now stays on its street — chip on the booked
 calendar — rather than sinking to the bottom of the day, so a street is one run of houses however far
 through it the day is.
 
-What the work list keeps on top of that card is what that page is *for*: the tick box for picking work out, the
-info button, and **the tags** — what the work is, whose round it is on, how long it takes, TNB/ENB, a direct
+What the work list keeps on top of that card is what that page is *for*: the
+info button and **the tags** — what the work is, whose round it is on, how long it takes, TNB/ENB, a direct
 debit waiting, and what was different about the visit. That is the page the round is worked off, so what is on
 the job stays on show.
 
@@ -960,6 +960,29 @@ answer as every other row, and the booking summary rows never show one because t
 
 The way out is the bar across the top of the list, not just the toolbar item: on a phone the toolbar's Cancel is
 as likely as not to be behind the ... menu, which is no use as the way out of a mode you did not mean to be in.
+
+**The tick box is not on the card, and it must not go back on it.** It is drawn by the row in
+`WorkPlanner.xaml`, in a `Grid` column of its own **outside** the `SwipeView`, because the two cannot share a
+row. The swipe takes the touch the moment the finger moves at all, so a box under it was swallowed and only
+ticked if you dragged a little as you tapped; and turning the swipe off to stop that greys the box out with
+it, since `IsEnabled` goes down the whole tree. `Job.SwipeUnlessPicking` is what turns the swipe off while the
+ticks are on — a binding, like `SelectionModeEnabled`, so a row scrolled into view mid-pick is told the same
+as the rest. Only the work list binds it; the calendar has no ticks and keeps plain `EnabledSwipe`.
+
+**Nothing may reach into the list and set any of this.** `StartSelectingJobs` and its three opposite numbers
+used to walk `lv_Jobs.GetVisualTreeDescendants()` setting `cb.IsVisible` and `sv.IsEnabled` by hand. Only the
+rows realised at that moment were touched and recycled rows kept whatever they were left with, so **half the
+tick boxes came up greyed out and half did not** — the same virtualisation hole as the one above, in a
+different property. The walks are gone.
+
+**What is picked is the ticks, and only the ticks.** There used to be a `_selectedJobs` list of ids beside
+them, and it came apart: `SetSelectionMode(false)` unticks every job, each untick fires the box's
+`CheckedChanged`, and that took the id back out of the very list the booking was about to be built from —
+picking five houses and being handed an **empty booking form**, and only for the rows that were on screen,
+which is why it came and went. `Picked()` reads `Job.Selected()` now. For the same reason anything acting on
+what was picked must **take the list before turning the ticks off**, and `Row_SelectionToggled` decides
+nothing: it fires for a row being recycled as much as for a finger, so a handler that decided there would be
+deciding off the wrong job.
 
 **Select All** is on that bar (as *All*, turning into *None* once everything is picked) and on the toolbar in
 words. It picks the list **as it stands, filter and all** — booking a whole street in is tapping the street's tag

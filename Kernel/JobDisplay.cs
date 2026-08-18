@@ -36,7 +36,26 @@ namespace Kernel
         [XmlIgnore]
         public bool DisableSwipe = false;
 
+        /// <summary>whether the row can be swiped open at all. a booking
+        /// summary row is not work and has nothing to swipe to</summary>
         public bool EnabledSwipe { get { return !DisableSwipe; } }
+
+        /// <summary>
+        /// The swipe on a list that also picks work out.
+        ///
+        /// While the ticks are on, swiping is not what the finger is there
+        /// for - and the two cannot share a row: the swipe takes the touch as
+        /// soon as the finger moves at all, which is what made a tick box
+        /// need a drag before it would tick.
+        ///
+        /// It is a binding rather than something a page reaches into the list
+        /// and sets, for the same reason SelectionModeEnabled is: the list is
+        /// virtualised, so a row scrolled into view afterwards would never
+        /// have been told, and half the rows ended up one way and half the
+        /// other. Only the work list binds this - the calendar has no ticks,
+        /// so its swipes are not the work list's business.
+        /// </summary>
+        public bool SwipeUnlessPicking { get { return EnabledSwipe && !SelectionMode; } }
 
         [XmlIgnore]
         public bool HaveTags
@@ -130,6 +149,9 @@ namespace Kernel
 
                 j.RaisePropertyChanged("SelectionModeEnabled");
                 j.RaisePropertyChanged("GridLengthCheckBoxWidth");
+
+                //picking work turns the swipe off - see SwipeUnlessPicking
+                j.RaisePropertyChanged("SwipeUnlessPicking");
             }
         }
 
