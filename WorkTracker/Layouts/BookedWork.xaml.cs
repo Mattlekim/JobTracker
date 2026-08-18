@@ -321,7 +321,7 @@ public partial class BookedWork : ContentPage, IHoldRows
         //job with two people ends with the house cleaned twice or not at all
         List<string> options = new List<string>() { "Tag The Work", "Change The Date" };
         if (Settings.EnableWorkSharing
-            && g.Exists(x => x != null && x.CustomerId != -1
+            && g.Jobs.Exists(x => x != null && x.CustomerId != -1
                 && !x.IsCompleted && !x.HaveCanceled && !WorkShare.IsOut(x)))
             options.Add("Send To Someone");
         options.Add("Cancel The Booking");
