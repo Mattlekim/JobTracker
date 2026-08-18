@@ -6,8 +6,18 @@ using UiInterface.Controles;
 
 public partial class BookedWork : ContentPage, IHoldRows
 {
-    public class BookingGroup : List<Job>
+    /// <summary>
+    /// One booked day on the list. The rows the list draws are street
+    /// headings with the day's houses under them - the same street format
+    /// Layouts/AllJobs reads the round in - while <see cref="Jobs"/> keeps
+    /// the actual work, which is what everything done to the day (sending,
+    /// tagging, moving, cancelling) works off.
+    /// </summary>
+    public class BookingGroup : List<object>
     {
+        /// <summary>the day's work itself, headings not included</summary>
+        public List<Job> Jobs { get; }
+
         public string Header { get; set; }
 
         /// <summary>the day this work is booked for</summary>
@@ -39,8 +49,9 @@ public partial class BookedWork : ContentPage, IHoldRows
 
         public bool HaveTags { get; set; }
 
-        public BookingGroup(string header, DateTime date, List<Job> jobs) : base(jobs)
+        public BookingGroup(string header, DateTime date, List<Job> jobs) : base(StreetSplit.WithHeadings(jobs))
         {
+            Jobs = jobs;
             Header = header;
             Date = date;
             WorkOutProgress();
@@ -50,7 +61,7 @@ public partial class BookedWork : ContentPage, IHoldRows
             //a day that has been sent to somebody says so in its title, read
             //off the Sent To tags the send put on - a week planned out and
             //handed over should say whose hands each day is in at a glance
-            List<string> outWith = WorkShare.OutWith(this);
+            List<string> outWith = WorkShare.OutWith(Jobs);
             if (outWith.Count > 0)
                 Header = $"{Header} • With {string.Join(", ", outWith)}";
         }
@@ -61,7 +72,7 @@ public partial class BookedWork : ContentPage, IHoldRows
         /// </summary>
         private void WorkOutTags()
         {
-            List<string> tags = Booking.TagsOn(this);
+            List<string> tags = Booking.TagsOn(Jobs);
             TagsText = string.Join(" • ", tags);
             HaveTags = tags.Count > 0;
         }
@@ -100,7 +111,7 @@ public partial class BookedWork : ContentPage, IHoldRows
         {
             int minutesLeft = 0;
 
-            foreach (Job j in this)
+            foreach (Job j in Jobs)
             {
                 if (j.HaveCanceled)
                     continue;
@@ -198,18 +209,12 @@ public partial class BookedWork : ContentPage, IHoldRows
         {
             float total = day.Sum(x => x.Price);
             string header = $"{day.Key:ddd dd MMM yyyy} - {day.Count()} jobs {Gloable.CurrenceSymbol}{total}";
-            //what is still to do first, then street order and up the street by
-            //house number - the order the day is actually worked. sorting on
-            //the formatted address sorted by house number as text, which put
-            //10 before 2 and split streets up all over the list
-            List<Job> dayInStreetOrder = day
-                .OrderBy(x => x.IsCompleted)
-                .ThenBy(x => x.SortStreet, StringComparer.CurrentCultureIgnoreCase)
-                .ThenBy(x => x.SortHouseNumber)
-                .ThenBy(x => x.SortHouseSuffix, StringComparer.CurrentCultureIgnoreCase)
-                .ToList();
-
-            groups.Add(new BookingGroup(header, day.Key, dayInStreetOrder));
+            //street order and up the street by house number, with a heading
+            //naming each street, is the group's own doing - StreetSplit, the
+            //same rule All Jobs reads the round in. Done work stays on its
+            //street with a Done chip rather than sinking to the bottom, so a
+            //street is one run of houses however far through it the day is
+            groups.Add(new BookingGroup(header, day.Key, day.ToList()));
         }
 
         cv_bookings.ItemsSource = groups;
@@ -355,7 +360,7 @@ public partial class BookedWork : ContentPage, IHoldRows
     private async Task SendDay(BookingGroup g)
     {
         //what is done, cancelled or already out with somebody stays home
-        List<Job> toSend = g.FindAll(x => x != null && x.CustomerId != -1
+        List<Job> toSend = g.Jobs.FindAll(x => x != null && x.CustomerId != -1
             && !x.IsCompleted && !x.HaveCanceled && !WorkShare.IsOut(x));
 
         if (toSend.Count == 0)
@@ -375,7 +380,7 @@ public partial class BookedWork : ContentPage, IHoldRows
     /// </summary>
     private async Task CancelDay(BookingGroup g)
     {
-        if (!await WorkPlanner.CancelBooking(g, this, g.Date))
+        if (!await WorkPlanner.CancelBooking(g.Jobs, this, g.Date))
             return;
 
         //the bookings are a cache keyed on the day, so they are built again
@@ -411,7 +416,7 @@ public partial class BookedWork : ContentPage, IHoldRows
     /// </summary>
     private async Task TagDay(BookingGroup g)
     {
-        if (await TagPicker.EditAsync(this, g, $"The Work On {g.Date:ddd dd MMM}"))
+        if (await TagPicker.EditAsync(this, g.Jobs, $"The Work On {g.Date:ddd dd MMM}"))
             Reload();
     }
 

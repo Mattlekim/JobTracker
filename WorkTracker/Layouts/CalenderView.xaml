@@ -5,6 +5,113 @@
              x:Class="UiInterface.Layouts.CalenderView"
              Title="Calendar">
 
+    <ContentPage.Resources>
+
+        <!-- a day's rows are street headings with the houses under them -
+             the same street format All Jobs reads the round in, split by
+             Controles/StreetSplit. A heading is a label and nothing else, so
+             it cannot be swiped or tapped like work. The owed view is a list
+             of people rather than a walk up a street, so it stays flat -->
+        <DataTemplate x:Key="StreetRow">
+            <Label Text="{Binding Street}" FontAttributes="Bold" FontSize="14" Margin="12,8,12,2"/>
+        </DataTemplate>
+
+        <DataTemplate x:Key="JobRow">
+            <!-- a short drag opens the actions, so the list can be
+                 worked one handed -->
+            <SwipeView SwipeStarted="swip_started" SwipeEnded="swip_ended" IsEnabled="{Binding EnabledSwipe}">
+
+                <SwipeView.LeftItems>
+                    <SwipeItems>
+                        <SwipeItem Text="Done"
+                            IconImageSource="tick.png"
+                            CommandParameter="{Binding Id}"
+                            BackgroundColor="#4CAF50"
+                            Invoked="On_Job_Compleated"
+                                   />
+                        <SwipeItem Text="Done &amp; Paid"
+                            CommandParameter="{Binding Id}"
+                            IconImageSource="donepaid.png"
+                            BackgroundColor="#2E7D32"
+                            Invoked="On_Job_Paid"
+                                       />
+                        <SwipeItem Text="More"
+                            IconImageSource="more.png"
+                            CommandParameter="{Binding Id}"
+                            BackgroundColor="#546E7A"
+                            Invoked="On_Job_More"
+                                       />
+                    </SwipeItems>
+                </SwipeView.LeftItems>
+                <SwipeView.RightItems>
+                    <SwipeItems>
+                        <SwipeItem Text="Skip"
+                            IconImageSource="skip.png"
+                            CommandParameter="{Binding Id}"
+                            BackgroundColor="#FB8C00"
+                            Invoked="On_Job_Skipped"
+                                   />
+                        <SwipeItem Text="Cancel"
+                            IconImageSource="cancel.png"
+                            CommandParameter="{Binding Id}"
+                            BackgroundColor="#E53935"
+                            Invoked="On_Job_Canceled"
+                                       />
+                        <SwipeItem Text="Edit Details"
+                            IconImageSource="edit.png"
+                            CommandParameter="{Binding Id}"
+                            BackgroundColor="#1E88E5"
+                            Invoked="On_Job_Detials"
+                                       />
+                        <SwipeItem Text="Expense"
+                            IconImageSource="payments.png"
+                            CommandParameter="{Binding Id}"
+                            BackgroundColor="#7B1FA2"
+                            Invoked="On_Job_Expense"
+                                       />
+                    </SwipeItems>
+                </SwipeView.RightItems>
+
+                <!-- one house, drawn by the shared card control
+                     (Controles/JobCard) that every work list uses. The
+                     street is the heading above the row, so the address is
+                     the number alone. This is the one list that mixes
+                     booked, unbooked and cancelled work, so those chips are
+                     on; done work folds to the faded line that taps back
+                     open, which the card handles itself -->
+                <controls:JobCard Job="{Binding .}"
+                                  AddressStyle="NumberOnly"
+                                  ShowInfo="True"
+                                  ShowBookedChip="True"
+                                  ShowCancelledChip="True"
+                                  CollapseCompleted="True"
+                                  InfoClicked="Card_Info">
+                    <!-- swipe gestures only work with touch, so desktop
+                         (right click) gets the same actions as a menu -->
+                    <FlyoutBase.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding Id}" Clicked="On_Job_Compleated" />
+                            <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding Id}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}" />
+                            <MenuFlyoutItem Text="More" CommandParameter="{Binding Id}" Clicked="On_Job_More" />
+                            <MenuFlyoutItem Text="Do It Again" CommandParameter="{Binding Id}" Clicked="On_Job_DoAgain" IsEnabled="{Binding CanDoAgain}" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
+                            <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding Id}" Clicked="On_Job_Canceled" />
+                            <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding Id}" Clicked="On_Job_Detials" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Add Expense" CommandParameter="{Binding Id}" Clicked="On_Job_Expense" />
+                        </MenuFlyout>
+                    </FlyoutBase.ContextFlyout>
+                </controls:JobCard>
+            </SwipeView>
+        </DataTemplate>
+
+        <controls:StreetSplitTemplateSelector x:Key="CalendarRows"
+                                              HeadingTemplate="{StaticResource StreetRow}"
+                                              JobTemplate="{StaticResource JobRow}"/>
+
+    </ContentPage.Resources>
+
     <!-- the tag bar is pinned above the list rather than riding along in its
          header: it is set while working through the day, and would be no use
          scrolled off the top of the page -->
@@ -24,7 +131,7 @@
          another and cost the list its virtualisation. -->
     <!-- the classic pull down to build the month again from the jobs -->
     <RefreshView Grid.Row="1" x:Name="rv_calendar" Refreshing="rv_calendar_Refreshing">
-    <CollectionView x:Name="lv_Jobs" SelectionMode="None" RemainingItemsThreshold="0">
+    <CollectionView x:Name="lv_Jobs" SelectionMode="None" RemainingItemsThreshold="0" ItemTemplate="{StaticResource CalendarRows}">
         <CollectionView.Header>
             <VerticalStackLayout>
                 <HorizontalStackLayout HorizontalOptions="Center" x:Name="hsl_monthSelector">
@@ -92,97 +199,6 @@
                 <Label x:Name="l_noJobs" FontSize="Title" HorizontalOptions="Center" Text="No Jobs To Do" Padding="16"></Label>
             </VerticalStackLayout>
         </CollectionView.Header>
-            <CollectionView.ItemTemplate>
-                <DataTemplate >
-
-                    <!-- a short drag opens the actions, so the list can be
-                         worked one handed -->
-                    <SwipeView x:Name="sv" SwipeStarted="swip_started" SwipeEnded="swip_ended" IsEnabled="{Binding EnabledSwipe}">
-
-                        <SwipeView.LeftItems  >
-                            <SwipeItems >
-                                <SwipeItem Text="Done" 
-                                    IconImageSource="tick.png"
-                                    CommandParameter="{Binding Id}"
-                                    BackgroundColor="#4CAF50"
-                                    Invoked="On_Job_Compleated"
-                                           />
-                                <SwipeItem Text="Done &amp; Paid"
-                                    CommandParameter="{Binding Id}"
-                                    IconImageSource="donepaid.png"
-                                    BackgroundColor="#2E7D32"
-                                    Invoked="On_Job_Paid" 
-                                               />
-                                <SwipeItem Text="More"
-                                    IconImageSource="more.png"
-                                    CommandParameter="{Binding Id}"
-                                    BackgroundColor="#546E7A"
-                                    Invoked="On_Job_More" 
-                                                   
-                                               />
-                            </SwipeItems>
-                        </SwipeView.LeftItems>
-                        <SwipeView.RightItems>
-                            <SwipeItems>
-                                <SwipeItem Text="Skip" 
-                                    IconImageSource="skip.png"
-                                    CommandParameter="{Binding Id}"
-                                    BackgroundColor="#FB8C00"
-                                    Invoked="On_Job_Skipped"
-                                           />
-                                <SwipeItem Text="Cancel"
-                                    IconImageSource="cancel.png"
-                                    CommandParameter="{Binding Id}"
-                                    BackgroundColor="#E53935"
-                                    Invoked="On_Job_Canceled" 
-                                               />
-                                <SwipeItem Text="Edit Details"
-                                    IconImageSource="edit.png"
-                                    CommandParameter="{Binding Id}"
-                                    BackgroundColor="#1E88E5"
-                                    Invoked="On_Job_Detials"
-                                               />
-                                <SwipeItem Text="Expense"
-                                    IconImageSource="payments.png"
-                                    CommandParameter="{Binding Id}"
-                                    BackgroundColor="#7B1FA2"
-                                    Invoked="On_Job_Expense"
-                                               />
-                            </SwipeItems>
-                        </SwipeView.RightItems>
-
-                        <!-- one house, drawn by the shared card control
-                             (Controles/JobCard) that every work list uses.
-                             This is the one list that mixes booked, unbooked
-                             and cancelled work, so those chips are on; done
-                             work folds to the faded line that taps back
-                             open, which the card handles itself -->
-                        <controls:JobCard Job="{Binding .}"
-                                          ShowInfo="True"
-                                          ShowBookedChip="True"
-                                          ShowCancelledChip="True"
-                                          CollapseCompleted="True"
-                                          InfoClicked="Card_Info">
-                            <!-- swipe gestures only work with touch, so desktop
-                                 (right click) gets the same actions as a menu -->
-                            <FlyoutBase.ContextFlyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem Text="{Binding DoneActionText}" CommandParameter="{Binding Id}" Clicked="On_Job_Compleated" />
-                                    <MenuFlyoutItem Text="Done &amp; Paid" CommandParameter="{Binding Id}" Clicked="On_Job_Paid" IsEnabled="{Binding ShowPaidAction}" />
-                                    <MenuFlyoutItem Text="More" CommandParameter="{Binding Id}" Clicked="On_Job_More" />
-                                    <MenuFlyoutItem Text="Do It Again" CommandParameter="{Binding Id}" Clicked="On_Job_DoAgain" IsEnabled="{Binding CanDoAgain}" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="Skip" CommandParameter="{Binding Id}" Clicked="On_Job_Skipped" />
-                                    <MenuFlyoutItem Text="Cancel Job" CommandParameter="{Binding Id}" Clicked="On_Job_Canceled" />
-                                    <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding Id}" Clicked="On_Job_Detials" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="Add Expense" CommandParameter="{Binding Id}" Clicked="On_Job_Expense" />
-                                </MenuFlyout>
-                            </FlyoutBase.ContextFlyout>
-                        </controls:JobCard>
-                    </SwipeView>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
     </CollectionView>
     </RefreshView>
     </Grid>

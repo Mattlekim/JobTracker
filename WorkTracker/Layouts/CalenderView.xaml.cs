@@ -1,4 +1,4 @@
-namespace UiInterface.Layouts;
+﻿namespace UiInterface.Layouts;
 
 using Microsoft.Maui.Controls.Shapes;
 using Kernel;
@@ -434,7 +434,9 @@ public class CalenderDay: INotifyPropertyChanged
 public partial class CalenderView : ContentPage
 {
 
-    private ObservableCollection<Job> _jobsToDisplay = new ObservableCollection<Job>();
+    /// <summary>the rows the day list draws: street headings with the
+    /// day's houses under them, or a flat run of jobs on the owed view</summary>
+    private ObservableCollection<object> _jobsToDisplay = new ObservableCollection<object>();
 	public CalenderView()
 	{
 		InitializeComponent();
@@ -1195,33 +1197,21 @@ public partial class CalenderView : ContentPage
         }
     }
     /// <summary>
-    /// The day's work as it is shown: what is still to do at the top, the
-    /// jobs already done pushed to the bottom, and the row striping worked
-    /// out over that order rather than the day's own - otherwise the shading
-    /// stops alternating as soon as anything is moved.
+    /// The day's work as it is shown: street headings with the houses under
+    /// them, in street order and up each street by house number - the same
+    /// street format All Jobs reads the round in (Controles/StreetSplit).
+    /// Work already done stays on its street, folded to the faded line, so a
+    /// street is one run of houses however far through it the day is.
     /// </summary>
     private void ShowDaysWork()
     {
-        List<Job> ordered = WorkPlanner.DoneAtTheBottom(_selectedDay.Jobs);
-
-        bool dark = Application.Current.PlatformAppTheme == AppTheme.Dark;
-        bool altColor = false;
-
-        foreach (Job j in ordered)
-        {
-            if (dark)
-                j.AltColour = altColor ? WorkPlanner.altColorDark : WorkPlanner.MainColorDark;
-            else
-                j.AltColour = altColor ? WorkPlanner.altColor : WorkPlanner.MainColor;
-
-            altColor = !altColor;
-        }
-
         _jobsToDisplay.Clear();
-        foreach (Job j in ordered)
+        foreach (object row in StreetSplit.WithHeadings(_selectedDay.Jobs))
         {
-            j.CollapsedInList = j.IsCompleted;
-            _jobsToDisplay.Add(j);
+            if (row is Job j)
+                j.CollapsedInList = j.IsCompleted;
+
+            _jobsToDisplay.Add(row);
         }
     }
 
@@ -1541,4 +1531,4 @@ public partial class CalenderView : ContentPage
         WorkPlanner.ShowJobInfo(e.Job, this);
     }
 
-}
+}
