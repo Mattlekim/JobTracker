@@ -146,12 +146,17 @@ namespace WorkTracker
         {
             base.OnNewIntent(intent);
 
-            //  SetIntent, so this is the intent the activity is holding from
-            //  here on. Without it getIntent() still answers with the one the
-            //  app was started by, and android hands that back on the next
-            //  recreation - so rotating the phone after opening a second file
-            //  offered the first one again.
-            SetIntent(intent);
+            //  The intent the activity is holding is deliberately left as it
+            //  is. SetIntent would say "this is the one now", but API 35
+            //  bound it as SetIntent(Intent, ComponentCaller) and the one
+            //  argument form is gone - and calling the two argument one would
+            //  go looking for a method that does not exist on any phone older
+            //  than android 15, which is most of them.
+            //
+            //  It costs nothing here. What stops a file being offered twice
+            //  is the mark put on the intent below, and the intent the
+            //  activity keeps holding is the one that has already been
+            //  marked, so a recreation finds it dealt with either way.
 
             //already running: the file arrives here instead
             TakeTheFile(intent);

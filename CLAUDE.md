@@ -162,8 +162,11 @@ is the app going down, and it was going down on the alert.
 Two more things that made it come and go. The `Opened` events are static and a shell can be built more than once
 (the crash log page builds a fresh one), so subscribing per shell left every shell ever built listening and the
 oldest — long off screen — answered first and claimed the file; `AppShell.HookFileOpening` subscribes once and
-asks whichever shell is current. And `MainActivity` marks an intent once its file has been taken off it, and
-`OnNewIntent` calls `SetIntent`, so a file is not offered again every time Android hands the same intent back.
+asks whichever shell is current. And `MainActivity` marks an intent once its file has been taken off it, so a
+file is not offered again every time Android hands the same intent back. The mark is what does that on its own —
+`OnNewIntent` deliberately does **not** call `SetIntent`, because API 35 binds it as
+`SetIntent(Intent, ComponentCaller)` with no one-argument form, and that method does not exist on anything older
+than Android 15.
 
 `MainActivity` is **`SingleTask`** so a file opened while the app is running reaches `OnNewIntent` rather than
 starting a second copy of the app. It must not be `SingleTop`: a MAUI app has one window and it belongs to one
