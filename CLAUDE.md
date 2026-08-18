@@ -831,8 +831,9 @@ not something anybody will do.
 `Layouts/WorkPlanner` and `Layouts/AllJobs` draw a house **the same way**: a card with the address in bold, the
 price beside it, and when it is due and what is owed on the line under. It is the same round looked at two ways
 and it should not read as two different apps. The work list was a striped spreadsheet-ish row before this; the
-stripes are gone, because the gap between cards is what tells one house from the next now (`AltColour` stays —
-the calendar and the customer page still stripe their own lists with it).
+stripes are gone, because the gap between cards is what tells one house from the next now. The booked work page
+and the calendar's day list draw the same card too — same address-price-due-owed organisation, their own swipe
+actions kept — so `AltColour` striping is only the customer page's now.
 
 What the work list keeps on top of that card is what that page is *for*: the tick box for picking work out, the
 info button, and **the tags** — what the work is, whose round it is on, how long it takes, TNB/ENB, a direct
