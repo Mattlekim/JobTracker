@@ -102,23 +102,31 @@
                         </SwipeItems>
                     </SwipeView.RightItems>
 
-                    <Border StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="8,3"
-                            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+                    <!-- one house, drawn by the shared card control
+                         (Controles/JobCard) that every work list uses. The
+                         due date is off because the day heading above the
+                         work already is the date, and the Done chip is on
+                         because this list keeps done and not-done side by
+                         side as the day is worked -->
+                    <controls:JobCard Job="{Binding .}"
+                                      ShowDue="False"
+                                      ShowDoneChip="True"
+                                      ShowExtraChips="False">
                         <!-- holding a row brings up everything that can be
                              done to it, the swipe actions included. the
                              behaviour is what does it on a phone; the pointer
                              events are never raised for a finger and only do
                              the timing on a desktop -->
-                        <Border.Behaviors>
+                        <controls:JobCard.Behaviors>
                             <controls:LongPressBehavior/>
-                        </Border.Behaviors>
-                        <Border.GestureRecognizers>
+                        </controls:JobCard.Behaviors>
+                        <controls:JobCard.GestureRecognizers>
                             <TapGestureRecognizer Tapped="job_Tapped" CommandParameter="{Binding .}"/>
                             <PointerGestureRecognizer PointerPressed="Job_PointerPressed"
                                                       PointerMoved="Job_PointerMoved"
                                                       PointerReleased="Job_PointerReleased"
                                                       PointerExited="Job_PointerReleased"/>
-                        </Border.GestureRecognizers>
+                        </controls:JobCard.GestureRecognizers>
                         <!-- swipe gestures only work with touch, so desktop
                              (right click) gets the same actions as a menu -->
                         <FlyoutBase.ContextFlyout>
@@ -135,33 +143,7 @@
                                 <MenuFlyoutItem Text="Edit Details" CommandParameter="{Binding .}" Clicked="On_Job_Details"/>
                             </MenuFlyout>
                         </FlyoutBase.ContextFlyout>
-                        <Grid Padding="12,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <VerticalStackLayout Grid.Column="0" Spacing="2">
-                                <Label Text="{Binding JobFormattedStreet}" FontAttributes="Bold"/>
-                                <HorizontalStackLayout Spacing="8">
-                                    <Label Text="{Binding Name}" TextColor="White" BackgroundColor="#EF6C00" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding HaveJobName}"/>
-                                    <Label Text="Done" TextColor="White" BackgroundColor="#4CAF50" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding IsCompleted}"/>
-                                    <Label Text="One off" TextColor="White" BackgroundColor="#546E7A" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding ShowOneOff}"/>
-                                    <!-- how long the job takes: what the day was
-                                         planned off, on the day itself -->
-                                    <Label Text="{Binding LengthText}" TextColor="White" BackgroundColor="#5D4037" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding HaveLength}"/>
-                                    <!-- what the customer is behind or in credit by, only
-                                         when there is something to settle -->
-                                    <Label Text="{Binding JobFormattedOwed}" TextColor="White" BackgroundColor="{Binding OwedColorCode}" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding ShowOwed}" LineBreakMode="TailTruncation"/>
-                                </HorizontalStackLayout>
-                                <!-- what was different about this visit -->
-                                <Label Text="{Binding TagsText}" TextColor="White" BackgroundColor="#00838F" Padding="6,2" FontAttributes="Bold" FontSize="12" IsVisible="{Binding HaveTags}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"/>
-                                <!-- notes get a line of their own so a long one cannot
-                                     push the tags off the row -->
-                                <Label Text="{Binding JobFormattedStringNotes}" TextColor="White" BackgroundColor="#FB8C00" Padding="6,2" FontSize="12" IsVisible="{Binding HaveJobNotes}" LineBreakMode="TailTruncation" MaxLines="1" HorizontalOptions="Start"/>
-                            </VerticalStackLayout>
-                            <Label Grid.Column="1" Text="{Binding JobFormattedStringPrice}" FontAttributes="Bold" VerticalOptions="Center"/>
-                        </Grid>
-                    </Border>
+                    </controls:JobCard>
                 </SwipeView>
             </DataTemplate>
         </CollectionView.ItemTemplate>
