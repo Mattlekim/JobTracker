@@ -577,6 +577,25 @@ Being asked whether to tell the customers is part of moving the day, not an alte
 used to send the messages and then stop, so the one case where everybody had been told the date had changed was
 the case where it had not.
 
+### What a day on the calendar is filled with
+
+Every fill on that grid is saying something, and they are ranked. A day carrying work is filled by its work
+(`CalenderDay.WorkColour` — orange for work to do, green once it is all done and a blend between the two part
+way through, red for work missed, the darker orange red for work nobody has arranged). Today and the day being
+looked at are **rings** rather than fills, because a fill there would cost the day the thing the colour is for.
+
+**The weekend is the same rule again.** Saturday and Sunday are washed a little differently from the working
+week (`CalenderDay.IsWeekend`, `WeekendColour`) so a month can be counted without reading the headings — but
+only on a day with **nothing on it**. A day with work keeps its work colour. So the headings carry it too: Sa
+and Su are written in `WeekendHeading`, which is the half of it that survives a busy month, and those are
+picked off the date each column really holds rather than off the position in the list.
+
+There are **two washes**, chosen by the theme when the colour is set, because one alpha cannot serve both: the
+wash that is barely there on the dark page is a block on the near white one. Like the rest of the colours on
+this page the theme is asked at build time and not watched, so a page already on screen when the phone changes
+theme keeps what it was built with. The day numbers themselves are the outstanding half of that: `ResetColor`
+puts them in white, which is a white number on a `#F4F6F8` page for every future day in the light theme.
+
 ## Changing things from the customer's page
 
 `Layouts/ViewCustomerDetails` is where a customer is looked at, so it is where the two figures that go wrong get
