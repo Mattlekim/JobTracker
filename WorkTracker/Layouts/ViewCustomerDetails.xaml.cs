@@ -104,6 +104,7 @@ public partial class ViewCustomerDetails : ContentPage
         l_email.Text = c.Email;
 
         ShowJobDuration();
+        ShowPrice();
 
 
 
@@ -547,6 +548,43 @@ public partial class ViewCustomerDetails : ContentPage
             return;
 
         ShowJobDuration();
+
+        if (OnJobDetialsUpdated != null)
+            OnJobDetialsUpdated(CurrentJob);
+    }
+
+    /// <summary>
+    /// what this house is charged as things stand, and the price rise that
+    /// has been agreed with them.
+    ///
+    /// The price is read off the visit next due rather than off whichever
+    /// visit this page was opened from - that one is as likely as not a clean
+    /// already written up at the old price, and the customer is asking what
+    /// they pay now. The rise is said out loud because the date is the thing
+    /// they ring up about, and it stays on show after the day has passed:
+    /// "it went up in April" is the answer to the same question.
+    /// </summary>
+    private void ShowPrice()
+    {
+        if (CurrentJob == null)
+            return;
+
+        l_jobPrice.Text = $"{Gloable.CurrenceSymbol}{CurrentJob.CurrentPrice:0.00}";
+
+        l_priceRise.IsVisible = CurrentJob.ShowPriceRise;
+        l_priceRise.Text = CurrentJob.PriceRiseText;
+        l_priceRise.TextColor = CurrentJob.PriceRiseTextColour;
+    }
+
+    private async void bnt_priceRise_Clicked(object sender, EventArgs e)
+    {
+        if (CurrentJob == null)
+            return;
+
+        if (await PriceRise.AskAsync(Navigation, new List<Job>() { CurrentJob }) == 0)
+            return;
+
+        ShowPrice();
 
         if (OnJobDetialsUpdated != null)
             OnJobDetialsUpdated(CurrentJob);

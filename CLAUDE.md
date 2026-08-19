@@ -512,6 +512,16 @@ Left booked in it read as booked for a day it was no longer due on: it stayed on
 so the day never cleared and went on being called overdue, and the work list leaves booked work out
 (`MasterFilter`), so the house was on neither page.
 
+**The new date is measured from the day it was skipped, not from the day it was due.** A skip only really knows
+about one date — the day you were there and passed the house over — and measuring off the due date pushed an
+overdue house out from a date in the past: a weekly job a fortnight late, skipped today, came back **due a week
+ago**, still on the list and still red, so skipping it looked like it had done nothing at all. It can only ever
+put work off, so a house not due for months is not pulled forward to next week by being skipped by mistake.
+`Job.DueDateBeforeSkip` remembers the date it had, because `UnSkipJob` can no longer get it back by subtracting
+`SkipDays` again; a job skipped before that was kept has nothing there and falls back to the subtraction.
+`SkipDays` itself is unchanged — a full frequency's worth of **weeks**, so a monthly or a daily job is pushed out
+by its number of weeks rather than by its own unit.
+
 `Job.SkipJob` is what unbooks it, in the kernel with the rest of the skip, so none of the four places work can be
 skipped from — the swipes and menus on the work list, the calendar and the booked work page, and the paper view's
 record sheet — can be the one that forgets. The day itself is a `Booking` in `Booking.Bookings`, which is a
@@ -523,6 +533,17 @@ same thing — change the flags on the jobs, rebuild — and `RemoveBooking` wor
 day, so work booked for the date that no list was showing comes off with the rest. Anything skipping work still
 goes through `WorkPlanner.MarkJobSkipped`, which refreshes the row and saves; `SkipJob` on its own leaves the
 cached day stale until the next rebuild.
+
+**The calendar keeps a second cache of the same shape, and it has the same rule.** Each `CalenderDay` holds the
+jobs that fall on it, filled only by `CalenderView.PopulateDays`, and the panel under the calendar is drawn from
+the picked day's list rather than from the jobs. So `RefreshPageDate` on its own only *redraws* that list —
+skipping a house pushed its due date out and it stayed on screen, on a day it was no longer due on, with the day's
+totals still counting it, until the page was pulled down by hand. `RefreshAfterWorkChanged` (`RebuildDays` then
+`RefreshPageDate`) is what every swipe and menu on that page which touches the work goes through — done, cleared,
+skipped, cancelled, paid, moved, and the job's own window — so none of them can be the one that forgets.
+Rebuilding runs `CalculateDay`, which ends in `ResetColor`, so the ring is put back on the day being looked at:
+it is read *before* the rebuild, because `PopulateDays` picks today when nothing is picked and a day chosen for
+you is not one to ring.
 
 Clearing a skip (the paper view's **Clear**) puts the due date back but **does not** put the booking back — the day
 is gone and nothing remembers it. Book it in again if it is wanted.
@@ -728,6 +749,39 @@ note. Payee text is matched through `StatementText.PayeeKey`, which strips the r
 "direct debit"/"card payment" wrapping the bank puts around the name. Rules are editable on the
 `Layouts/ExpenseRules` page, and live in `expenserules.rjt` alongside the other data files.
 
+## Importing a round off a spreadsheet
+
+`ImportExport/RoundSheetParser` reads the .xlsx (straight over the zip/XML, so there is no NuGet package to add for
+Android) and `ImportExport/CustomerImporter` maps its rows onto customers and jobs, matched on house number plus
+street: a house not on the round is created, one already there has its price, frequency, TNB and front price
+brought up to date.
+
+A sheet says where the houses are, what they cost and how often they come round, and **nothing above the street**.
+Four things it cannot say are asked once for the whole file on `Layouts/ImportSheet` — the town and area, which
+round the work goes on, whether everybody starts owing nothing, and whether the whole lot is due on one day. They
+used to be a run of `DisplayPromptAsync` alerts (town, then area), which gives no way back to an answer already
+given and no room to say what any of them mean. The page decides nothing: it hands back an
+`ImportExport.ImportOptions` and the importer does the work, so an import started from somewhere else would behave
+the same.
+
+- **The round** goes on through `Job.SetRound`, so it lands on **every visit** of a house rather than on the one
+  the import happened to touch — the same rule as everywhere else a round is set. A **blank round asks for
+  nothing**: work already on one keeps it, and new work starts on none. Taking a whole sheet's houses *off* their
+  rounds is not something an import should be able to do by being left alone. A round typed in rather than picked
+  is new, so the settings are saved when `Job.RoundNames` has grown, exactly as the work list does it.
+- **Starting everybody at nothing owed** is for a round taken on off somebody else's spreadsheet: what a sheet
+  carries is the work, not the ledger. Each balance cleared leaves a `BalanceAdjustment` write-off behind it, like
+  every other balance changed by hand — see *Changing things from the customer's page*. A customer already owing
+  nothing has nothing to record, which is also what keeps a customer with two houses on the sheet from being
+  written off twice.
+- **One due date for all of it** is for a sheet that has not been kept up to date; left off, each house is worked
+  out from the last clean ticked on the sheet and how often it comes round, which is what a sheet that *has* been
+  kept up is for. Three sorts of visit are left where they are: a clean already written up (that day is what a
+  month's takings are read off), a cancelled one, and **a day already booked in** — the calendar puts booked work
+  on `DateJobBookinFor` rather than on the due date, so moving the date under a booking would say one thing on the
+  calendar and another on the round. Anything left behind is counted and said in the summary rather than passed
+  over quietly.
+
 ## Google Drive sync
 
 `WorkTracker/CloudSync.cs` syncs the `.rjt` data files and receipt photos with the user's Drive `appDataFolder`
@@ -917,6 +971,50 @@ wants those two.
 
 Everything the row can be tapped for survived the change: street, town, area, type, price, round and money owed
 each still filter the list (see below), and the swipes, the hold, and the right-click menu are untouched.
+
+## Putting the prices up
+
+A price rise is **agreed before it happens**, so the thing that matters about one is the **day it starts** —
+that is what the customer was told and what they ring up about. `Job.PriceRiseDate`, `Job.PriceRiseTo` and
+`Job.PriceRiseWas` hold it, and like the round they belong to the **job** rather than to one visit: `DeepCopy`
+carries all three, which is the whole trick — a visit that will not exist for another month still comes out at
+the agreed price with nobody having to remember.
+
+`Job.SetPriceRise` writes it on to every visit (`EveryVisit`, by `BaseJobId`) and then applies it. A visit takes
+the new price when its **due date** is on or after the day:
+
+- **A clean already written up is never repriced.** The completed visit, its payment and the customer's balance
+  are one record — `MarkJobDone` has already put `EffectivePrice` on the balance — so going back over it would
+  leave the three disagreeing. A cancelled visit is not work and is left alone for the same reason.
+- **Visits are repriced where they are made**, not by whatever pressed the button: `NextVisit` applies the rise
+  to each fresh copy, `SkipJob` re-applies it because a skip pushes a due date out and can carry a visit over
+  the day, and `Job.ApplyPriceRises` runs over the whole list on load for a rise whose day came round while the
+  app was shut. That is in the kernel with the rest of the money so none of the places work is written up from
+  can be the one that forgets.
+- **`Job.CurrentPrice` is what the house is charged as things stand** — the price on the visit next due, found
+  through the same `NextDue` the lists use. Not `Price` off whichever visit you happen to be holding: that one
+  is as likely as not a clean already done at last year's figure, which is exactly what made the customer's page
+  the wrong place to read a price off.
+
+`Layouts/PriceRise` is the one page that asks, so a street and the whole round are put up the same way. It takes
+a list of jobs, keeps **one visit per house** (`Job.SameJobKey` — a list picked off the work list can easily hold
+two visits of the same house, and putting a rise on twice would raise it twice), and offers by an amount, by a
+percentage (rounded to the nearest 50p, because a percentage rarely lands on a price anybody would quote) or, for
+a single job, straight to a new price. **It lists what it is about to do before it does it** — house by house, old
+price to new, with the total — because a round repriced by accident is not something to find out about afterwards.
+
+It is reached from three places, all of which hand it jobs and none of which decide anything:
+
+- the work list's selection toolbar (*Price Increase*), for a street or a handful of houses;
+- `Layouts/AllJobs`, whose toolbar puts up **whatever the page is showing** — the whole round, or the one round
+  the bar above the list already names. That page is where a round-wide rise belongs: the work list only reaches
+  a fortnight ahead (`ResetDateFilter`), and half a round put up is worse than none of it;
+- the customer's page, for the one house.
+
+**The customer's page says the price and the rise** (`ShowPriceRise`, `PriceRiseText`, `PriceRiseTextColour` in
+`JobDisplay.cs`), worded by whether it has happened yet — *goes up from £10 to £12 on 1 April* while it is still
+to come, *went up* after. It stays on show afterwards on purpose: "it went up in April" is the answer to the same
+question.
 
 ## Filtering the work list
 

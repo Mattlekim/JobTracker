@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.ImportSheet"
+             Title="Import From Excel">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="12" Spacing="12">
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label x:Name="l_file" FontAttributes="Bold" FontSize="16"/>
+                        <Label Style="{StaticResource Caption}"
+                               Text="A round sheet says where the houses are and what they cost. Everything it cannot say is asked here, once for the whole sheet."/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- the sheet has streets on it and nothing above them -->
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Where it is" FontAttributes="Bold"/>
+                        <Entry x:Name="e_city" Placeholder="Town or city"/>
+                        <Entry x:Name="e_area" Placeholder="Area (optional)"/>
+                        <Label Style="{StaticResource Caption}"
+                               Text="The sheet has street names but nothing above them. These go on every customer it brings in."/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Round" FontAttributes="Bold"/>
+                        <Button x:Name="bnt_round" Clicked="bnt_round_Clicked"
+                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green"
+                                TextColor="Green" CornerRadius="8"/>
+                        <Label Style="{StaticResource Caption}"
+                               Text="Every house off this sheet goes on this round, and so does every visit of it. Leave it at no round if the work is not split up."/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Start everybody owing nothing" VerticalOptions="Center"/>
+                            <Switch x:Name="sw_zeroBalances" Grid.Column="1"/>
+                        </Grid>
+                        <Label Style="{StaticResource Caption}"
+                               Text="A sheet carries the work, not the money. Anything already owed is written off, and each one written off is kept in that customer's history."/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Set one due date for all of it" VerticalOptions="Center"/>
+                            <Switch x:Name="sw_setDueDate" Grid.Column="1" Toggled="sw_setDueDate_Toggled"/>
+                        </Grid>
+                        <DatePicker x:Name="dp_dueDate" IsEnabled="false" HorizontalOptions="Start"/>
+                        <Label Style="{StaticResource Caption}"
+                               Text="Left off, each house is worked out from the last clean ticked on the sheet and how often it comes round. Turn it on to start the whole lot on one day."/>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <HorizontalStackLayout Grid.Row="1" Padding="12" Spacing="8" HorizontalOptions="End">
+            <Button Text="Cancel" Clicked="bnt_cancel_Clicked" BackgroundColor="Transparent"
+                    BorderWidth="2" BorderColor="#6B7280" TextColor="#6B7280" CornerRadius="8" Padding="16,6"/>
+            <Button Text="Import" Clicked="bnt_import_Clicked" BackgroundColor="#2E7D32"
+                    TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="16,6"/>
+        </HorizontalStackLayout>
+
+    </Grid>
+
+</ContentPage>

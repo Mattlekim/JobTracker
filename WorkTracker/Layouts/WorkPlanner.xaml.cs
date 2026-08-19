@@ -58,6 +58,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
     public ToolbarItem bnt_cancelSelection;
     public ToolbarItem bnt_setRound;
+    public ToolbarItem bnt_priceRise;
     public ToolbarItem bnt_sendWork;
     public ToolbarItem bnt_sentOut;
 
@@ -112,6 +113,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             this.ToolbarItems.Add(tbi_selectAll);
             this.ToolbarItems.Add(bnt_bookInWork);
             this.ToolbarItems.Add(bnt_setRound);
+            this.ToolbarItems.Add(bnt_priceRise);
             //sending work out is opt-in on the settings page: most rounds
             //are one person, and the button would only be in the way
             if (Settings.EnableWorkSharing)
@@ -219,6 +221,11 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         bnt_setRound.Text = "Put On A Round";
         bnt_setRound.Clicked += bnt_setRound_Clicked;
         bnt_setRound.Order = ToolbarItemOrder.Secondary;
+
+        bnt_priceRise = new ToolbarItem();
+        bnt_priceRise.Text = "Price Increase";
+        bnt_priceRise.Clicked += bnt_priceRise_Clicked;
+        bnt_priceRise.Order = ToolbarItemOrder.Secondary;
 
         //handing a list of jobs to somebody else is picking them too
         bnt_sendWork = new ToolbarItem();
@@ -2262,6 +2269,32 @@ public partial class WorkPlanner : ContentPage, IHoldRows
 
         CancelSelectingJobs();
         await Navigation.PushAsync(new SendWork(picked));
+    }
+
+    /// <summary>
+    /// Putting the picked jobs' prices up.
+    ///
+    /// This list is the work in hand - a fortnight of it - so it is the right
+    /// place for putting a street up and the wrong one for repricing the
+    /// whole round. All Jobs has one row per house and reaches all of it,
+    /// which is why the same page is on that page's toolbar as well.
+    /// </summary>
+    private async void bnt_priceRise_Clicked(object sender, EventArgs e)
+    {
+        List<Job> picked = Picked();
+
+        if (picked.Count == 0)
+        {
+            await DisplayAlert("No Jobs", "Pick the jobs you want to put up first.", "Ok");
+            return;
+        }
+
+        //taken before the ticks go off: turning selection off unticks every
+        //job, and what was picked has to survive that
+        CancelSelectingJobs();
+
+        if (await PriceRise.AskAsync(Navigation, picked) > 0)
+            RefreshPage();
     }
 
     private async void bnt_setRound_Clicked(object sender, EventArgs e)

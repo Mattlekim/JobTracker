@@ -44,6 +44,14 @@ public partial class AllJobs : ContentPage
     /// <summary>which round the list is cut down to, and whether it is</summary>
     private string _round = string.Empty;
 
+    /// <summary>
+    /// the houses the page is showing, one visit each - what a price rise
+    /// off this page's toolbar is about. Kept from the build rather than
+    /// worked out again, so the rise is over exactly the list that is on
+    /// screen, filtered round and all
+    /// </summary>
+    private List<Job> _showing = new List<Job>();
+
     private bool _filtered;
 
     /// <summary>
@@ -125,6 +133,8 @@ public partial class AllJobs : ContentPage
 
         ShowTotals(jobs);
 
+        _showing = jobs;
+
         l_empty.IsVisible = jobs.Count == 0;
         cv_jobs.IsVisible = jobs.Count > 0;
         cv_jobs.ItemsSource = Rows(jobs);
@@ -143,6 +153,27 @@ public partial class AllJobs : ContentPage
             return;
 
         l_filter.Text = $"Showing {RoundName(_round)}";
+    }
+
+    /// <summary>
+    /// Putting the round's prices up.
+    ///
+    /// It acts on what the page is showing, which is the whole round or the
+    /// one round the bar above the list already names - so there is never a
+    /// question about which houses went up. The figures and the day are
+    /// asked for on <see cref="PriceRise"/>, which lists what it is about to
+    /// do before it does it.
+    /// </summary>
+    private async void tbi_priceRise_Clicked(object sender, EventArgs e)
+    {
+        if (_showing.Count == 0)
+        {
+            await DisplayAlert("Price Increase", "There is no work here to put up.", "Ok");
+            return;
+        }
+
+        if (await PriceRise.AskAsync(Navigation, new List<Job>(_showing)) > 0)
+            Build();
     }
 
     private void bnt_clearFilter_Clicked(object sender, EventArgs e)

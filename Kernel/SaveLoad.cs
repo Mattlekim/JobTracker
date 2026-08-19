@@ -331,6 +331,13 @@ namespace Kernel
                 }
                 FixBaseIdBug();
                 FillRoundsDownTheJob();
+
+                //a rise agreed before the app was last closed, on a day that
+                //has since come round. it is worked off the due date rather
+                //than off today, so a skip can push a visit over the day
+                //while nothing is looking
+                Job.ApplyPriceRises();
+
                 _Loaded = true;
             }
             catch (FileNotFoundException)

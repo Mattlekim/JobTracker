@@ -929,7 +929,7 @@ public partial class CalenderView : ContentPage
         }
 
         _selectedDay = _calenderDays[endDay];
-        RefreshPageDate();
+        RefreshAfterWorkChanged();
 
         Job.Save();
         DataRefreshNotifier.NotifyDataChanged();
@@ -1082,7 +1082,9 @@ public partial class CalenderView : ContentPage
         else
             WorkPlanner.MarkJobDone(j, this);
 
-        RefreshPageDate();
+        //marking it done makes the next visit, which can land on a day in
+        //this same month; clearing it takes that visit away again
+        RefreshAfterWorkChanged();
     }
 
     private Job GetJobForSwipe(object sender)
@@ -1101,7 +1103,7 @@ public partial class CalenderView : ContentPage
         if (j == null)
             return;
         await WorkPlanner.MarkJobPaid(j, this);
-        RefreshPageDate();
+        RefreshAfterWorkChanged();
     }
 
     /// <summary>the classic pull down: the month built again from the jobs</summary>
@@ -1135,10 +1137,62 @@ public partial class CalenderView : ContentPage
             DateTime d = startDate.AddDays(i);
             _calenderDays[i].Day = d.Day;
             _calenderDays[i].Date = d;
-            _calenderDays[i].Jobs.Clear();
         }
 
+        RebuildDays();
+    }
+
+    /// <summary>
+    /// The day cells built again from the jobs.
+    ///
+    /// The days are a cache the jobs are the truth for, and
+    /// <see cref="PopulateDays"/> is the only thing allowed to fill them - so
+    /// anything that changes the work has to come back through here.
+    ///
+    /// Rebuilding puts every day's colour back to what its work says
+    /// (<see cref="CalenderDay.CalculateDay"/> ends in ResetColor), and that
+    /// takes the ring off the day being looked at - so the ring goes back on
+    /// afterwards. Rebuilding a day is no reason to lose which one is picked.
+    /// </summary>
+    private void RebuildDays()
+    {
+        //which day was picked is read before the rebuild, because PopulateDays
+        //picks today when nothing is picked - and a day that has only just
+        //been chosen for you is not one to draw a ring round. Moving to
+        //another month deliberately leaves nothing picked
+        CalenderDay picked = _selectedDay;
+
+        foreach (CalenderDay cd in _calenderDays)
+            cd.Jobs.Clear();
+
         PopulateDays();
+
+        if (picked != null)
+        {
+            picked.SelectedDayColor = Colors.White;
+            picked.SelectedDayBorderSize = 3;
+        }
+    }
+
+    /// <summary>
+    /// The work has changed - marked done, cleared, skipped, cancelled, paid,
+    /// moved to another day.
+    ///
+    /// Which day a job belongs on can change with it, so the days are built
+    /// again from the jobs before the panel under the calendar is drawn.
+    /// Skipping is the plain case: it pushes the due date out, so the house is
+    /// on another day now - but the panel is drawn from the day's own cached
+    /// list, and redrawing that list without rebuilding it left the house
+    /// sitting on a day it was no longer due on, and the day's totals counting
+    /// it, until the page was pulled down by hand.
+    ///
+    /// Every swipe and menu on this page that touches the work goes through
+    /// here, so none of them can be the one that forgets.
+    /// </summary>
+    private void RefreshAfterWorkChanged()
+    {
+        RebuildDays();
+        RefreshPageDate();
     }
 
     /// <summary>
@@ -1483,7 +1537,7 @@ public partial class CalenderView : ContentPage
 
     private void On_Job_More(object sender, EventArgs e)
     {
-        WorkPlanner.ShowJobStatus(GetJobForSwipe(sender), this, RefreshPageDate);
+        WorkPlanner.ShowJobStatus(GetJobForSwipe(sender), this, RefreshAfterWorkChanged);
     }
 
     private async void On_Job_DoAgain(object sender, EventArgs e)
@@ -1493,21 +1547,27 @@ public partial class CalenderView : ContentPage
             return;
 
         if (await WorkPlanner.DoJobAgain(j, this))
-            RefreshPageDate();
+            RefreshAfterWorkChanged();
     }
 
     private void On_Job_Skipped(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
         WorkPlanner.MarkJobSkipped(j);
-        RefreshPageDate();
+
+        //a skip pushes the job out to its next visit, so it is not this day's
+        //work any more - the day it is on now is worked out from the jobs
+        RefreshAfterWorkChanged();
     }
 
     private async void On_Job_Canceled(object sender, EventArgs e)
     {
         Job j = GetJobForSwipe(sender);
         await WorkPlanner.MarkJobCancled(j, this);
-        RefreshPageDate();
+
+        //a visit cancelled before it was done is not work to turn up for, so
+        //it comes off the calendar altogether
+        RefreshAfterWorkChanged();
     }
 
     private void On_Job_Detials(object sender, EventArgs e)

@@ -60,6 +60,19 @@
                                 BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5"
                                 CornerRadius="8" VerticalOptions="Center"></Button>
                     </HorizontalStackLayout>
+                    <!-- what this house is charged, and the price rise that
+                         has been agreed with them. the date is the thing they
+                         actually ask about, so it is said here rather than
+                         being left to be worked out off the job -->
+                    <HorizontalStackLayout Padding="8,0,8,8" HorizontalOptions="Center" Spacing="8">
+                        <Label Text="Price " VerticalOptions="Center"></Label>
+                        <Label x:Name="l_jobPrice" VerticalOptions="Center"></Label>
+                        <Button Text="Change" Clicked="bnt_priceRise_Clicked" FontSize="12" Padding="12,2"
+                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="#1E88E5" TextColor="#1E88E5"
+                                CornerRadius="8" VerticalOptions="Center"></Button>
+                    </HorizontalStackLayout>
+                    <Label x:Name="l_priceRise" Padding="8,0,8,8" HorizontalOptions="Center"
+                           FontSize="12" IsVisible="false"></Label>
                 </VerticalStackLayout>
             </Border>
         </Grid>

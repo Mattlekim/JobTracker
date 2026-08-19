@@ -47,6 +47,8 @@ public static class SelfTest
             ASharedWorkListSurvivesTheTripThereAndBack(folder);
             CancellingBookedInWorkTakesItOffTheDay();
             AWriteOffLeavesARecord();
+            APriceRiseTakesEffectOnTheDayItSays();
+            ASkipIsMeasuredFromTheDayItWasSkipped();
             EachBankAccountKeepsItsOwnLayoutAndItsOwnReferences(folder);
         }
         catch (Exception ex)
@@ -96,6 +98,145 @@ public static class SelfTest
         Job readOther = Find("1", "The Green");
         Check("work on no round stays on no round", readOther != null && !readOther.HaveRound,
             readOther == null ? "job missing" : $"round was '{readOther.Round}'");
+    }
+
+    /// <summary>
+    /// A skipped job comes back round from the day you were there and passed
+    /// it over, not from the day it was due.
+    ///
+    /// Measured off the due date, a house that was already overdue was pushed
+    /// out from a date in the past - so a weekly job a fortnight late, skipped
+    /// today, came back due a week ago: still on the list, still red, and the
+    /// skip looked like it had done nothing at all.
+    /// </summary>
+    private static void ASkipIsMeasuredFromTheDayItWasSkipped()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A skip is measured from the day it was skipped");
+
+        Reset();
+
+        DateTime today = DateTime.Now.Date;
+
+        //a fortnight overdue, which is the case that went wrong
+        Job late = AddJob("5", "Mill Lane", 10f);
+        late.SetFrequence(1, FrequenceType.Week);
+        late.DueDate = today.AddDays(-14);
+
+        late.SkipJob(today);
+
+        Check("it comes back a week after the day it was skipped",
+            late.DueDate.Date == today.AddDays(7), late.DueDate.ToShortDateString());
+        Check("and it is not still overdue", late.DueDate.Date > today, late.DueDate.ToShortDateString());
+        Check("the skip is on the day it happened", late.DateSkipped.Date == today,
+            late.DateSkipped.ToShortDateString());
+
+        //clearing the skip puts back the date it had, which can no longer be
+        //worked out by subtracting the days it was pushed out by
+        late.UnSkipJob();
+        Check("clearing the skip puts the date it had back",
+            late.DueDate.Date == today.AddDays(-14), late.DueDate.ToShortDateString());
+        Check("and it is not skipped any more", !late.HaveSkipped, "still skipped");
+
+        //a house not due for months, skipped by mistake, must not be pulled
+        //forward to next week by it
+        Job later = AddJob("7", "Mill Lane", 10f);
+        later.SetFrequence(1, FrequenceType.Week);
+        later.DueDate = today.AddDays(60);
+
+        later.SkipJob(today);
+
+        Check("skipping work that is not due yet does not pull it forward",
+            later.DueDate.Date == today.AddDays(60), later.DueDate.ToShortDateString());
+
+        //a four weekly job goes out four weeks from the day it was skipped
+        Job monthly = AddJob("9", "Mill Lane", 10f);
+        monthly.SetFrequence(4, FrequenceType.Week);
+        monthly.DueDate = today.AddDays(-3);
+
+        monthly.SkipJob(today);
+
+        Check("a four weekly job goes out four weeks from the skip",
+            monthly.DueDate.Date == today.AddDays(28), monthly.DueDate.ToShortDateString());
+
+        Job.Save(Folder);
+        Reset();
+        Job.Load(Folder);
+
+        Job readBack = Find("9", "Mill Lane");
+        Check("the skip survived a save", readBack != null && readBack.HaveSkipped,
+            readBack == null ? "job missing" : "not skipped");
+        if (readBack == null)
+            return;
+
+        readBack.UnSkipJob();
+        Check("and clearing it after a save still puts the date back",
+            readBack.DueDate.Date == today.AddDays(-3), readBack.DueDate.ToShortDateString());
+    }
+
+    /// <summary>
+    /// A price rise reaches the visits it should and no others.
+    ///
+    /// The whole point of a rise carrying a date is that it is agreed before
+    /// it happens, so the visit due next week stays at the old price while a
+    /// visit that does not exist yet comes out at the new one. A clean
+    /// already written up must never be repriced: it, its payment and the
+    /// customer's balance are one record.
+    /// </summary>
+    private static void APriceRiseTakesEffectOnTheDayItSays()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A price rise takes effect on the day it says");
+
+        Reset();
+
+        DateTime today = DateTime.Now.Date;
+
+        Job job = AddJob("3", "Mill Lane", 10f);
+        job.SetFrequence(1, FrequenceType.Week);
+        job.DueDate = today;
+
+        //a clean already written up, at the old price
+        job.MarkJobDone(today, true);
+
+        Job outstanding = job.EveryVisit().Find(x => !x.IsCompleted);
+        Check("marking it done made another visit", outstanding != null, "none found");
+        if (outstanding == null)
+            return;
+
+        //agreed a fortnight out, so neither the clean just done nor the one
+        //due next week is at the new price
+        int repriced = job.SetPriceRise(12f, today.AddDays(14));
+
+        Check("nothing on the round changed price yet", repriced == 0, $"{repriced} changed");
+        Check("the clean already done keeps what it was charged", job.Price == 10f, $"{job.Price}");
+        Check("and so does the visit due before the day", outstanding.Price == 10f, $"{outstanding.Price}");
+        Check("the rise is on the books", outstanding.HavePriceRise && outstanding.PriceRiseStillToCome,
+            outstanding.PriceRiseText);
+
+        Job.Save(Folder);
+        Reset();
+        Job.Load(Folder);
+
+        Job read = Job.Query().Find(x => !x.IsCompleted);
+        Check("the rise survived a save", read != null && read.PriceRiseTo == 12f,
+            read == null ? "job missing" : $"{read.PriceRiseTo}");
+        if (read == null)
+            return;
+
+        Check("with the day it starts", read.PriceRiseDate.Date == today.AddDays(14),
+            read.PriceRiseDate.ToShortDateString());
+        Check("and what it is going up from", read.PriceRiseWas == 10f, $"{read.PriceRiseWas}");
+        Check("the clean already done is still at the old price", read.CurrentPrice == 10f, $"{read.CurrentPrice}");
+
+        //the next visit is generated the far side of the day, so it comes out
+        //at the new price with nobody having had to remember
+        read.MarkJobDone(today.AddDays(7), true);
+
+        Job next = Job.Query().Find(x => !x.IsCompleted);
+        Check("the visit after the day is at the new price", next != null && next.Price == 12f,
+            next == null ? "none found" : $"{next.Price}");
+        Check("the one before it was left as it was charged", read.Price == 10f, $"{read.Price}");
     }
 
     /// <summary>

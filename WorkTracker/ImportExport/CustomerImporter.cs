@@ -13,7 +13,58 @@ namespace UiInterface.ImportExport
         public int PhonesFound;
         /// <summary>front only prices stored as an alternative price</summary>
         public int FrontPrices;
+        /// <summary>jobs put on the round that was picked for the sheet</summary>
+        public int RoundSet;
+        /// <summary>customers whose balance was cleared, with a record kept</summary>
+        public int BalancesCleared;
+        /// <summary>jobs given the one due date that was picked for the sheet</summary>
+        public int DueDatesSet;
+        /// <summary>jobs left where they were because a day is booked in for them</summary>
+        public int DueDatesLeftBooked;
         public List<string> Problems = new List<string>();
+    }
+
+    /// <summary>
+    /// What is being asked of one import, past the file itself.
+    ///
+    /// A round sheet says where the houses are and what they cost and
+    /// nothing else, so the three things it cannot say are asked once for
+    /// the whole sheet rather than typed in a house at a time afterwards:
+    /// which round the work is on, whether anybody starts out owing
+    /// anything, and when it is all first due.
+    /// </summary>
+    public class ImportOptions
+    {
+        /// <summary>the sheet has streets but no town</summary>
+        public string City = string.Empty;
+        public string Area = string.Empty;
+
+        /// <summary>
+        /// the round every job off this sheet goes on. blank asks for
+        /// nothing - work already on a round keeps it, and new work starts
+        /// on none - because a sheet is usually one round and a blank
+        /// answer is the answer of somebody who has not got rounds
+        /// </summary>
+        public string Round = string.Empty;
+
+        /// <summary>
+        /// start everybody on the sheet at nothing owed. what a sheet
+        /// carries is the work, not the ledger, so a round taken on from
+        /// somebody else's spreadsheet usually starts square. each one
+        /// cleared leaves a <see cref="BalanceAdjustment"/> behind it,
+        /// like every other balance changed by hand
+        /// </summary>
+        public bool ZeroBalances;
+
+        /// <summary>
+        /// the day all of it is first due. null works each house out from
+        /// the last clean ticked on the sheet, which is what a sheet that
+        /// has been kept up to date is for; a date is for one that has not
+        /// </summary>
+        public DateTime? DueDate;
+
+        /// <summary>why a balance cleared by an import says it was cleared</summary>
+        public const string ClearedReason = "Cleared on spreadsheet import";
     }
 
     /// <summary>
@@ -23,16 +74,24 @@ namespace UiInterface.ImportExport
     /// </summary>
     public static class CustomerImporter
     {
-        public static ImportResult Import(Stream xlsxStream, string city, string area)
+        public static ImportResult Import(Stream xlsxStream, ImportOptions options)
         {
+            options = options ?? new ImportOptions();
             List<ImportedCustomerRow> rows = RoundSheetParser.Parse(xlsxStream);
             var result = new ImportResult();
+
+            //the round is remembered once for the whole sheet rather than
+            //per row, so the list of rounds cannot end up with the same name
+            //on it twice, and so the caller can tell whether the settings
+            //need saving
+            if (!string.IsNullOrWhiteSpace(options.Round))
+                Job.RememberRound(options.Round);
 
             foreach (ImportedCustomerRow row in rows)
             {
                 try
                 {
-                    ImportRow(row, city, area, result);
+                    ImportRow(row, options, result);
                 }
                 catch (Exception ex)
                 {
@@ -45,7 +104,7 @@ namespace UiInterface.ImportExport
             return result;
         }
 
-        static void ImportRow(ImportedCustomerRow row, string city, string area, ImportResult result)
+        static void ImportRow(ImportedCustomerRow row, ImportOptions options, ImportResult result)
         {
             Customer customer = Customer.Query().FirstOrDefault(c => c.Address != null
                 && string.Equals(c.Address.PropertyNameNumber?.Trim(), row.HouseNumber, StringComparison.OrdinalIgnoreCase)
@@ -81,8 +140,8 @@ namespace UiInterface.ImportExport
                 {
                     PropertyNameNumber = row.HouseNumber,
                     Street = row.Street,
-                    City = city ?? string.Empty,
-                    Area = area ?? string.Empty,
+                    City = options.City ?? string.Empty,
+                    Area = options.Area ?? string.Empty,
                     Postcode = string.Empty,
                 };
 
@@ -103,9 +162,10 @@ namespace UiInterface.ImportExport
                     TNB = tnb,
                 };
                 job.SetFrequence(freqAmount, freqType);
-                job.DueDate = NextDueDate(row.LastCleaned, freqAmount, freqType);
+                job.DueDate = DueDateFor(options, row, freqAmount, freqType, result);
                 ApplyFrontPrice(job, frontPrice);
                 Job.Add(job);
+                PutOnRound(job, options, result);
                 result.Created++;
             }
             else
@@ -128,9 +188,10 @@ namespace UiInterface.ImportExport
                         TNB = tnb,
                     };
                     job.SetFrequence(freqAmount, freqType);
-                    job.DueDate = NextDueDate(row.LastCleaned, freqAmount, freqType);
+                    job.DueDate = DueDateFor(options, row, freqAmount, freqType, result);
                     ApplyFrontPrice(job, frontPrice);
                     Job.Add(job);
+                    PutOnRound(job, options, result);
                 }
                 else
                 {
@@ -140,9 +201,112 @@ namespace UiInterface.ImportExport
                     job.SetFrequence(freqAmount, freqType);
                     ApplyFrontPrice(job, frontPrice);
                     CleanExistingNotes(job, customer, result);
+
+                    //a job already here has other visits behind it, so the
+                    //round goes on the job rather than on this one visit
+                    PutOnRound(job, options, result);
+                    ReDate(job, options, result);
                 }
                 result.Updated++;
             }
+
+            ClearBalance(customer, options, result);
+        }
+
+        /// <summary>
+        /// puts the imported work on the round that was picked for the sheet.
+        ///
+        /// a blank round asks for nothing rather than taking work off the
+        /// round it is on: a sheet is one round's worth of houses, and
+        /// somebody who has not got rounds leaves the question alone.
+        /// </summary>
+        static void PutOnRound(Job job, ImportOptions options, ImportResult result)
+        {
+            string round = (options.Round ?? string.Empty).Trim();
+            if (round.Length == 0 || job == null)
+                return;
+
+            //SetRound puts it on every visit of the job, which is what a
+            //round is about - where the house is does not change between one
+            //clean and the next
+            job.SetRound(round);
+            result.RoundSet++;
+        }
+
+        /// <summary>
+        /// when the sheet is being given one due date, work already on the
+        /// round is moved to it as well - the point of answering it is to
+        /// start the whole lot together.
+        ///
+        /// Three sorts of visit are left where they are. A clean already
+        /// written up keeps the day it was done on, because that day is what
+        /// a month's takings are read off, and a cancelled visit is not work.
+        /// A day booked in is an arrangement with somebody: the calendar puts
+        /// booked work on the day it is booked for rather than the day it is
+        /// due, so moving the due date under it would say one thing on the
+        /// calendar and another on the round. Anything left behind is
+        /// counted rather than passed over quietly.
+        /// </summary>
+        static void ReDate(Job job, ImportOptions options, ImportResult result)
+        {
+            if (!options.DueDate.HasValue || job == null || job.IsCompleted || job.HaveCanceled)
+                return;
+
+            if (job.IsBookedIn)
+            {
+                result.DueDatesLeftBooked++;
+                return;
+            }
+
+            job.DueDate = options.DueDate.Value;
+            job.Refresh();
+            job.RefreshColors();
+            result.DueDatesSet++;
+        }
+
+        /// <summary>
+        /// the day a house imported off the sheet is first wanted - the one
+        /// date picked for the whole sheet, or worked out from the last clean
+        /// ticked on it
+        /// </summary>
+        static DateTime DueDateFor(ImportOptions options, ImportedCustomerRow row,
+            int freqAmount, FrequenceType freqType, ImportResult result)
+        {
+            if (options.DueDate.HasValue)
+            {
+                result.DueDatesSet++;
+                return options.DueDate.Value;
+            }
+            return NextDueDate(row.LastCleaned, freqAmount, freqType);
+        }
+
+        /// <summary>
+        /// starts a customer off owing nothing.
+        ///
+        /// The record is the point: a balance changed outside the ledgers
+        /// with nothing written down is exactly what left the last argument
+        /// about money with a history that did not add up. A customer who
+        /// already owes nothing has nothing to write down.
+        /// </summary>
+        static void ClearBalance(Customer customer, ImportOptions options, ImportResult result)
+        {
+            if (!options.ZeroBalances || customer == null || customer.Balance == 0)
+                return;
+
+            float was = customer.Balance;
+            customer.Balance = 0;
+            customer.DateBalanceLastUpdate = UsfulFuctions.DateNow;
+            BalanceAdjustment.AddWriteOff(customer.Id, was, was, ImportOptions.ClearedReason);
+
+            //what a customer owes shows against every job they have, and
+            //those rows are only redrawn when the job says something changed
+            foreach (Job j in Job.Query(QueryType.CustomerId, customer.Id))
+            {
+                j.Refresh();
+                j.RefreshColors();
+            }
+
+            result.BalancesCleared++;
         }
 
         /// <summary>
