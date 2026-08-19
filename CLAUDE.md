@@ -802,6 +802,32 @@ Transfer* off the same `MethodName`. It is the same two properties answering on 
 drift. `Payment.PaymentType` - the raw enum name as a string - was what those pages worded a method with, and
 it is gone: with `MethodName` beside it, the un-worded one would only get picked again by mistake.
 
+### What the payments page is showing
+
+The page opens on the **last fortnight** and says so. A round takes money every week of the year, so the whole
+list is thousands of lines nobody scrolls, and what is actually being asked when this page is opened is *has so
+and so paid me* — which is this fortnight's money. The two filters are the date range and which methods are on,
+both worked out in `Layouts/Payments` itself off `Payment.Query()`.
+
+**The bar above the list is never empty on this page**, unlike the work list's, because the fortnight it opens
+on is itself a filter — a page quietly showing a fortnight of a year's money with nothing saying so is exactly
+what the rule about filters is there to stop. It names the range, names the methods left on or left out
+(whichever is the shorter half to read), counts what is showing against everything there is and totals it, with
+a **Show All** beside it that turns the dates off and every method back on. The panel itself is the
+`CollectionView.Header` and is taken off the list when closed, the same as the work list's — see *Filtering the
+work list* for why a merely invisible header is not good enough.
+
+The method chips are built in code from `Enum.GetValues`, so a method added to `PaymentMethod` turns up as a
+chip on its own, and each carries that method's colour and icon through `Payment.ColourFor`/`IconFor`/`NameFor`
+— **the static half of the switches**, which exist precisely so the chip and the row cannot word or colour the
+same method differently. A chip that is off goes grey rather than empty: the icons are white, so a chip with no
+fill has nothing to draw them on.
+
+Two things this page must keep doing. The list is sorted **newest first**, which is what a date range is for —
+the payments file is in the order the money was recorded, which put this fortnight at the bottom of a year. And
+it sorts a **copy**: `Payment.Query()` hands back the master list itself, so sorting what it returns would
+quietly rearrange the kernel's own list.
+
 Two small things the page reads off the payment rather than working out itself: `HasReference` keeps a column of
 blank references off every cash payment, and `ShowAge` keeps the row from saying *Today* twice, since
 `PaymentDate` and `PaymentDaysAgo` both say it. A payment matched to nobody says so in red

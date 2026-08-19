@@ -32,20 +32,28 @@ namespace Kernel
         [XmlIgnore]
         public string MethodName
         {
-            get
-            {
-                switch (PaymentMethod)
-                {
-                    case PaymentMethod.Cash: return "Cash";
-                    case PaymentMethod.Card: return "Card Payment";
-                    case PaymentMethod.Paypal: return "PayPal";
-                    case PaymentMethod.Bank: return "Bank Transfer";
-                    case PaymentMethod.Check: return "Cheque";
-                    case PaymentMethod.GoCardless: return "Direct Debit";
-                }
+            get { return NameFor(PaymentMethod); }
+        }
 
-                return "Other";
+        /// <summary>
+        /// the same wording asked about a method on its own rather than about
+        /// a payment. the filter chips on the payments page have to name a
+        /// method they may have no payment for, and a second switch written
+        /// over there is how the two would come to disagree
+        /// </summary>
+        public static string NameFor(PaymentMethod method)
+        {
+            switch (method)
+            {
+                case PaymentMethod.Cash: return "Cash";
+                case PaymentMethod.Card: return "Card Payment";
+                case PaymentMethod.Paypal: return "PayPal";
+                case PaymentMethod.Bank: return "Bank Transfer";
+                case PaymentMethod.Check: return "Cheque";
+                case PaymentMethod.GoCardless: return "Direct Debit";
             }
+
+            return "Other";
         }
 
         /// <summary>
@@ -56,20 +64,24 @@ namespace Kernel
         [XmlIgnore]
         public Color MethodColour
         {
-            get
-            {
-                switch (PaymentMethod)
-                {
-                    case PaymentMethod.Cash: return Color.FromArgb("#2E7D32");       //notes and coins, green
-                    case PaymentMethod.Card: return Color.FromArgb("#6A1B9A");       //purple
-                    case PaymentMethod.Paypal: return Color.FromArgb("#0070BA");     //paypal's own blue
-                    case PaymentMethod.Bank: return Color.FromArgb("#00838F");       //teal
-                    case PaymentMethod.Check: return Color.FromArgb("#8D6E63");      //paper, brown
-                    case PaymentMethod.GoCardless: return Color.FromArgb("#D84315"); //orange
-                }
+            get { return ColourFor(PaymentMethod); }
+        }
 
-                return Color.FromArgb("#546E7A"); //other, slate
+        /// <summary>the same colour, asked about a method on its own - see
+        /// <see cref="NameFor"/> for why these are static</summary>
+        public static Color ColourFor(PaymentMethod method)
+        {
+            switch (method)
+            {
+                case PaymentMethod.Cash: return Color.FromArgb("#2E7D32");       //notes and coins, green
+                case PaymentMethod.Card: return Color.FromArgb("#6A1B9A");       //purple
+                case PaymentMethod.Paypal: return Color.FromArgb("#0070BA");     //paypal's own blue
+                case PaymentMethod.Bank: return Color.FromArgb("#00838F");       //teal
+                case PaymentMethod.Check: return Color.FromArgb("#8D6E63");      //paper, brown
+                case PaymentMethod.GoCardless: return Color.FromArgb("#D84315"); //orange
             }
+
+            return Color.FromArgb("#546E7A"); //other, slate
         }
 
         /// <summary>
@@ -91,20 +103,24 @@ namespace Kernel
         [XmlIgnore]
         public string MethodIcon
         {
-            get
-            {
-                switch (PaymentMethod)
-                {
-                    case PaymentMethod.Cash: return "paycash.png";
-                    case PaymentMethod.Card: return "paycard.png";
-                    case PaymentMethod.Paypal: return "paypaypal.png";
-                    case PaymentMethod.Bank: return "paybank.png";
-                    case PaymentMethod.Check: return "paycheque.png";
-                    case PaymentMethod.GoCardless: return "paydebit.png";
-                }
+            get { return IconFor(PaymentMethod); }
+        }
 
-                return "payother.png";
+        /// <summary>the same icon, asked about a method on its own - see
+        /// <see cref="NameFor"/> for why these are static</summary>
+        public static string IconFor(PaymentMethod method)
+        {
+            switch (method)
+            {
+                case PaymentMethod.Cash: return "paycash.png";
+                case PaymentMethod.Card: return "paycard.png";
+                case PaymentMethod.Paypal: return "paypaypal.png";
+                case PaymentMethod.Bank: return "paybank.png";
+                case PaymentMethod.Check: return "paycheque.png";
+                case PaymentMethod.GoCardless: return "paydebit.png";
             }
+
+            return "payother.png";
         }
 
         /// <summary>
