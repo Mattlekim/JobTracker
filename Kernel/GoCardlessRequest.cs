@@ -68,9 +68,17 @@ namespace Kernel
         /// </summary>
         public static GoCardlessRequest PendingForJob(int jobId)
         {
-            if (jobId < 0)
+            //asked once a row through Job.PaymentPending, and direct debits
+            //are opt-in and experimental - so on nearly every round the
+            //honest answer is "there are none" and it costs a length check
+            if (jobId < 0 || _Requests.Count == 0)
                 return null;
-            return _Requests.FirstOrDefault(x => x.JobId == jobId && x.Status == DirectDebitStatus.Pending);
+
+            foreach (GoCardlessRequest r in _Requests)
+                if (r.JobId == jobId && r.Status == DirectDebitStatus.Pending)
+                    return r;
+
+            return null;
         }
 
         /// <summary>

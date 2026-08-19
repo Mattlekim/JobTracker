@@ -28,16 +28,77 @@ namespace Kernel
 
         public static ResultType Add(Customer customer)
         {
-            Console.WriteLine($"Adding new customer {customer.Address.PropertyNameNumber} {customer.Address.Street}");
-
             customer.GenerateId();
             _Customers.Add(customer);
+            InvalidateIndex();
         //    Console.WriteLine("Failed to add customer");
             return ResultType.Fail;
         }
 
 
         private static List<Customer> _tmpQuery = new List<Customer>();
+
+        /// <summary>
+        /// The customers by id.
+        ///
+        /// Looking one up is the single most asked question in the app - a
+        /// job asks who lives there to say what is owed, a payment asks who
+        /// paid it - and it was being answered by copying the whole customer
+        /// list and then throwing all but one of them away, turning every id
+        /// into a string on the way past. On a round of a few hundred houses
+        /// that is a few hundred string allocations to answer one question,
+        /// and a list page asks it once a row.
+        ///
+        /// So the answer is kept. Ids never change once given out, so the
+        /// only thing that can make this wrong is the list itself changing -
+        /// see <see cref="InvalidateIndex"/>, which every place that adds,
+        /// deletes or reloads calls.
+        /// </summary>
+        private static Dictionary<int, Customer> _byId = new Dictionary<int, Customer>();
+
+        /// <summary>
+        /// how many customers the index was built from. a belt-and-braces
+        /// check on top of the explicit invalidation, so a list that grows
+        /// or shrinks by a route nobody remembered still reindexes
+        /// </summary>
+        private static int _byIdBuiltFrom = -1;
+
+        /// <summary>
+        /// the index is out of date - the customer list has been added to,
+        /// deleted from or read again
+        /// </summary>
+        public static void InvalidateIndex()
+        {
+            _byIdBuiltFrom = -1;
+        }
+
+        /// <summary>
+        /// the customer with this id, or null.
+        ///
+        /// This is what anything holding a CustomerId should use.
+        /// Query("id", ...) answers the same question and still works, but it
+        /// answers it by walking the whole round.
+        /// </summary>
+        public static Customer ById(int id)
+        {
+            if (id < 0)
+                return null;
+
+            if (_byIdBuiltFrom != _Customers.Count)
+                RebuildIndex();
+
+            Customer c;
+            return _byId.TryGetValue(id, out c) ? c : null;
+        }
+
+        private static void RebuildIndex()
+        {
+            _byId.Clear();
+            foreach (Customer c in _Customers)
+                _byId[c.Id] = c;
+
+            _byIdBuiltFrom = _Customers.Count;
+        }
 
         public static List<Customer> Query(string property, string value)
         {
@@ -46,7 +107,6 @@ namespace Kernel
         }
         public static List<Customer> Query(Filter filter)
         {
-            Console.Write("QUERYING RESULTS >> ");
             _tmpQuery = new List<Customer>();
             // foreach (Customer c in _Customers)
             //   _tmpQuery.Add(c.DeepCopy());
@@ -59,24 +119,22 @@ namespace Kernel
         }
         public static List<Customer> Query()
         {
-            Console.Write("QUERYING RESULTS >> ");
             _tmpQuery = new List<Customer>();
             //  foreach (Customer c in _Customers)
             //    _tmpQuery.Add(c.DeepCopy());
             _tmpQuery.AddRange(_Customers);
 
-
-            Console.WriteLine();
             return _tmpQuery;
         }
 
         public static void Delete(int id)
         {
             _Customers.RemoveAll(x => x.Id == id);
+            InvalidateIndex();
         }
         public static void CalculateCustomerBill()
         {
-            List<Customer> c;
+            Customer c;
 
             foreach (Customer customer in _Customers)
                 customer.Balance = 0;
@@ -85,23 +143,24 @@ namespace Kernel
             foreach (Job j in Job.Query())
                 if (j.IsCompleted)
                 {
-                    c = Customer.Query("id", $"{j.CustomerId}");
-                    if (c.Count > 0)
-                        c[0].Balance += j.Price;
+                    c = ById(j.CustomerId);
+                    if (c != null)
+                        c.Balance += j.Price;
                 }
 
             
             foreach (Payment p in Payment.Query())
             {
-                c = Customer.Query("id", $"{p.CustomerId}");
-                if (c.Count > 0)
-                    c[0].Balance -= p.Amount;
+                c = ById(p.CustomerId);
+                if (c != null)
+                    c.Balance -= p.Amount;
             }
         }
 
         public static void DeleteData()
         {
             _Customers.Clear();
+            InvalidateIndex();
         }
 
         /// <summary>
@@ -211,7 +270,6 @@ namespace Kernel
             switch (property)
             {
                 case "street":
-                    Console.Write($"Where property: {property} = {value}   ");
                     if (filter.Absolute)
                         _tmpQuery.RemoveAll(x => x.Address.Street != null && x.Address.Street.ToLower() != value);
                     else
@@ -219,12 +277,10 @@ namespace Kernel
                     break;
 
                 case "id":
-                    Console.Write($"Where id: {property} = {value}   ");
                     _tmpQuery.RemoveAll(x => x.Id.ToString() != value);
                     break;
 
                 case "name":
-                    Console.Write($"Where id: {property} = {value}   ");
                     if (filter.Absolute)
                         _tmpQuery.RemoveAll(x => x.FName.ToLower() != value);
                     else
@@ -234,7 +290,6 @@ namespace Kernel
                 case "phone":
                     //a number is written down every way there is - with spaces,
                     //with the code in brackets - so only the digits are matched
-                    Console.Write($"Where property: {property} = {value}   ");
                     string wanted = DigitsOf(value);
                     if (wanted.Length == 0)
                     {

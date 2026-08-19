@@ -33,6 +33,11 @@ public partial class UpdateJobInstance : ContentPage
         l_jobPrice.Text = $"Price {Gloable.CurrenceSymbol}{CurrentJob.Price}";
         l_jobPrice.BackgroundColor = Colors.Green;
 
+        //worked out here rather than trusted to have been worked out
+        //somewhere else: OwedColorCode is a stored colour that RefreshColors
+        //is what fills in, and this page can be reached with a job no list
+        //has drawn
+        CurrentJob.RefreshColors();
         l_jobOwed.BackgroundColor = CurrentJob.OwedColorCode;
         l_jobOwed.Text = CurrentJob.JobFormattedOwed;
 

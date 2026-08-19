@@ -31,6 +31,19 @@ namespace Kernel
     //  or a rule about the work, it belongs in Job.cs.
     public partial class Job
     {
+        //  The card colours, parsed once rather than once per read.
+        //
+        //  Color.FromArgb takes a string apart every time it is called, and
+        //  these are read from property getters a row binds to - so a list of
+        //  a hundred houses was parsing the same handful of hex strings
+        //  hundreds of times on every pass over it. They never change, so
+        //  they are made here and handed out.
+        private static readonly Color QuietGrey = Color.FromArgb("#6B7280");
+        private static readonly Color LateRed = Color.FromArgb("#C62828");
+        private static readonly Color TodayOrange = Color.FromArgb("#EF6C00");
+        private static readonly Color CreditGreen = Color.FromArgb("#2E7D32");
+        private static readonly Color RiseOrange = Color.FromArgb("#E65100");
+
         public GridLength Gr { get; set; } = new GridLength(0.3, GridUnitType.Star);
 
         [XmlIgnore]
@@ -239,6 +252,20 @@ namespace Kernel
 
         private static string tmp;
         private static int tmpInt;
+        /// <summary>
+        /// Tell the row everything about this job may have moved on.
+        ///
+        /// This has to name every property a job row binds to, and that is
+        /// not a stylistic point: the work list used to hand its
+        /// CollectionView a brand new collection on every change, which threw
+        /// every row away and built it again, so anything missing from this
+        /// list was quietly put right by the rebuild. The list keeps its rows
+        /// now - see WorkPlanner.SyncSourceJobs - so a row that stays put
+        /// shows exactly what it is told about here and nothing else.
+        ///
+        /// So when a job row is given something new to show, say it here.
+        /// The pieces of the card are in Controles/JobCard.
+        /// </summary>
         public void Refresh()
         {
 
@@ -263,6 +290,33 @@ namespace Kernel
             RaisePropertyChanged("Minutes");
             RaisePropertyChanged("HaveLength");
             RaisePropertyChanged("LengthText");
+
+            //what has happened to the visit, which is what the card folds,
+            //fades and puts a chip on
+            RaisePropertyChanged("IsCompleted");
+            RaisePropertyChanged("HaveCanceled");
+            RaisePropertyChanged("NotCanceled");
+            RaisePropertyChanged("IsBookedIn");
+            RaisePropertyChanged("CollapsedInList");
+            RaisePropertyChanged("ExpandedInList");
+
+            //what the work is, what it comes to and what is written down
+            //about the house
+            RaisePropertyChanged("Name");
+            RaisePropertyChanged("HaveJobName");
+            RaisePropertyChanged("JobFormattedStringPrice");
+            RaisePropertyChanged("HaveJobNotes");
+            RaisePropertyChanged("JobFormattedStringNotes");
+            RaisePropertyChanged("TNB");
+            RaisePropertyChanged("ENB");
+
+            //and where it is - which screenshot mode changes underneath a
+            //page that is already up
+            RaisePropertyChanged("JobFormattedHouseNumber");
+            RaisePropertyChanged("JobFormattedStreetOnly");
+            RaisePropertyChanged("JobFormattedCity");
+            RaisePropertyChanged("JobFormattedArea");
+
             RefreshTags();
         }
 
@@ -423,6 +477,17 @@ namespace Kernel
 
         }
 
+        //  The three chip colours below are set from inside
+        //  JobFormattedDueTime, which is a getter a row binds to - so reading
+        //  one bound property was raising two more change notifications, and
+        //  each of those sent the bindings round again. On a virtualised list
+        //  that is a row redrawing itself two or three times over for every
+        //  pass, which is most of what made scrolling feel heavy.
+        //
+        //  They still have to be settable from there - the wording and the
+        //  colour are worked out together and always have been - so what is
+        //  fixed here is the shouting: a colour that has not actually changed
+        //  says nothing. Same value in, no notification out, no second pass.
         [XmlIgnore]
         public Color DueColorCode
         {
@@ -432,11 +497,33 @@ namespace Kernel
             }
             set
             {
+                if (SameColour(_dueColorCode, value))
+                    return;
+
                 _dueColorCode = value;
                 RaisePropertyChanged("DueColorCode");
             }
         }
         private Color _dueColorCode = Colors.LightGray;
+
+        /// <summary>
+        /// whether two colours are the same one. Color is a class, so the
+        /// named colours hand back a fresh object each time they are read
+        /// and reference equality would call every one of them a change
+        /// </summary>
+        private static bool SameColour(Color one, Color two)
+        {
+            if (ReferenceEquals(one, two))
+                return true;
+
+            if (one is null || two is null)
+                return false;
+
+            return one.Red == two.Red
+                && one.Green == two.Green
+                && one.Blue == two.Blue
+                && one.Alpha == two.Alpha;
+        }
         [XmlIgnore]
         public Color DueColorTextCode
         {
@@ -446,6 +533,9 @@ namespace Kernel
             }
             set
             {
+                if (SameColour(_dueColorTextCode, value))
+                    return;
+
                 _dueColorTextCode = value;
                 RaisePropertyChanged("DueColorTextCode");
             }
@@ -490,18 +580,24 @@ namespace Kernel
                     return  "Canceled";
                 }
 
+                //asked for once and held on to. DateNow is DateTime.Now.Date,
+                //which is not free - it goes to the clock and then through the
+                //time zone - and this getter used to ask for it up to four
+                //times over to answer one question, on every row, on every
+                //pass over the list
+                DateTime today = UsfulFuctions.DateNow;
 
-                if (DueDate.DayOfYear == DateTime.Now.DayOfYear && DueDate.Year == DateTime.Now.Year) //if not due
+                if (DueDate.DayOfYear == today.DayOfYear && DueDate.Year == today.Year) //if not due
                 {
                     DueColorCode = Colors.Orange;
                     return "Due Today";
 
                 }
 
-                if (DueDate.Ticks > UsfulFuctions.DateNow.Ticks) //if not due
+                if (DueDate.Ticks > today.Ticks) //if not due
                 {
                     DueColorCode = Colors.Blue;
-                    tmpInt = UsfulFuctions.Difference(DueDate, UsfulFuctions.DateNow);
+                    tmpInt = UsfulFuctions.Difference(DueDate, today);
                     switch (tmpInt)
                     {
                         case 0:
@@ -511,14 +607,14 @@ namespace Kernel
                             return $"Due Tomorrow";
 
                         default:
-                            return $"Due in {UsfulFuctions.Difference(DueDate, UsfulFuctions.DateNow)} Days";
+                            return $"Due in {tmpInt} Days";
                     }
 
 
                 }
 
                 DueColorCode = Colors.Red;
-                return $"{UsfulFuctions.Difference(DueDate, UsfulFuctions.DateNow)} Days Late";
+                return $"{UsfulFuctions.Difference(DueDate, today)} Days Late";
 
             }
         }
@@ -533,6 +629,9 @@ namespace Kernel
             }
             set
             {
+                if (SameColour(_owedColorCode, value))
+                    return;
+
                 _owedColorCode = value;
                 RaisePropertyChanged("OwedColorCode");
             }
@@ -555,20 +654,22 @@ namespace Kernel
             get
             {
                 if (IsCompleted)
-                    return Color.FromArgb("#6B7280");
+                    return QuietGrey;
 
                 if (HaveCanceled)
-                    return Color.FromArgb("#C62828");
+                    return LateRed;
 
                 //today and late are what the round is worked off, so they are
                 //the two that stand out; anything still to come is quiet
-                if (DueDate.Date == UsfulFuctions.DateNow.Date)
-                    return Color.FromArgb("#EF6C00");
+                DateTime today = UsfulFuctions.DateNow;
 
-                if (DueDate.Ticks > UsfulFuctions.DateNow.Ticks)
-                    return Color.FromArgb("#6B7280");
+                if (DueDate.Date == today)
+                    return TodayOrange;
 
-                return Color.FromArgb("#C62828");
+                if (DueDate.Ticks > today.Ticks)
+                    return QuietGrey;
+
+                return LateRed;
             }
         }
 
@@ -587,12 +688,12 @@ namespace Kernel
                     return Colors.Transparent;
 
                 if (_customer.Balance > 0)
-                    return Color.FromArgb("#C62828");
+                    return LateRed;
 
                 if (_customer.Balance < 0)
-                    return Color.FromArgb("#2E7D32");
+                    return CreditGreen;
 
-                return Color.FromArgb("#6B7280");
+                return QuietGrey;
             }
         }
 
@@ -750,8 +851,8 @@ namespace Kernel
             get
             {
                 return PriceRiseStillToCome
-                    ? Color.FromArgb("#E65100")
-                    : Color.FromArgb("#6B7280");
+                    ? RiseOrange
+                    : QuietGrey;
             }
         }
     }

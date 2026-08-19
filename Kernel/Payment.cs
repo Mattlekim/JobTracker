@@ -88,10 +88,11 @@ namespace Kernel
 
         public static Payment Get(int id)
         {
-            List<Payment> p = _Payments.FindAll(x => x.Id == id);
-            float tmp = 0;
-            if (p.Count > 0)
-                return p[0];
+            //walked rather than FindAll'd: this wants one payment, and
+            //FindAll built a list of every match to hand back the first
+            foreach (Payment p in _Payments)
+                if (p.Id == id)
+                    return p;
 
             return new Payment() { Id = -1};
         }
@@ -189,11 +190,7 @@ namespace Kernel
 
         private static Customer GetCustomer(int customerId)
         {
-            List<Customer> customers = Customer.Query("id",$"{customerId}");
-            if (customers.Count > 0)
-                return customers[0];
-
-            return null;
+            return Customer.ById(customerId);
         }
         /// <summary>
         /// the payment method for this payment
@@ -258,22 +255,18 @@ namespace Kernel
             if (IgnorePaymentList != null)
                 IgnorePaymentList.Clear();
         }
+        /// <summary>
+        /// who this payment came from, kept hold of once found. The payments
+        /// page names the customer on every row, so this is asked once a row
+        /// - see <see cref="Job.MatchCustomer"/> for why the id is checked
+        /// as well as the cache
+        /// </summary>
         public void MatchCustomer()
         {
-            if (_customer == null)
-            {
+            if (_customer != null && _customer.Id == CustomerId)
+                return;
 
-                try
-                {
-                    List<Customer> c = Customer.Query("id", CustomerId.ToString());
-                    if (c.Count > 0)
-                        _customer = c[0];
-                }
-                catch
-                {
-                    return;
-                }
-            }
+            _customer = Customer.ById(CustomerId);
         }
 
         public Customer GetCustomer()
@@ -306,9 +299,9 @@ namespace Kernel
             if (CustomerId == -1)//if there are no matches for what customer has paid we cannot update the balance
                 return;
 
-            List<Customer> c = Customer.Query("id", $"{CustomerId}");
-            if (c.Count > 0)
-                c[0].Balance -= Amount;
+            Customer c = Customer.ById(CustomerId);
+            if (c != null)
+                c.Balance -= Amount;
 
             Save();
             Customer.Save();
