@@ -87,8 +87,12 @@ namespace Kernel
 
             SortDate = thePayment.Date;
 
-            DateColour = Colors.Green;
-            TextDateColour = Colors.White;
+            //the method's own colour rather than green for all of them, so a
+            //customer who pays cash and a customer on a direct debit do not
+            //read the same. it is the same colour the payments page uses,
+            //because it is the same property answering
+            DateColour = thePayment.MethodColour;
+            TextDateColour = thePayment.MethodTextColour;
             IsJob = false;
         }
 
@@ -184,8 +188,35 @@ namespace Kernel
             {
                 if (ThePayment == null)
                     return String.Empty;
-                return $"Payment recived {ThePayment.PaymentDaysAgo} {ThePayment.Date}";
+
+                //the date on its own once it is old enough for "N days ago"
+                //to mean nothing, and both while it still says something.
+                //ThePayment.Date on its own printed the midnight behind it
+                if (ThePayment.ShowAge)
+                    return $"Payment received {ThePayment.PaymentDate} ({ThePayment.PaymentDaysAgo})";
+
+                return $"Payment received {ThePayment.PaymentDate}";
             }
+        }
+
+        /// <summary>
+        /// the picture of how it was paid, white stroked so it reads on the
+        /// banner it sits on. empty for anything that is not a payment
+        /// </summary>
+        public string PaymentIcon
+        {
+            get { return ThePayment == null ? string.Empty : ThePayment.MethodIcon; }
+        }
+
+        /// <summary>
+        /// the second line is the price of a visit, the reason behind an
+        /// adjustment and the bank's reference on a payment - and cash has no
+        /// reference, so on those there is no second line rather than a chip
+        /// saying NA
+        /// </summary>
+        public bool HaveLine2
+        {
+            get { return IsJob || IsAdjustment || (ThePayment != null && ThePayment.HasReference); }
         }
 
         public string FormattedLine1
@@ -199,7 +230,7 @@ namespace Kernel
                 if (IsAdjustment)
                     return TheAdjustment.Describe;
 
-                return $"Paid by {ThePayment.PaymentType} {Gloable.CurrenceSymbol}{ThePayment.Amount}";
+                return $"Paid by {ThePayment.MethodName} {Gloable.CurrenceSymbol}{ThePayment.Amount}";
             }
         }
         public string FormattedLine2
@@ -226,10 +257,10 @@ namespace Kernel
                         ? $"Reason: {TheAdjustment.Reason}"
                         : "No reason noted";
 
-                if (ThePayment.PaymentMethod == PaymentMethod.Bank)
-                    return $"Payment reference: {ThePayment.CustomerReference}";
-                else
-                    return "Payment Reference: NA";
+                //whatever the money came in through can carry a reference,
+                //not just a bank transfer, and the line is hidden altogether
+                //when there is none - see HaveLine2
+                return $"Payment reference: {ThePayment.CustomerReference}";
 
             }
         }

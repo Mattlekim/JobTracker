@@ -577,6 +577,25 @@ Being asked whether to tell the customers is part of moving the day, not an alte
 used to send the messages and then stop, so the one case where everybody had been told the date had changed was
 the case where it had not.
 
+### What a day on the calendar is filled with
+
+Every fill on that grid is saying something, and they are ranked. A day carrying work is filled by its work
+(`CalenderDay.WorkColour` — orange for work to do, green once it is all done and a blend between the two part
+way through, red for work missed, the darker orange red for work nobody has arranged). Today and the day being
+looked at are **rings** rather than fills, because a fill there would cost the day the thing the colour is for.
+
+**The weekend is the same rule again.** Saturday and Sunday are washed a little differently from the working
+week (`CalenderDay.IsWeekend`, `WeekendColour`) so a month can be counted without reading the headings — but
+only on a day with **nothing on it**. A day with work keeps its work colour. So the headings carry it too: Sa
+and Su are written in `WeekendHeading`, which is the half of it that survives a busy month, and those are
+picked off the date each column really holds rather than off the position in the list.
+
+There are **two washes**, chosen by the theme when the colour is set, because one alpha cannot serve both: the
+wash that is barely there on the dark page is a block on the near white one. Like the rest of the colours on
+this page the theme is asked at build time and not watched, so a page already on screen when the phone changes
+theme keeps what it was built with. The day numbers themselves are the outstanding half of that: `ResetColor`
+puts them in white, which is a white number on a `#F4F6F8` page for every future day in the light theme.
+
 ## Changing things from the customer's page
 
 `Layouts/ViewCustomerDetails` is where a customer is looked at, so it is where the two figures that go wrong get
@@ -748,6 +767,46 @@ instead would leave every customer a few pence short for ever.
 note. Payee text is matched through `StatementText.PayeeKey`, which strips the reference numbers and the
 "direct debit"/"card payment" wrapping the bank puts around the name. Rules are editable on the
 `Layouts/ExpenseRules` page, and live in `expenserules.rjt` alongside the other data files.
+
+## How a payment is said on the payments page
+
+`Layouts/Payments` (the first page under the Money tab) is a list of money that has come in, and the one thing
+that tells one line from the next is **how it was paid**. Cash handed over at a gate, a bank transfer, a PayPal
+link, a card, a cheque and a direct debit are not the same thing, so each carries its own colour and its own
+picture: a disc on the left of the card with the icon in it, and the method named on a chip in the same colour.
+A Saturday round is then one colour running down the page and the odd transfer in it is seen without being
+looked for.
+
+`Kernel/PaymentDisplay.cs` is the whole of it — the display half of `Payment`, split off exactly the way
+`JobDisplay.cs` is split off `Job.cs`: if deleting a member could only ever break a screen it goes there, and
+nothing in `Payment.cs` should ever need a colour. **It is a new kernel file, so it is in `WorkTracker.csproj`'s
+link list** — one added without that builds an app missing it.
+
+`MethodName`, `MethodColour`, `MethodIcon` and `MethodTextColour` are all one switch each on `PaymentMethod`,
+and each **ends in the Other answer rather than in a case**, so a method added to the enum draws a grey chip
+saying Other instead of a blank one. `MethodName` is the reading version — `Bank` is *Bank Transfer* and
+`GoCardless` is *Direct Debit* — and it is deliberately **not** what the pickers use: those are built from
+`Enum.GetNames` and parsed straight back (`JobStatus`, `WorkPlanner`, `UpdateJobInstance`), and the enum's own
+names are what is saved, so rewording one there would change stored data.
+
+The colours are the deep end of each hue because they are **backgrounds with white on them** — the icons are
+white stroked like the toolbar's (`paycash.svg`, `paycard.svg`, `paypaypal.svg`, `paybank.svg`, `paycheque.svg`,
+`paydebit.svg`, `payother.svg`, referenced as `.png` because `MauiImage` converts them at build). A pale colour
+here carries neither. `MethodTextColour` is what goes on them, said once so a colour ever changed takes its text
+with it.
+
+**The customer's history says it the same way** (`Layouts/ViewCustomerDetails`, through
+`WorkTracker/Kernal/History.cs`): a payment's date banner is banded in the method's colour with the method's
+icon on it, rather than the one green every payment used to get, and the line under it says *Paid by Bank
+Transfer* off the same `MethodName`. It is the same two properties answering on both pages, so the two cannot
+drift. `Payment.PaymentType` - the raw enum name as a string - was what those pages worded a method with, and
+it is gone: with `MethodName` beside it, the un-worded one would only get picked again by mistake.
+
+Two small things the page reads off the payment rather than working out itself: `HasReference` keeps a column of
+blank references off every cash payment, and `ShowAge` keeps the row from saying *Today* twice, since
+`PaymentDate` and `PaymentDaysAgo` both say it. A payment matched to nobody says so in red
+(`CustomerTextColour`) rather than in the same grey as a customer's name, which is the one line on the card
+that wants doing something about.
 
 ## Importing a round off a spreadsheet
 

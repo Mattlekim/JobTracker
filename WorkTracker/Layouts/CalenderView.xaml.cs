@@ -190,6 +190,41 @@ public class CalenderDay: INotifyPropertyChanged
 	private static Color ColourCurrentDay = Color.FromArgb("00477A");
     private static Color MyGray = Color.FromArgb("1E1E1E");
 
+    /// <summary>
+    /// the weekend, shaded a little differently from the working week so a
+    /// month can be counted without reading the headings.
+    ///
+    /// It is a wash rather than a colour - the same slate over whatever the
+    /// page is behind it, so the day numbers still read. It is only ever what
+    /// a day with nothing on it is filled with: a day carrying work keeps its
+    /// work colour, because that fill is saying something and the weekend is
+    /// not worth losing it over - the same reason today is marked with a ring
+    /// rather than a fill.
+    ///
+    /// Two of them, because one alpha cannot serve both themes: the wash that
+    /// is barely there on a dark page is a blue-grey block on a near white
+    /// one. The theme is asked at the time the colour is set - the same
+    /// question the rest of this page asks - so a page built after the phone
+    /// changes theme comes out right, and one already on screen does not.
+    /// </summary>
+    private static Color WeekendColour
+    {
+        get
+        {
+            return Application.Current != null && Application.Current.PlatformAppTheme == AppTheme.Dark
+                ? Color.FromArgb("#33607D8B")
+                : Color.FromArgb("#26607D8B");
+        }
+    }
+
+    /// <summary>the same wash over the grey the months either side are dimmed
+    /// with, so the weekend columns do not break at the edge of the month</summary>
+    private static Color WeekendOutsideMonth = Color.FromArgb("2A2E30");
+
+    /// <summary>Sa and Su on the headings, which is the half of this that
+    /// survives a weekend covered in work colours</summary>
+    public static Color WeekendHeading = Color.FromArgb("8FA8B4");
+
     public event PropertyChangedEventHandler PropertyChanged;
 
     public bool IsBookedIn = false;
@@ -240,6 +275,14 @@ public class CalenderDay: INotifyPropertyChanged
         return moving.Count;
     }
 
+    /// <summary>saturday or sunday. off the date rather than off which column
+    /// the cell landed in, so nothing depends on the grid starting on a
+    /// monday</summary>
+    public bool IsWeekend
+    {
+        get { return Date.DayOfWeek == DayOfWeek.Saturday || Date.DayOfWeek == DayOfWeek.Sunday; }
+    }
+
     public void ResetColor()
     {
         SelectedDayColor = Colors.White;
@@ -263,9 +306,9 @@ public class CalenderDay: INotifyPropertyChanged
             if (today)
                 BgColour = ColourCurrentDay;
             else if (outsideMonth)
-                BgColour = MyGray;
+                BgColour = IsWeekend ? WeekendOutsideMonth : MyGray;
             else
-                BgColour = Colors.Transparent;
+                BgColour = IsWeekend ? WeekendColour : Colors.Transparent;
             return;
         }
 
@@ -517,6 +560,15 @@ public partial class CalenderView : ContentPage
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center
             };
+
+            //Sa and Su named in the weekend's own colour. the wash under the
+            //days is lost on any day carrying work, so the heading is what
+            //says where the weekend is on a busy month. read off the date the
+            //column really holds rather than off the position in the list
+            DayOfWeek dayOfWeek = startDate.AddDays(i).DayOfWeek;
+            if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
+                dayHeader.TextColor = CalenderDay.WeekendHeading;
+
             g_calender.Add(dayHeader, i, 0);
         }
 

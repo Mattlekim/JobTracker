@@ -25,11 +25,6 @@ public partial class Payments : ContentPage
         }
     }
 
-    private void list_child_added(object sender, ElementEventArgs e)
-    {
-
-    }
-
     private async void selectFile()
     {
         CSVFile file = await StatementFile.PickAsync(this);

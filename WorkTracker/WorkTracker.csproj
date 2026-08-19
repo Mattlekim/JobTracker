@@ -129,6 +129,7 @@
 	  <Compile Include="..\Kernel\BankAccount.cs" Link="Kernal\BankAccount.cs" />
 	  <Compile Include="..\Kernel\Location.cs" Link="Kernal\Location.cs" />
 	  <Compile Include="..\Kernel\Payment.cs" Link="Kernal\Payment.cs" />
+	  <Compile Include="..\Kernel\PaymentDisplay.cs" Link="Kernal\PaymentDisplay.cs" />
 	  <Compile Include="..\Kernel\PaymentMethod.cs" Link="Kernal\PaymentMethod.cs" />
 	  <Compile Include="..\Kernel\QueryType.cs" Link="Kernal\QueryType.cs" />
 	  <Compile Include="..\Kernel\RoundStats.cs" Link="Kernal\RoundStats.cs" />

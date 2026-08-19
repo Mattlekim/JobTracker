@@ -9,33 +9,65 @@
         <ToolbarItem Text="Ignored Payments" Clicked="bnt_ignoredPayments" Order="Secondary"></ToolbarItem>
 
     </ContentPage.ToolbarItems>
-    
+
     <StackLayout>
 
-       
-
         <CollectionView VerticalOptions="StartAndExpand"
-        x:Name="lv_Payments">
+                        x:Name="lv_Payments">
             <CollectionView.ItemTemplate>
-                <DataTemplate >
-                    <VerticalStackLayout ChildAdded="list_child_added" Padding="4" BackgroundColor="{AppThemeBinding Light=White, Dark=Black}">
-                        <HorizontalStackLayout BackgroundColor="Green">
-                            <Label Text="{Binding PaymentAmount}" FontAttributes="Bold" Padding="6"></Label>
-                            <Label Text="{Binding PaymentDaysAgo}" FontAttributes="Bold" Padding="6"></Label>
-                            
+                <DataTemplate>
+                    <!-- one payment, said by how it was paid: the disc and the chip are
+                         both in the method's own colour, so a page of cash reads as one
+                         colour running down it and the odd bank transfer among that is
+                         seen without being looked for -->
+                    <Border Margin="10,5" Padding="10" StrokeThickness="0"
+                            StrokeShape="RoundRectangle 10"
+                            BackgroundColor="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
 
-                            <Label Text="{Binding Date}" FontAttributes="Bold" Padding="6"></Label>
-                        </HorizontalStackLayout>
-                        <HorizontalStackLayout BackgroundColor="#275115">
-                            <Label Text="Payment Type:" TextColor="White"  Padding="4"></Label>
-                            <Label Text="{Binding PaymentType}" TextColor="White" Padding="4"></Label>
-                            <Label  Text="{Binding CustomerReference}" TextColor="White" Padding="4"></Label>
-                        </HorizontalStackLayout>
-                        <HorizontalStackLayout BackgroundColor="#275115">
-                           
-                            <Label  Text="{Binding GetCustomerDetails}" TextColor="White" Padding="0"></Label>
-                        </HorizontalStackLayout>
-                    </VerticalStackLayout>
+                            <!-- the picture of how it was paid, white stroked on the
+                                 method's colour -->
+                            <Border Grid.Column="0" WidthRequest="42" HeightRequest="42"
+                                    StrokeThickness="0" StrokeShape="RoundRectangle 21"
+                                    VerticalOptions="Start"
+                                    BackgroundColor="{Binding MethodColour}">
+                                <Image Source="{Binding MethodIcon}" WidthRequest="22" HeightRequest="22"
+                                       HorizontalOptions="Center" VerticalOptions="Center"></Image>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{Binding PaymentAmount}" FontAttributes="Bold" FontSize="17"></Label>
+
+                                <HorizontalStackLayout Spacing="6">
+                                    <Label Text="{Binding MethodName}" FontSize="12" FontAttributes="Bold"
+                                           Padding="6,2"
+                                           TextColor="{Binding MethodTextColour}"
+                                           BackgroundColor="{Binding MethodColour}"></Label>
+                                    <Label Text="{Binding CustomerReference}" FontSize="12" Padding="2,2"
+                                           TextColor="Grey" LineBreakMode="TailTruncation" MaxLines="1"
+                                           IsVisible="{Binding HasReference}"></Label>
+                                </HorizontalStackLayout>
+
+                                <Label Text="{Binding GetCustomerDetails}" FontSize="13"
+                                       TextColor="{Binding CustomerTextColour}"></Label>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="2" Spacing="1" HorizontalOptions="End"
+                                                 VerticalOptions="Start">
+                                <Label Text="{Binding PaymentDate}" FontSize="13" FontAttributes="Bold"
+                                       HorizontalTextAlignment="End"></Label>
+                                <Label Text="{Binding PaymentDaysAgo}" FontSize="11" TextColor="Grey"
+                                       HorizontalTextAlignment="End"
+                                       IsVisible="{Binding ShowAge}"></Label>
+                            </VerticalStackLayout>
+
+                        </Grid>
+                    </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

@@ -314,14 +314,6 @@ namespace Kernel
             Customer.Save();
         }
 
-        public string PaymentType
-        {
-            get
-            {
-                return PaymentMethod.ToString();
-            }
-        }
-
         public string PaymentAmount
         {
             get

@@ -100,11 +100,16 @@
                                 <ColumnDefinition></ColumnDefinition>
                                 <ColumnDefinition></ColumnDefinition>
                             </Grid.ColumnDefinitions>
-                            <HorizontalStackLayout BackgroundColor="{Binding DateColour}" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Padding="2">
-                                <Label Text="{Binding JobDate}" TextColor="{Binding DueColorTextCode}" IsVisible="{Binding IsJob}" FontAttributes="Bold">
+                            <HorizontalStackLayout BackgroundColor="{Binding DateColour}" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Padding="2" Spacing="4">
+                                <!-- money in is banded in the colour of how it was paid and
+                                     carries that method's picture, the same two the payments
+                                     page draws it with -->
+                                <Image Source="{Binding PaymentIcon}" IsVisible="{Binding IsPayment}"
+                                       WidthRequest="16" HeightRequest="16" VerticalOptions="Center"></Image>
+                                <Label Text="{Binding JobDate}" TextColor="{Binding TextDateColour}" IsVisible="{Binding IsJob}" FontAttributes="Bold">
                                     
                                 </Label>
-                                <Label Text="{Binding PaymentDate}"  TextColor="{Binding DueColorTextCode}" IsVisible="{Binding IsPayment}" FontAttributes="Bold"></Label>
+                                <Label Text="{Binding PaymentDate}"  TextColor="{Binding TextDateColour}" IsVisible="{Binding IsPayment}" FontAttributes="Bold"></Label>
                                 <!-- a write-off or a hand-set balance, the
                                      line that makes the money add up -->
                                 <Label Text="{Binding AdjustmentDate}" TextColor="{Binding TextDateColour}" IsVisible="{Binding IsAdjustment}" FontAttributes="Bold"></Label>
@@ -115,7 +120,7 @@
 
                             </HorizontalStackLayout>
                             <VerticalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Padding="4">
-                                <HorizontalStackLayout Padding="4" >
+                                <HorizontalStackLayout Padding="4" IsVisible="{Binding HaveLine2}">
                                     <Label Text="{Binding FormattedLine2}" TextColor="White" BackgroundColor="Orange" Padding="2"></Label>
 
                                 </HorizontalStackLayout>
