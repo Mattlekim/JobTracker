@@ -160,9 +160,14 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     }
     public WorkPlanner()
     {
-        Job.RefreshJobs();
-        List<Job> tmpJobs = Job.Query();
-
+        //  No sweep of the round here.
+        //
+        //  This used to run Job.RefreshJobs() over every visit of every house
+        //  ever done, and then query them into a list it never looked at -
+        //  all before InitializeComponent, so there was not a binding in
+        //  existence to hear any of it. This page is the one the app opens
+        //  on, so that was straight off the app's startup time. RefreshPage
+        //  on NavigatedTo is what actually fills the list.
         InitializeComponent();
 
         //a magnifier, a funnel and a plus say what these are to anybody. the
@@ -542,15 +547,54 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         //closing the box puts the whole round back
         if (_searchText.Length > 0)
         {
+            _searchSettling?.Cancel();
             _searchText = string.Empty;
             e_search.Text = string.Empty;
             RefreshPage();
         }
     }
 
-    private void e_search_Changed(object sender, TextChangedEventArgs e)
+    /// <summary>
+    /// how long the typing has to stop for before the list is built again.
+    /// long enough that a word typed at speed is one rebuild, short enough
+    /// that it still feels like the list is following the finger
+    /// </summary>
+    private const int SearchSettleMs = 220;
+
+    private CancellationTokenSource _searchSettling;
+
+    /// <summary>
+    /// Searching used to build the whole list again on every letter - sort,
+    /// booking rows, the lot - so a five letter street was five rebuilds,
+    /// each one landing on the thread the keyboard is drawn on. That is what
+    /// made typing in here feel like the app had stopped listening.
+    ///
+    /// Now the letters are let go quiet first. Anything still waiting when
+    /// the next letter lands is dropped, so a word typed straight through
+    /// costs one rebuild rather than one per letter.
+    /// </summary>
+    private async void e_search_Changed(object sender, TextChangedEventArgs e)
     {
         _searchText = e.NewTextValue ?? string.Empty;
+
+        _searchSettling?.Cancel();
+
+        CancellationTokenSource settling = new CancellationTokenSource();
+        _searchSettling = settling;
+
+        try
+        {
+            await Task.Delay(SearchSettleMs, settling.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            //another letter arrived - that one will do the rebuilding
+            return;
+        }
+
+        if (settling.IsCancellationRequested)
+            return;
+
         RefreshPage();
     }
 
@@ -609,16 +653,133 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     private int _jobsToAddFrom = 0;
     private bool _isRefreshing = false;
 
+    /// <summary>
+    /// how many rows are worth putting right one at a time before it is
+    /// cheaper to hand the list a new collection and let it start again
+    /// </summary>
+    private const int RowsWorthPatching = 24;
+
+    /// <summary>
+    /// Bring the collection the list is showing into line with the one just
+    /// worked out, moving as few rows as possible.
+    ///
+    /// This used to hand the CollectionView a brand new ObservableCollection
+    /// every time, which throws away every row it has built and builds them
+    /// all again - thirty odd views and twenty odd bindings apiece. That is
+    /// the right thing to do when the whole list has changed, and much too
+    /// much for what actually happens most of the time: a job swiped done
+    /// moves one row, and everything else on the page is exactly where it
+    /// was. Working through a round is that swipe over and over, so it is
+    /// the one that has to be cheap.
+    ///
+    /// A job is only ever itself here - Job does not compare by value - so
+    /// the rows are matched by identity, which is also what lets a row that
+    /// has not moved keep the views it already had.
+    /// </summary>
+    private void SyncSourceJobs(List<Job> wanted)
+    {
+        //first time through, or something else has been put on the list
+        if (lv_Jobs.ItemsSource != _sourceJobs)
+        {
+            SwapSourceJobs(wanted);
+            return;
+        }
+
+        //nothing has moved. marking a job done and tagging one both land
+        //here as often as not, and there is nothing for the list to do
+        if (SameRows(wanted))
+            return;
+
+        HashSet<Job> wantedRows = new HashSet<Job>(wanted);
+        HashSet<Job> shownRows = new HashSet<Job>(_sourceJobs);
+
+        int changed = 0;
+        foreach (Job j in _sourceJobs)
+            if (!wantedRows.Contains(j))
+                changed++;
+        foreach (Job j in wanted)
+            if (!shownRows.Contains(j))
+                changed++;
+
+        //a search being typed into, or a filter coming on, changes nearly
+        //every row - past that there is no saving left in patching
+        if (changed > RowsWorthPatching)
+        {
+            SwapSourceJobs(wanted);
+            return;
+        }
+
+        //what has gone, taken out from the bottom up so the rows still to be
+        //looked at keep the positions they were found at
+        for (int i = _sourceJobs.Count - 1; i >= 0; i--)
+            if (!wantedRows.Contains(_sourceJobs[i]))
+                _sourceJobs.RemoveAt(i);
+
+        //then everything into its place, one row at a time. anything already
+        //where it belongs is left completely alone, views and all
+        for (int i = 0; i < wanted.Count; i++)
+        {
+            Job j = wanted[i];
+
+            if (i < _sourceJobs.Count && ReferenceEquals(_sourceJobs[i], j))
+                continue;
+
+            //a row that is on the list but further down has moved rather
+            //than arrived. taken out and put back rather than Move()d,
+            //because a plain remove and insert is the one thing every list
+            //on every platform is sure to do the same way
+            int at = RowIndexOf(j, i + 1);
+            if (at >= 0)
+                _sourceJobs.RemoveAt(at);
+
+            _sourceJobs.Insert(i, j);
+        }
+    }
+
+    /// <summary>the collection is thrown away and built again</summary>
+    private void SwapSourceJobs(List<Job> wanted)
+    {
+        _sourceJobs = new ObservableCollection<Job>(wanted);
+        lv_Jobs.ItemsSource = _sourceJobs;
+    }
+
+    /// <summary>the same jobs in the same order as what is on screen</summary>
+    private bool SameRows(List<Job> wanted)
+    {
+        if (_sourceJobs.Count != wanted.Count)
+            return false;
+
+        for (int i = 0; i < wanted.Count; i++)
+            if (!ReferenceEquals(_sourceJobs[i], wanted[i]))
+                return false;
+
+        return true;
+    }
+
+    /// <summary>where a job is on the list from this row down, or -1</summary>
+    private int RowIndexOf(Job j, int from)
+    {
+        for (int i = from; i < _sourceJobs.Count; i++)
+            if (ReferenceEquals(_sourceJobs[i], j))
+                return i;
+
+        return -1;
+    }
+
     private void RPage()
     {
-
-
-        //lv_Jobs.ItemsSource = null;
-
-        //lv_Jobs.ItemsSource = GetJobs(fullrefresh);
-
-        Job.RefreshJobs();
+        //  Worked out first, then told about.
+        //
+        //  This used to run Job.RefreshJobs() over the whole round before
+        //  working out what was going on the list - and _Jobs is every visit
+        //  of every house ever done, not the work in hand, so a round with a
+        //  couple of years behind it was raising tens of thousands of change
+        //  notifications to draw a page of maybe twenty rows. Nothing off the
+        //  list is bound to anything here, and the other pages build
+        //  themselves again when they are navigated to, so the ones on the
+        //  list are the ones worth telling.
         _tmpJobs = GetJobs();
+        Job.RefreshJobs(_tmpJobs);
 
         //the rows used to be striped light and dark down the list to tell one
         //from the next. they are cards now, like Layouts/AllJobs, so the gap
@@ -626,18 +787,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         //AltColour itself stays - the calendar and the customer page still
         //stripe their own lists with it
 
-        //swap the whole collection in one go: clearing and re-adding one job at a
-        //time makes the list re-layout on every add, which is what made this page slow
-        _sourceJobs = new ObservableCollection<Job>(_tmpJobs);
-        lv_Jobs.ItemsSource = _sourceJobs;
-
-
-        /*foreach (Job j in tmpJobs)
-        {
-            _sourceJobs.Add(j);
-
-        }*/
-
+        SyncSourceJobs(_tmpJobs);
 
 
 
@@ -654,7 +804,7 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             if (j.IsCompleted || j.HaveCanceled)
                 continue;
 
-            if ((UsfulFuctions.DateNow - j.DueDate).Days >= 0 || ViewBooking)
+            if ((today - j.DueDate).Days >= 0 || ViewBooking)
             {
                 jobsDue++;
                 amountDue += j.Price;
@@ -1611,6 +1761,11 @@ public partial class WorkPlanner : ContentPage, IHoldRows
         l_jobPrice.Text = $"Price {Gloable.CurrenceSymbol}{_currentJob.Price}";
         l_jobPrice.BackgroundColor = Colors.Green;
 
+        //worked out here rather than trusted to have been worked out
+        //somewhere else: OwedColorCode is a stored colour that RefreshColors
+        //is what fills in, and this page can be reached with a job no list
+        //has drawn
+        _currentJob.RefreshColors();
         l_jobOwed.BackgroundColor = _currentJob.OwedColorCode;
         l_jobOwed.Text = _currentJob.JobFormattedOwed;
 

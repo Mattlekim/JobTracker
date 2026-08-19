@@ -1331,6 +1331,67 @@ the app being closed mid-round. All four bars show the same setting, so a change
 On the calendar the bar is pinned above the list instead of riding along in its header, where it would scroll off
 the top of the page while it was being worked from.
 
+## Keeping the app quick
+
+A round is hundreds of houses and `_Jobs` holds **every visit of every one of them ever done**, so anything that
+walks the whole list to draw a page of twenty rows gets slower every month the app is used. Four rules came out of
+going over why the app felt sluggish, and each one is easy to undo by accident.
+
+**Ask `Customer.ById` for a customer, never `Customer.Query("id", ...)`.** Looking up who lives at a house is the
+most asked question in the app - what is owed, whether they are in credit, whose payment that was - and it is
+asked once per row on every list. `Query` answers it by copying the whole customer list, turning every id into a
+string and throwing all but one away. `ById` is a dictionary. The index is rebuilt when the customer list changes,
+which is what `Customer.InvalidateIndex` is for: **anything that adds, deletes or reloads customers has to call
+it** (`Add`, `Delete`, `DeleteData` and `Customer.Load` all do). The count is checked as well as a backstop, but a
+restore can bring back the same number of different customers, so the count alone is not enough.
+
+`Job.MatchCustomer` and `Payment.MatchCustomer` hold on to the answer, and both check the **id** against what they
+cached rather than only checking it for null - a job can be pointed at a different customer while it is in memory,
+which is exactly what merging two records of the same person does.
+
+**`Job.Refresh` has to name every property a job row binds to.** The work list keeps its rows now
+(`WorkPlanner.SyncSourceJobs`) instead of handing the `CollectionView` a brand new collection every time, which
+used to throw every row away and build it again - so anything missing off `Refresh` was quietly put right by that
+rebuild and is not any more. A row that stays put shows exactly what `Refresh` tells it about. If a job row is
+given something new to show, say it in `Refresh`; the pieces of the card are in `Controles/JobCard`.
+
+`SyncSourceJobs` matches rows by identity (`Job` does not compare by value), takes out what has gone and puts the
+rest in order one row at a time, so a job swiped done moves one row and the rest of the page is untouched.
+Past `RowsWorthPatching` differences it gives up and swaps the collection wholesale, because a search being typed
+into changes nearly every row and patching that costs more than starting again.
+
+**A getter a row binds to must not raise change notifications.** `JobFormattedDueTime` works the wording and the
+colour out together and sets `DueColorCode`/`DueColorTextCode` as it goes - so reading one bound property was
+firing two more binding updates, and each of those sent the bindings round again. The three colour setters
+therefore say nothing when the colour has not actually changed (`SameColour` - `Color` is a class, so the named
+colours hand back a fresh object each time and reference equality would call every one of them a change). Same
+reason the hex colours are `static readonly` fields rather than `Color.FromArgb("#...")` inside the getters:
+that call takes the string apart every time it is made.
+
+**`Controles/JobCard` settles its options once.** Every `Show*`/`Style` setter calls `Apply`, which takes about
+thirty bindings off and puts them back; All Jobs sets eight options, so each row used to do that nine times over
+to reach the answer it would have reached once. `Apply` now does nothing until `SettleOptions` has run, which
+happens when the card is parented or given a binding context - after the template has finished setting the
+options and before anything is drawn. **Do not put `Apply()` back in the constructor.** An option set from code
+afterwards still applies straight away.
+
+**Prefer `Job.RefreshJobs(jobs)` to `Job.RefreshJobs()`.** The one with no arguments tells every visit ever done
+about two dozen properties. Every list page builds itself again when it is navigated to, so the jobs worth telling
+are the ones on the page. The pull-to-refresh keeps the big hammer on purpose - that gesture means *build all of
+it again*.
+
+### Still on the list
+
+The heaviest thing left is **saving**. `Job.Save` serialises every job that has ever existed to XML, on the UI
+thread, and a single swipe of a job done costs that plus `Customer.Save` and `Payment.Save`. Coalescing a user
+action into one write, and moving it off the UI thread, is the next real win - it is left alone here because
+changing when data reaches the disk is not something to do without being able to run the app.
+
+Two others worth knowing about: none of the list templates except `Layouts/AllJobs` set `x:DataType`, so their
+bindings are resolved by reflection rather than compiled, which is the single biggest documented MAUI list win;
+and `Debug` builds of a MAUI Android app are dramatically slower than `Release` ones, so judge how the app feels
+from a Release build before chasing anything else.
+
 ## Versioning
 
 `ApplicationDisplayVersion` and `ApplicationVersion` live in `WorkTracker/WorkTracker.csproj` and must both be

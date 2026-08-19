@@ -82,6 +82,11 @@ namespace Kernel
                     _Customers.Clear();
                     _Customers.AddRange(csd.Customers);
                     _IdGenerator = csd.NextCustomerId;
+
+                    //these are different objects to the ones the index was
+                    //built from, and a restore can easily bring back the same
+                    //number of customers, so the count check cannot see it
+                    InvalidateIndex();
                 }
             }
             catch

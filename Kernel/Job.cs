@@ -304,16 +304,34 @@ namespace Kernel
         }
 
 
+        /// <summary>
+        /// tell every job in the round that its wording and its colours may
+        /// have moved on.
+        ///
+        /// This is a big hammer: _Jobs holds every visit of every house ever
+        /// done, so a round a few years old is thousands of jobs and each one
+        /// is told about two dozen properties. Prefer the overload below and
+        /// hand it the jobs actually on the page - every list page builds
+        /// itself again when it is navigated to, so one that is not on screen
+        /// does not need telling now.
+        /// </summary>
         public static void RefreshJobs()
         {
-            string s;
-            foreach (Job j in _Jobs)
+            RefreshJobs(_Jobs);
+        }
+
+        /// <summary>
+        /// the same, for the jobs that are actually being shown
+        /// </summary>
+        public static void RefreshJobs(IEnumerable<Job> jobs)
+        {
+            if (jobs == null)
+                return;
+
+            foreach (Job j in jobs)
             {
                 j.Refresh();
                 j.RefreshColors();
-                //s = j.JobFormattedOwed;
-                //s = j.JobFormattedDueTime;
-              
             }
         }
         /// <summary>
@@ -449,22 +467,27 @@ namespace Kernel
 
         private Customer _customer;
 
+        /// <summary>
+        /// find who lives here, and keep hold of them.
+        ///
+        /// Nearly every figure on a job row is really a figure about the
+        /// customer - what is owed, whether they are in credit - so this is
+        /// asked once a row at least, and it used to be answered by copying
+        /// the whole round out and throwing all but one away. It is a
+        /// dictionary lookup now: see <see cref="Customer.ById"/>.
+        ///
+        /// The id is checked against what was cached rather than only the
+        /// cache being checked for null, because a job can be pointed at a
+        /// different customer while it is in memory - which is exactly what
+        /// merging two records of the same person does - and the old answer
+        /// would otherwise have stuck for the rest of the run.
+        /// </summary>
         public void MatchCustomer()
         {
-            if (_customer == null)
-            {
+            if (_customer != null && _customer.Id == CustomerId)
+                return;
 
-                try
-                {
-                    List<Customer> c = Customer.Query("id", CustomerId.ToString());
-                    if (c.Count > 0)
-                        _customer = c[0];
-                }
-                catch
-                {
-                    return;
-                }
-            }
+            _customer = Customer.ById(CustomerId);
         }
 
         public static void DeleteData()

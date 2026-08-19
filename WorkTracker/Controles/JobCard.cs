@@ -436,7 +436,56 @@ public class JobCard : ContentView
         _border.SetAppThemeColor(Border.BackgroundColorProperty, CardLight, CardDark);
 
         Content = _border;
+
+        //deliberately no Apply() here - the options have not been set yet.
+        //SettleOptions does it once, when the card reaches a page
+    }
+
+    // ------------------------------------------ when the options are applied
+
+    /// <summary>
+    /// whether the options have been settled and applied. Until they are,
+    /// setting one only records it - see <see cref="SettleOptions"/>
+    /// </summary>
+    private bool _optionsSettled;
+
+    /// <summary>
+    /// The options are all set one after another as the card is built from
+    /// the template, and every one of them used to run <see cref="Apply"/> -
+    /// which takes about thirty bindings off and puts them back. All Jobs
+    /// sets eight options, so every row on that page did that nine times over
+    /// to arrive at the answer it would have reached once.
+    ///
+    /// So while the card is being built the options only record themselves,
+    /// and this applies them once, when the card arrives somewhere - which is
+    /// after the template has finished setting them and before anything is
+    /// drawn. Afterwards an option set in code applies straight away, as it
+    /// always did.
+    ///
+    /// Both the parent and the binding context are hooked because which of
+    /// the two comes first is the list's business, not ours, and this only
+    /// does anything the first time either way.
+    /// </summary>
+    private void SettleOptions()
+    {
+        if (_optionsSettled)
+            return;
+
+        _optionsSettled = true;
         Apply();
+        RefreshComputed();
+    }
+
+    protected override void OnParentSet()
+    {
+        base.OnParentSet();
+        SettleOptions();
+    }
+
+    protected override void OnBindingContextChanged()
+    {
+        base.OnBindingContextChanged();
+        SettleOptions();
     }
 
     // --------------------------------------------------- putting options on
@@ -449,6 +498,12 @@ public class JobCard : ContentView
     /// </summary>
     private void Apply()
     {
+        //still being built from the template: the rest of the options have
+        //not been set yet, so there is nothing worth working out. SettleOptions
+        //runs this once when they have all landed
+        if (!_optionsSettled)
+            return;
+
         Gate(_cancelledLine, _collapseCancelled, "HaveCanceled");
         Gate(_collapsedLine, _collapseCompleted, "CollapsedInList");
 
