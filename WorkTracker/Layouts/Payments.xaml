@@ -5,15 +5,111 @@
              Title="Payments">
 
     <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Filters" IconImageSource="filter.png" Clicked="bnt_filters_Clicked"></ToolbarItem>
         <ToolbarItem x:Name="bnt_ClearFilter" Text="Import Bank Statment (csv or pdf)" Clicked="bnt_ImportBank"></ToolbarItem>
         <ToolbarItem Text="Ignored Payments" Clicked="bnt_ignoredPayments" Order="Secondary"></ToolbarItem>
 
     </ContentPage.ToolbarItems>
 
-    <StackLayout>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
 
-        <CollectionView VerticalOptions="StartAndExpand"
+        <!-- What the list is being kept to, on show whether the panel is open
+             or not - and it always is being kept to something, because the
+             page opens on the last fortnight. A list quietly showing a
+             fortnight of a year's money with nothing saying so is exactly
+             what this is here to stop. -->
+        <Border Grid.Row="0" x:Name="brd_filterOn" StrokeThickness="0" StrokeShape="RoundRectangle 10"
+                BackgroundColor="#2E7D32" Margin="8,6,8,0" Padding="12,8">
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="Auto"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <VerticalStackLayout Grid.Column="0" Spacing="1" VerticalOptions="Center">
+                    <Label x:Name="l_filterResultsText" TextColor="White" FontAttributes="Bold" FontSize="14"></Label>
+                    <Label x:Name="l_filterResultsCount" TextColor="#C8E6C9" FontSize="12"></Label>
+                </VerticalStackLayout>
+                <Button Grid.Column="1" x:Name="bnt_showEverything" Text="Show All" Clicked="bnt_showEverything_Clicked"
+                        FontSize="12" Padding="14,4" BackgroundColor="Transparent" BorderWidth="2" BorderColor="White"
+                        TextColor="White" CornerRadius="8" VerticalOptions="Center"></Button>
+            </Grid>
+        </Border>
+
+        <CollectionView Grid.Row="1" VerticalOptions="FillAndExpand"
                         x:Name="lv_Payments">
+
+            <CollectionView.Header>
+                <!-- the filter panel, opened from the Filters toolbar item. it
+                     is the list's own header rather than a bar above it, so it
+                     scrolls out of the way and gives the screen back -->
+                <Border x:Name="g_filter" IsVisible="false" StrokeThickness="0" StrokeShape="RoundRectangle 12" Margin="8,6" Padding="14"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+                    <VerticalStackLayout Spacing="14">
+
+                        <Label Text="Filters" FontAttributes="Bold" FontSize="16"></Label>
+
+                        <!--  WHEN THE MONEY CAME IN  -->
+                        <VerticalStackLayout Spacing="6">
+                            <HorizontalStackLayout Spacing="6">
+                                <CheckBox x:Name="cb_filterDates" IsChecked="true" CheckedChanged="cb_filterDates_Changed" VerticalOptions="Center"></CheckBox>
+                                <Label Text="Only a date range" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                            </HorizontalStackLayout>
+                            <Label Text="The page opens on the last fortnight, which is what has just come in. Turn it off, or drag the dates, to go back over a month, a quarter or the lot."
+                                   FontSize="12" TextColor="{StaticResource MidGray}"></Label>
+                            <Grid x:Name="g_dateRange" ColumnSpacing="6" RowSpacing="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                    <ColumnDefinition Width="*"></ColumnDefinition>
+                                    <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                    <ColumnDefinition Width="*"></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <Label Grid.Column="0" Text="From" VerticalOptions="Center" FontSize="12"></Label>
+                                <DatePicker Grid.Column="1" x:Name="dp_StartSearchDate" DateSelected="dp_start_Changed" FontSize="13"></DatePicker>
+                                <Label Grid.Column="2" Text="To" VerticalOptions="Center" FontSize="12"></Label>
+                                <DatePicker Grid.Column="3" x:Name="dp_EndSearchDate" DateSelected="dp_end_Changed" FontSize="13"></DatePicker>
+                            </Grid>
+                            <!-- the ranges anybody actually asks for, so the
+                                 usual answer is one tap rather than two dates -->
+                            <HorizontalStackLayout x:Name="hsl_quickDates" Spacing="8"></HorizontalStackLayout>
+                        </VerticalStackLayout>
+
+                        <!--  HOW IT WAS PAID  -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="How it was paid" FontAttributes="Bold"></Label>
+                            <Label Text="Every method is on to start with. Tap one to leave it out - the chips that stay lit are what the list is showing."
+                                   FontSize="12" TextColor="{StaticResource MidGray}"></Label>
+                            <!-- one chip per payment method, built in code from
+                                 the enum so a method added to it turns up here
+                                 on its own. Each carries the method's colour and
+                                 icon, the same two the rows are drawn with -->
+                            <FlexLayout x:Name="fl_methods" Wrap="Wrap" Direction="Row" JustifyContent="Start"></FlexLayout>
+                            <HorizontalStackLayout Spacing="8">
+                                <Button Text="All" Clicked="bnt_allMethods_Clicked" FontSize="12" Padding="14,2" CornerRadius="8"
+                                        BackgroundColor="Transparent" BorderWidth="2" BorderColor="{StaticResource MidGray}" TextColor="{StaticResource MidGray}"></Button>
+                                <Button Text="None" Clicked="bnt_noMethods_Clicked" FontSize="12" Padding="14,2" CornerRadius="8"
+                                        BackgroundColor="Transparent" BorderWidth="2" BorderColor="{StaticResource MidGray}" TextColor="{StaticResource MidGray}"></Button>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
+
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Text="Reset" Clicked="bnt_resetFilter_Clicked" Padding="14,6" CornerRadius="8"
+                                    ToolTipProperties.Text="Puts the filters back to how the page opens: the last fortnight, every payment method"
+                                    BackgroundColor="Transparent" BorderWidth="2" BorderColor="{StaticResource MidGray}" TextColor="{StaticResource MidGray}"></Button>
+                            <Button Grid.Column="1" Text="Done" Clicked="bnt_hideFilter_Clicked" Padding="14,6" CornerRadius="8"
+                                    BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold"></Button>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </CollectionView.Header>
+
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <!-- one payment, said by how it was paid: the disc and the chip are
@@ -70,7 +166,11 @@
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
-        </CollectionView>
 
-    </StackLayout>
+            <CollectionView.EmptyView>
+                <Label Padding="24" HorizontalTextAlignment="Center"
+                       Text="No payments in what the filters are showing. Widen the dates, or turn a payment method back on."></Label>
+            </CollectionView.EmptyView>
+        </CollectionView>
+    </Grid>
 </ContentPage>
