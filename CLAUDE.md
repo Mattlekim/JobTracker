@@ -524,6 +524,17 @@ day, so work booked for the date that no list was showing comes off with the res
 goes through `WorkPlanner.MarkJobSkipped`, which refreshes the row and saves; `SkipJob` on its own leaves the
 cached day stale until the next rebuild.
 
+**The calendar keeps a second cache of the same shape, and it has the same rule.** Each `CalenderDay` holds the
+jobs that fall on it, filled only by `CalenderView.PopulateDays`, and the panel under the calendar is drawn from
+the picked day's list rather than from the jobs. So `RefreshPageDate` on its own only *redraws* that list —
+skipping a house pushed its due date out and it stayed on screen, on a day it was no longer due on, with the day's
+totals still counting it, until the page was pulled down by hand. `RefreshAfterWorkChanged` (`RebuildDays` then
+`RefreshPageDate`) is what every swipe and menu on that page which touches the work goes through — done, cleared,
+skipped, cancelled, paid, moved, and the job's own window — so none of them can be the one that forgets.
+Rebuilding runs `CalculateDay`, which ends in `ResetColor`, so the ring is put back on the day being looked at:
+it is read *before* the rebuild, because `PopulateDays` picks today when nothing is picked and a day chosen for
+you is not one to ring.
+
 Clearing a skip (the paper view's **Clear**) puts the due date back but **does not** put the booking back — the day
 is gone and nothing remembers it. Book it in again if it is wanted.
 
