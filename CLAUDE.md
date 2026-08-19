@@ -328,6 +328,21 @@ the night before went to one house. **Never loop over `ComposeAsync` without wai
 The wait is an alert offering the next customer, which cannot be answered until the messaging app has been left
 and Work Tracker is back in front — and it doubles as the way out of a queue of texts part way through.
 
+**The page they are asked on has to still be there when they are asked.** The whole run of texts is a queue of
+alerts, and an alert put on a page that has been navigated away from does not fail — it never comes back, because
+the handler that would have shown it has gone, so whatever is waiting on the answer waits for ever. That is what a
+booked-in day with twelve customers to tell went out as: **nobody texted and nothing said about it**.
+`BookJobFormcs.bnt_Confirmed` called `MsgCustomers` without waiting for it — an `async void` cannot be waited for —
+and then popped the form. The first alert had already been asked for, so it appeared and could be answered; every
+alert after it went nowhere. So **anything that offers messages must be awaited, and the page must not be taken
+away until it is finished** — `MsgCustomers` hands back a `Task` for exactly that reason, and the confirm button
+guards against being pressed twice now the form stays up through the whole queue.
+
+`TextCustomers` and `EmailCustomers` settle where to ask before anything else (`PageToAskOn`, the same
+`Handler?.MauiContext` test `AppShell.ReadyPage` makes), falling back to whatever the shell is standing on. That
+is not the fix — the caller staying put is — it is so that getting it wrong again cannot be **silent**, which is
+the thing that made this one so hard to notice.
+
 `EmailCustomers` is one message with everybody in **Bcc**, so it opens the mail app once and needs none of this.
 Bcc rather than To for the same reason the texts go one at a time.
 

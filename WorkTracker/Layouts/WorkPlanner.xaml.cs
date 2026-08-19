@@ -2661,6 +2661,12 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     /// </param>
     public async static Task EmailCustomers(List<Job> jobs, DateTime dt, string msg, Page page, bool onlyFlagged = true)
     {
+        //one message rather than a queue of them, but it still says who was
+        //skipped and what went wrong - see PageToAskOn
+        page = PageToAskOn(page);
+        if (page == null)
+            return;
+
         if (string.IsNullOrWhiteSpace(msg))
             msg = DefaultTNBMessage;
 
@@ -2715,6 +2721,49 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     }
 
     /// <summary>
+    /// A page an alert can actually be put on.
+    ///
+    /// An alert on a page that has been navigated away from does not fail -
+    /// it never comes back, because the handler that would have shown it has
+    /// gone. Anything waiting on the answer therefore waits for ever, and the
+    /// texts these two run on are a queue of alerts: one dead alert and the
+    /// whole night's messages stop, with nothing on screen to say why. That
+    /// is what a day booked in with twelve customers to tell went out as -
+    /// nobody texted, nothing said.
+    ///
+    /// A caller that stays put until it is finished is the fix, and
+    /// BookJobFormcs now does. This is so that getting it wrong again cannot
+    /// be silent: the shell is asked for somewhere else to ask instead. It
+    /// only ever engages on a page that has already gone, so a caller that
+    /// behaves is untouched by it.
+    /// </summary>
+    private static Page PageToAskOn(Page page)
+    {
+        try
+        {
+            //the handler is what says the page is on screen rather than
+            //merely built - the same test AppShell.ReadyPage makes
+            if (page?.Handler?.MauiContext != null)
+                return page;
+
+            Shell shell = Shell.Current;
+
+            Page current = shell?.CurrentPage;
+            if (current?.Handler?.MauiContext != null)
+                return current;
+
+            if (shell?.Handler?.MauiContext != null)
+                return shell;
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// texts each customer separately rather than as one group message.
     /// a group message would show every customer each other's phone number
     /// and could not carry anything personal like what they owe
@@ -2725,6 +2774,12 @@ public partial class WorkPlanner : ContentPage, IHoldRows
     /// </param>
     public async static Task TextCustomers(List<Job> jobs, DateTime dt, string msg, Page page, bool onlyFlagged = true)
     {
+        //every step of this is an alert, so somewhere they will actually
+        //appear has to be settled before anything else - see PageToAskOn
+        page = PageToAskOn(page);
+        if (page == null)
+            return;
+
         if (string.IsNullOrWhiteSpace(msg))
             msg = DefaultTNBMessage;
 
@@ -3063,7 +3118,10 @@ public partial class WorkPlanner : ContentPage, IHoldRows
             textCustomers = $"{textCustomers}\n\nDo you wish to notify them you will now be comming on {_rescheduleDate.ToShortDateString()}?";
             if (customersToText)
                 if (await DisplayAlert("Text Customers", textCustomers, "Yes", "No"))
-                    TextCustomers(jobsToText, UsfulFuctions.DateNow, DefaultRearangeMessage, this);
+                    //waited for. left unawaited, the reschedule below carried on
+                    //underneath the queue of texts and tore the view down while
+                    //it was still offering them
+                    await TextCustomers(jobsToText, UsfulFuctions.DateNow, DefaultRearangeMessage, this);
 
 
             Booking.ReseduleBooking(ViewBookingAtDate, _rescheduleDate);
