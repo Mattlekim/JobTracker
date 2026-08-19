@@ -260,6 +260,7 @@ namespace Kernel
             quote.PreviousJobId = -1;
             quote.HaveCanceled = false;
             quote.HaveSkipped = false;
+            quote.DueDateBeforeSkip = UsfulFuctions.DateBase;
             quote.DisableSwipe = false;
 
             _Jobs.Add(quote);
@@ -1236,6 +1237,7 @@ namespace Kernel
             IsCompleted = true;
             HaveSkipped = false;
             DateSkipped = UsfulFuctions.DateBase;
+            DueDateBeforeSkip = UsfulFuctions.DateBase;
             DateCompleated = date;
 
             //whatever the tag bar is set to goes on as the work is written
@@ -1322,7 +1324,26 @@ namespace Kernel
         /// </param>
         public void SkipJob(DateTime dateSkipped)
         {
-            DueDate = DueDate.AddDays(SkipDays);
+            //what it was due on, kept so clearing the skip can put it back
+            DueDateBeforeSkip = DueDate;
+
+            //Worked out from the day you were there and passed the house
+            //over, not from the day it was due.
+            //
+            //Measured off the due date, a house that was already overdue got
+            //pushed out from a date in the past - so a weekly job a fortnight
+            //late, skipped today, came back due a week ago. It was still on
+            //the list, still red, and skipping it looked like it had done
+            //nothing at all. The day you were there is the only date a skip
+            //really knows anything about.
+            DateTime pushedOutTo = dateSkipped.Date.AddDays(SkipDays);
+
+            //passing work over can only ever put it off. A house not due for
+            //months, skipped by mistake, must not be pulled forward to next
+            //week by it
+            if (pushedOutTo > DueDate.Date)
+                DueDate = pushedOutTo;
+
             HaveSkipped = true;
 
             //a skip pushes the due date out, and the rise is worked off the
@@ -1366,7 +1387,16 @@ namespace Kernel
         {
             if (!HaveSkipped)
                 return;
-            DueDate = DueDate.AddDays(-SkipDays);
+
+            //the date it had, rather than the new date less the days it was
+            //pushed out by: the two are only the same when the skip was
+            //measured off the due date, which is what a job skipped before
+            //this was kept looks like - and that is what the fall back is for
+            DueDate = DueDateBeforeSkip > UsfulFuctions.DateBase
+                ? DueDateBeforeSkip
+                : DueDate.AddDays(-SkipDays);
+
+            DueDateBeforeSkip = UsfulFuctions.DateBase;
             HaveSkipped = false;
             DateSkipped = UsfulFuctions.DateBase;
             Job.Save();
@@ -1893,6 +1923,18 @@ namespace Kernel
         /// have nothing here, and fall back to the due date
         /// </summary>
         public DateTime DateSkipped { get; set; }
+
+        /// <summary>
+        /// the day this visit was due before it was skipped, so clearing the
+        /// skip really does put it back where it was.
+        ///
+        /// It used to be worked out by subtracting <see cref="SkipDays"/>
+        /// again, which only holds while the new date is the old one plus
+        /// those days - and it is measured from the day of the skip now.
+        /// <see cref="UsfulFuctions.DateBase"/> is what a job skipped before
+        /// this was kept reads as, and those fall back to the subtraction.
+        /// </summary>
+        public DateTime DueDateBeforeSkip { get; set; } = UsfulFuctions.DateBase;
 
         public DateTime DateCanceled { get; set; }
         public static void Delete(string id)

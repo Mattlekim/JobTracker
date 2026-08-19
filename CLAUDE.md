@@ -512,6 +512,16 @@ Left booked in it read as booked for a day it was no longer due on: it stayed on
 so the day never cleared and went on being called overdue, and the work list leaves booked work out
 (`MasterFilter`), so the house was on neither page.
 
+**The new date is measured from the day it was skipped, not from the day it was due.** A skip only really knows
+about one date — the day you were there and passed the house over — and measuring off the due date pushed an
+overdue house out from a date in the past: a weekly job a fortnight late, skipped today, came back **due a week
+ago**, still on the list and still red, so skipping it looked like it had done nothing at all. It can only ever
+put work off, so a house not due for months is not pulled forward to next week by being skipped by mistake.
+`Job.DueDateBeforeSkip` remembers the date it had, because `UnSkipJob` can no longer get it back by subtracting
+`SkipDays` again; a job skipped before that was kept has nothing there and falls back to the subtraction.
+`SkipDays` itself is unchanged — a full frequency's worth of **weeks**, so a monthly or a daily job is pushed out
+by its number of weeks rather than by its own unit.
+
 `Job.SkipJob` is what unbooks it, in the kernel with the rest of the skip, so none of the four places work can be
 skipped from — the swipes and menus on the work list, the calendar and the booked work page, and the paper view's
 record sheet — can be the one that forgets. The day itself is a `Booking` in `Booking.Bookings`, which is a

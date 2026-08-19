@@ -48,6 +48,7 @@ public static class SelfTest
             CancellingBookedInWorkTakesItOffTheDay();
             AWriteOffLeavesARecord();
             APriceRiseTakesEffectOnTheDayItSays();
+            ASkipIsMeasuredFromTheDayItWasSkipped();
             EachBankAccountKeepsItsOwnLayoutAndItsOwnReferences(folder);
         }
         catch (Exception ex)
@@ -97,6 +98,80 @@ public static class SelfTest
         Job readOther = Find("1", "The Green");
         Check("work on no round stays on no round", readOther != null && !readOther.HaveRound,
             readOther == null ? "job missing" : $"round was '{readOther.Round}'");
+    }
+
+    /// <summary>
+    /// A skipped job comes back round from the day you were there and passed
+    /// it over, not from the day it was due.
+    ///
+    /// Measured off the due date, a house that was already overdue was pushed
+    /// out from a date in the past - so a weekly job a fortnight late, skipped
+    /// today, came back due a week ago: still on the list, still red, and the
+    /// skip looked like it had done nothing at all.
+    /// </summary>
+    private static void ASkipIsMeasuredFromTheDayItWasSkipped()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A skip is measured from the day it was skipped");
+
+        Reset();
+
+        DateTime today = DateTime.Now.Date;
+
+        //a fortnight overdue, which is the case that went wrong
+        Job late = AddJob("5", "Mill Lane", 10f);
+        late.SetFrequence(1, FrequenceType.Week);
+        late.DueDate = today.AddDays(-14);
+
+        late.SkipJob(today);
+
+        Check("it comes back a week after the day it was skipped",
+            late.DueDate.Date == today.AddDays(7), late.DueDate.ToShortDateString());
+        Check("and it is not still overdue", late.DueDate.Date > today, late.DueDate.ToShortDateString());
+        Check("the skip is on the day it happened", late.DateSkipped.Date == today,
+            late.DateSkipped.ToShortDateString());
+
+        //clearing the skip puts back the date it had, which can no longer be
+        //worked out by subtracting the days it was pushed out by
+        late.UnSkipJob();
+        Check("clearing the skip puts the date it had back",
+            late.DueDate.Date == today.AddDays(-14), late.DueDate.ToShortDateString());
+        Check("and it is not skipped any more", !late.HaveSkipped, "still skipped");
+
+        //a house not due for months, skipped by mistake, must not be pulled
+        //forward to next week by it
+        Job later = AddJob("7", "Mill Lane", 10f);
+        later.SetFrequence(1, FrequenceType.Week);
+        later.DueDate = today.AddDays(60);
+
+        later.SkipJob(today);
+
+        Check("skipping work that is not due yet does not pull it forward",
+            later.DueDate.Date == today.AddDays(60), later.DueDate.ToShortDateString());
+
+        //a four weekly job goes out four weeks from the day it was skipped
+        Job monthly = AddJob("9", "Mill Lane", 10f);
+        monthly.SetFrequence(4, FrequenceType.Week);
+        monthly.DueDate = today.AddDays(-3);
+
+        monthly.SkipJob(today);
+
+        Check("a four weekly job goes out four weeks from the skip",
+            monthly.DueDate.Date == today.AddDays(28), monthly.DueDate.ToShortDateString());
+
+        Job.Save(Folder);
+        Reset();
+        Job.Load(Folder);
+
+        Job readBack = Find("9", "Mill Lane");
+        Check("the skip survived a save", readBack != null && readBack.HaveSkipped,
+            readBack == null ? "job missing" : "not skipped");
+        if (readBack == null)
+            return;
+
+        readBack.UnSkipJob();
+        Check("and clearing it after a save still puts the date back",
+            readBack.DueDate.Date == today.AddDays(-3), readBack.DueDate.ToShortDateString());
     }
 
     /// <summary>
