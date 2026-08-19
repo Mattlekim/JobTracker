@@ -47,6 +47,7 @@ public static class SelfTest
             ASharedWorkListSurvivesTheTripThereAndBack(folder);
             CancellingBookedInWorkTakesItOffTheDay();
             AWriteOffLeavesARecord();
+            APriceRiseTakesEffectOnTheDayItSays();
             EachBankAccountKeepsItsOwnLayoutAndItsOwnReferences(folder);
         }
         catch (Exception ex)
@@ -96,6 +97,71 @@ public static class SelfTest
         Job readOther = Find("1", "The Green");
         Check("work on no round stays on no round", readOther != null && !readOther.HaveRound,
             readOther == null ? "job missing" : $"round was '{readOther.Round}'");
+    }
+
+    /// <summary>
+    /// A price rise reaches the visits it should and no others.
+    ///
+    /// The whole point of a rise carrying a date is that it is agreed before
+    /// it happens, so the visit due next week stays at the old price while a
+    /// visit that does not exist yet comes out at the new one. A clean
+    /// already written up must never be repriced: it, its payment and the
+    /// customer's balance are one record.
+    /// </summary>
+    private static void APriceRiseTakesEffectOnTheDayItSays()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A price rise takes effect on the day it says");
+
+        Reset();
+
+        DateTime today = DateTime.Now.Date;
+
+        Job job = AddJob("3", "Mill Lane", 10f);
+        job.SetFrequence(1, FrequenceType.Week);
+        job.DueDate = today;
+
+        //a clean already written up, at the old price
+        job.MarkJobDone(today, true);
+
+        Job outstanding = job.EveryVisit().Find(x => !x.IsCompleted);
+        Check("marking it done made another visit", outstanding != null, "none found");
+        if (outstanding == null)
+            return;
+
+        //agreed a fortnight out, so neither the clean just done nor the one
+        //due next week is at the new price
+        int repriced = job.SetPriceRise(12f, today.AddDays(14));
+
+        Check("nothing on the round changed price yet", repriced == 0, $"{repriced} changed");
+        Check("the clean already done keeps what it was charged", job.Price == 10f, $"{job.Price}");
+        Check("and so does the visit due before the day", outstanding.Price == 10f, $"{outstanding.Price}");
+        Check("the rise is on the books", outstanding.HavePriceRise && outstanding.PriceRiseStillToCome,
+            outstanding.PriceRiseText);
+
+        Job.Save(Folder);
+        Reset();
+        Job.Load(Folder);
+
+        Job read = Job.Query().Find(x => !x.IsCompleted);
+        Check("the rise survived a save", read != null && read.PriceRiseTo == 12f,
+            read == null ? "job missing" : $"{read.PriceRiseTo}");
+        if (read == null)
+            return;
+
+        Check("with the day it starts", read.PriceRiseDate.Date == today.AddDays(14),
+            read.PriceRiseDate.ToShortDateString());
+        Check("and what it is going up from", read.PriceRiseWas == 10f, $"{read.PriceRiseWas}");
+        Check("the clean already done is still at the old price", read.CurrentPrice == 10f, $"{read.CurrentPrice}");
+
+        //the next visit is generated the far side of the day, so it comes out
+        //at the new price with nobody having had to remember
+        read.MarkJobDone(today.AddDays(7), true);
+
+        Job next = Job.Query().Find(x => !x.IsCompleted);
+        Check("the visit after the day is at the new price", next != null && next.Price == 12f,
+            next == null ? "none found" : $"{next.Price}");
+        Check("the one before it was left as it was charged", read.Price == 10f, $"{read.Price}");
     }
 
     /// <summary>

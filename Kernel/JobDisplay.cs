@@ -706,5 +706,53 @@ namespace Kernel
 
             }
         }
+
+        /// <summary>
+        /// there is a price rise worth saying out loud - one still to come,
+        /// or one recent enough that the customer is still asking about it
+        /// </summary>
+        [XmlIgnore]
+        public bool ShowPriceRise
+        {
+            get { return HavePriceRise; }
+        }
+
+        /// <summary>
+        /// the price rise in words, for the customer's page and the job's own
+        /// window. worded by whether it has happened yet, because "goes up to
+        /// twelve pounds on the first" and "went up to twelve pounds on the
+        /// first" are answers to two different questions asked at the door
+        /// </summary>
+        [XmlIgnore]
+        public string PriceRiseText
+        {
+            get
+            {
+                if (!HavePriceRise)
+                    return string.Empty;
+
+                string what = $"{Gloable.CurrenceSymbol}{PriceRiseWas:0.00} to {Gloable.CurrenceSymbol}{PriceRiseTo:0.00}";
+                string when = PriceRiseDate.ToShortDateString();
+
+                return PriceRiseStillToCome
+                    ? $"Price goes up from {what} on {when}"
+                    : $"Price went up from {what} on {when}";
+            }
+        }
+
+        /// <summary>
+        /// a rise still to come is worth noticing; one that has happened is
+        /// just the price now, and reads as ordinary text
+        /// </summary>
+        [XmlIgnore]
+        public Color PriceRiseTextColour
+        {
+            get
+            {
+                return PriceRiseStillToCome
+                    ? Color.FromArgb("#E65100")
+                    : Color.FromArgb("#6B7280");
+            }
+        }
     }
 }

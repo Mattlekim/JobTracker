@@ -980,6 +980,12 @@ namespace Kernel
             j.GenerateId();
             j.PreviousJobId = this.Id; //set the id
             _Jobs.Add(j);
+
+            //the copy carries the agreed rise, so a visit generated on or
+            //after the day it starts comes out at the new price. done here
+            //rather than by whatever marked the last one done, so none of
+            //the places work is written up from can be the one that forgets
+            j.ApplyPriceRise();
             return j;
         }
 
@@ -1318,6 +1324,11 @@ namespace Kernel
         {
             DueDate = DueDate.AddDays(SkipDays);
             HaveSkipped = true;
+
+            //a skip pushes the due date out, and the rise is worked off the
+            //due date - so a visit passed over just before a rise comes back
+            //round on the other side of it at the new price
+            ApplyPriceRise();
             //kept so the skip stays on the day it happened, alongside the
             //work done that day, rather than moving with the new due date
             DateSkipped = dateSkipped;
@@ -1407,6 +1418,188 @@ namespace Kernel
         /// this price of the job
         /// </summary>
         public float Price;
+
+        /// <summary>
+        /// The day this job's price goes up. <see cref="UsfulFuctions.DateBase"/>
+        /// - the day nothing ever happened on - says no rise has been agreed.
+        ///
+        /// A rise belongs to the job rather than to one visit of it, the same
+        /// as the round does: it is what the house is charged from that day
+        /// on, and the house does not change between one clean and the next.
+        /// So <see cref="DeepCopy"/> carries all three of these, which is
+        /// what lets a visit that does not exist yet come out at the new
+        /// price when it is finally generated.
+        /// </summary>
+        public DateTime PriceRiseDate = UsfulFuctions.DateBase;
+
+        /// <summary>what the price becomes on that day</summary>
+        public float PriceRiseTo;
+
+        /// <summary>
+        /// what it was being charged before. kept because <see cref="Price"/>
+        /// becomes the new figure the moment the rise reaches a visit, and
+        /// the customer's page still has to be able to say what went up
+        /// </summary>
+        public float PriceRiseWas;
+
+        /// <summary>a price rise is on the books for this job</summary>
+        [XmlIgnore]
+        public bool HavePriceRise
+        {
+            get { return PriceRiseTo > 0 && PriceRiseDate > UsfulFuctions.DateBase; }
+        }
+
+        /// <summary>
+        /// the rise is still to come. after this day it is simply the price,
+        /// and the record only says what it went up from and when
+        /// </summary>
+        [XmlIgnore]
+        public bool PriceRiseStillToCome
+        {
+            get { return HavePriceRise && PriceRiseDate.Date > UsfulFuctions.DateNow.Date; }
+        }
+
+        /// <summary>
+        /// What this job charges as things stand - the price on the visit
+        /// next due.
+        ///
+        /// Not <see cref="Price"/> off whichever visit is in front of you: a
+        /// job in _Jobs is every visit of a house, and the one you happen to
+        /// be holding is as likely as not one already done at last year's
+        /// price. The visit next due is what the house is next wanted for,
+        /// which is the same one <see cref="NextDue"/> picks for the lists.
+        /// </summary>
+        [XmlIgnore]
+        public float CurrentPrice
+        {
+            get
+            {
+                Job next = null;
+                foreach (Job visit in EveryVisit())
+                    if (!visit.IsCompleted && !visit.HaveCanceled)
+                        next = NextDue(next, visit);
+
+                return next != null ? next.Price : Price;
+            }
+        }
+
+        /// <summary>
+        /// Puts a price rise on this job - the job, not this one visit of it.
+        ///
+        /// The rise is written on to every visit and then applied to any that
+        /// is already due on or after the day, so work already on the round
+        /// goes up with everything else. Visits that do not exist yet pick it
+        /// up as they are generated, in <see cref="NextVisit"/>.
+        /// </summary>
+        /// <param name="newPrice">what the job charges from that day</param>
+        /// <param name="from">the day the new price starts</param>
+        /// <returns>how many visits changed price there and then</returns>
+        public int SetPriceRise(float newPrice, DateTime from)
+        {
+            if (newPrice <= 0)
+                return 0;
+
+            //what it is going up from is read off the visit next due rather
+            //than off whichever visit this happens to be
+            float was = CurrentPrice;
+
+            foreach (Job visit in EveryVisit())
+            {
+                visit.PriceRiseDate = from.Date;
+                visit.PriceRiseTo = newPrice;
+                visit.PriceRiseWas = was;
+            }
+
+            return ApplyPriceRise();
+        }
+
+        /// <summary>
+        /// takes an agreed rise back off the job, price and all. a rise that
+        /// has already reached a visit leaves that visit at the new price -
+        /// undoing it is a price change of its own, not a forgetting
+        /// </summary>
+        public void ClearPriceRise()
+        {
+            foreach (Job visit in EveryVisit())
+            {
+                visit.PriceRiseDate = UsfulFuctions.DateBase;
+                visit.PriceRiseTo = 0;
+                visit.PriceRiseWas = 0;
+                visit.RaisePropertyChanged("HavePriceRise");
+                visit.RaisePropertyChanged("PriceRiseStillToCome");
+                visit.RaisePropertyChanged("PriceRiseText");
+                visit.RaisePropertyChanged("ShowPriceRise");
+            }
+        }
+
+        /// <summary>
+        /// puts the agreed price on to every visit of this job that has
+        /// reached the day it starts.
+        ///
+        /// A visit already written up keeps the price it was charged at - the
+        /// completed visit, its payment and the customer's balance are one
+        /// record and repricing it afterwards would leave them disagreeing -
+        /// and a cancelled visit is not work.
+        /// </summary>
+        /// <returns>how many visits changed price</returns>
+        public int ApplyPriceRise()
+        {
+            if (!HavePriceRise)
+                return 0;
+
+            int changed = 0;
+            foreach (Job visit in EveryVisit())
+                if (visit.TakeThePriceRise(PriceRiseDate, PriceRiseTo))
+                {
+                    //the row showing this visit only redraws when the job
+                    //says something changed, and its price is on the row
+                    visit.Refresh();
+                    visit.RefreshColors();
+                    changed++;
+                }
+
+            return changed;
+        }
+
+        /// <summary>
+        /// the rise on this one visit and nothing else. false when the visit
+        /// is not one the rise reaches.
+        ///
+        /// Deliberately says nothing to the screen: it is also run over the
+        /// whole list as the jobs are loaded, before there is anything
+        /// showing them, and the page-facing <see cref="ApplyPriceRise"/> is
+        /// what refreshes the rows it changed.
+        /// </summary>
+        private bool TakeThePriceRise(DateTime from, float newPrice)
+        {
+            if (IsCompleted || HaveCanceled)
+                return false;
+
+            if (DueDate.Date < from.Date || Price == newPrice)
+                return false;
+
+            Price = newPrice;
+            RaisePropertyChanged("Price");
+            return true;
+        }
+
+        /// <summary>
+        /// every agreed rise that has come round, over the whole round at
+        /// once. run when the jobs are loaded, because a due date can be
+        /// pushed over the day by a skip while nothing was looking, and the
+        /// rise is worked off the due date rather than off today.
+        ///
+        /// Only what is in memory is changed - the file catches up on the
+        /// next save, like the other tidy ups done on load.
+        /// </summary>
+        public static void ApplyPriceRises()
+        {
+            //every visit carries the rise, so this is one pass over the list
+            //rather than a walk of every visit of every job
+            foreach (Job j in _Jobs)
+                if (j.HavePriceRise)
+                    j.TakeThePriceRise(j.PriceRiseDate, j.PriceRiseTo);
+        }
 
         /// <summary>
         /// what the job is actually worth: the alternative price when one
@@ -1768,6 +1961,13 @@ namespace Kernel
             //the round is the job's, not the visit's: the next clean at a
             //house is on the same round as the last one
             job.Round = Round;
+            //a price rise is the job's for the same reason - it is what the
+            //house is charged from that day, not what one visit cost. this
+            //is what lets a visit generated months from now come out at the
+            //agreed price with nobody having to remember
+            job.PriceRiseDate = PriceRiseDate;
+            job.PriceRiseTo = PriceRiseTo;
+            job.PriceRiseWas = PriceRiseWas;
             //Tags are deliberately left off: they say what happened on one
             //visit, so the next visit starts with a clean sheet
             if (this.AlternativePrices != null)

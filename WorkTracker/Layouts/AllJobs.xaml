@@ -6,6 +6,14 @@
              x:Class="UiInterface.Layouts.AllJobs"
              Title="All Jobs">
 
+    <!-- this is the page with the whole round on it, one row per house, so
+         it is the page a round-wide price rise belongs on: the work list
+         only reaches a fortnight ahead, and half a round put up is worse
+         than none of it -->
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Price Increase" Clicked="tbi_priceRise_Clicked" Order="Secondary"/>
+    </ContentPage.ToolbarItems>
+
     <ContentPage.Resources>
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="StrokeThickness" Value="0" />

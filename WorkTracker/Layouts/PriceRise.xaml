@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.PriceRise"
+             Title="Price Increase">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="*,Auto">
+
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="12" Spacing="12">
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label x:Name="l_count" FontAttributes="Bold" FontSize="16"/>
+                        <Label Style="{StaticResource Caption}"
+                               Text="The new price starts on the day you pick. Cleans already written up keep what they were charged at, and every visit from that day on - including ones that have not been generated yet - comes out at the new price."/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="How much" FontAttributes="Bold"/>
+                        <Picker x:Name="p_how" SelectedIndexChanged="p_how_SelectedIndexChanged"/>
+                        <Entry x:Name="e_amount" Keyboard="Numeric" TextChanged="e_amount_TextChanged"/>
+                        <Grid ColumnDefinitions="*,Auto" x:Name="g_rounding">
+                            <Label Text="Round to the nearest 50p" VerticalOptions="Center"/>
+                            <Switch x:Name="sw_round50" Grid.Column="1" IsToggled="true" Toggled="sw_round50_Toggled"/>
+                        </Grid>
+                        <Label Style="{StaticResource Caption}"
+                               Text="A percentage rarely lands on a price anybody would quote. Rounding keeps them to the sort of figures a round is actually priced in."/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Starts on" FontAttributes="Bold"/>
+                        <DatePicker x:Name="dp_from" DateSelected="dp_from_DateSelected" HorizontalOptions="Start"/>
+                        <Label Style="{StaticResource Caption}"
+                               Text="This is the date the customer is told - it shows on their page until they have been round at the new price."/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="What it comes to" FontAttributes="Bold"/>
+                        <Label x:Name="l_total" Style="{StaticResource Caption}"/>
+                        <VerticalStackLayout x:Name="vsl_preview" Spacing="2"/>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <HorizontalStackLayout Grid.Row="1" Padding="12" Spacing="8" HorizontalOptions="End">
+            <Button Text="Cancel" Clicked="bnt_cancel_Clicked" BackgroundColor="Transparent"
+                    BorderWidth="2" BorderColor="#6B7280" TextColor="#6B7280" CornerRadius="8" Padding="16,6"/>
+            <Button x:Name="bnt_apply" Text="Put The Prices Up" Clicked="bnt_apply_Clicked"
+                    BackgroundColor="#2E7D32" TextColor="White" FontAttributes="Bold" CornerRadius="8" Padding="16,6"/>
+        </HorizontalStackLayout>
+
+    </Grid>
+
+</ContentPage>

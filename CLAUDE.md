@@ -951,6 +951,50 @@ wants those two.
 Everything the row can be tapped for survived the change: street, town, area, type, price, round and money owed
 each still filter the list (see below), and the swipes, the hold, and the right-click menu are untouched.
 
+## Putting the prices up
+
+A price rise is **agreed before it happens**, so the thing that matters about one is the **day it starts** —
+that is what the customer was told and what they ring up about. `Job.PriceRiseDate`, `Job.PriceRiseTo` and
+`Job.PriceRiseWas` hold it, and like the round they belong to the **job** rather than to one visit: `DeepCopy`
+carries all three, which is the whole trick — a visit that will not exist for another month still comes out at
+the agreed price with nobody having to remember.
+
+`Job.SetPriceRise` writes it on to every visit (`EveryVisit`, by `BaseJobId`) and then applies it. A visit takes
+the new price when its **due date** is on or after the day:
+
+- **A clean already written up is never repriced.** The completed visit, its payment and the customer's balance
+  are one record — `MarkJobDone` has already put `EffectivePrice` on the balance — so going back over it would
+  leave the three disagreeing. A cancelled visit is not work and is left alone for the same reason.
+- **Visits are repriced where they are made**, not by whatever pressed the button: `NextVisit` applies the rise
+  to each fresh copy, `SkipJob` re-applies it because a skip pushes a due date out and can carry a visit over
+  the day, and `Job.ApplyPriceRises` runs over the whole list on load for a rise whose day came round while the
+  app was shut. That is in the kernel with the rest of the money so none of the places work is written up from
+  can be the one that forgets.
+- **`Job.CurrentPrice` is what the house is charged as things stand** — the price on the visit next due, found
+  through the same `NextDue` the lists use. Not `Price` off whichever visit you happen to be holding: that one
+  is as likely as not a clean already done at last year's figure, which is exactly what made the customer's page
+  the wrong place to read a price off.
+
+`Layouts/PriceRise` is the one page that asks, so a street and the whole round are put up the same way. It takes
+a list of jobs, keeps **one visit per house** (`Job.SameJobKey` — a list picked off the work list can easily hold
+two visits of the same house, and putting a rise on twice would raise it twice), and offers by an amount, by a
+percentage (rounded to the nearest 50p, because a percentage rarely lands on a price anybody would quote) or, for
+a single job, straight to a new price. **It lists what it is about to do before it does it** — house by house, old
+price to new, with the total — because a round repriced by accident is not something to find out about afterwards.
+
+It is reached from three places, all of which hand it jobs and none of which decide anything:
+
+- the work list's selection toolbar (*Price Increase*), for a street or a handful of houses;
+- `Layouts/AllJobs`, whose toolbar puts up **whatever the page is showing** — the whole round, or the one round
+  the bar above the list already names. That page is where a round-wide rise belongs: the work list only reaches
+  a fortnight ahead (`ResetDateFilter`), and half a round put up is worse than none of it;
+- the customer's page, for the one house.
+
+**The customer's page says the price and the rise** (`ShowPriceRise`, `PriceRiseText`, `PriceRiseTextColour` in
+`JobDisplay.cs`), worded by whether it has happened yet — *goes up from £10 to £12 on 1 April* while it is still
+to come, *went up* after. It stays on show afterwards on purpose: "it went up in April" is the answer to the same
+question.
+
 ## Filtering the work list
 
 Two things narrow `Layouts/WorkPlanner`, and they are not the same kind of thing:
