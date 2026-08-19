@@ -776,6 +776,13 @@ white stroked like the toolbar's (`paycash.svg`, `paycard.svg`, `paypaypal.svg`,
 here carries neither. `MethodTextColour` is what goes on them, said once so a colour ever changed takes its text
 with it.
 
+**The customer's history says it the same way** (`Layouts/ViewCustomerDetails`, through
+`WorkTracker/Kernal/History.cs`): a payment's date banner is banded in the method's colour with the method's
+icon on it, rather than the one green every payment used to get, and the line under it says *Paid by Bank
+Transfer* off the same `MethodName`. It is the same two properties answering on both pages, so the two cannot
+drift. `Payment.PaymentType` - the raw enum name as a string - was what those pages worded a method with, and
+it is gone: with `MethodName` beside it, the un-worded one would only get picked again by mistake.
+
 Two small things the page reads off the payment rather than working out itself: `HasReference` keeps a column of
 blank references off every cash payment, and `ShowAge` keeps the row from saying *Today* twice, since
 `PaymentDate` and `PaymentDaysAgo` both say it. A payment matched to nobody says so in red
