@@ -1147,25 +1147,39 @@ public partial class SettingLayout : ContentPage
             return;
         }
 
-        // the sheet has streets but no city/area - ask once for the file
-        string city = await DisplayPromptAsync("Import", "City for the customers in this sheet (optional):",
-            "Next", "Cancel", initialValue: GuessCityFromFileName(fr.FileName));
-        if (city == null)
-            return;
-        string area = await DisplayPromptAsync("Import", "Area for the customers in this sheet (optional):",
-            "Import", "Cancel", initialValue: "");
-        if (area == null)
+        //a sheet says where the houses are and nothing above the street, so
+        //the town, the round, the money and the first due date are all asked
+        //once for the whole file - on one page rather than as a run of
+        //alerts, so an answer can still be changed before Import is pressed
+        ImportExport.ImportOptions options = await ImportSheet.AskAsync(
+            Navigation, fr.FileName, GuessCityFromFileName(fr.FileName));
+        if (options == null)
             return;
 
         try
         {
+            int knownRounds = Job.RoundNames.Count;
+
             ImportExport.ImportResult result;
             using (Stream stream = await fr.OpenReadAsync())
-                result = ImportExport.CustomerImporter.Import(stream, city.Trim(), area.Trim());
+                result = ImportExport.CustomerImporter.Import(stream, options);
+
+            //a round typed in rather than picked is new, and the list of
+            //rounds lives with the settings
+            if (Job.RoundNames.Count != knownRounds)
+                Settings.Save();
 
             DataRefreshNotifier.NotifyDataChanged();
 
             string summary = $"Customers created: {result.Created}\nCustomers updated: {result.Updated}";
+            if (result.RoundSet > 0)
+                summary += $"\n{result.RoundSet} job(s) put on {options.Round}, and every visit of them";
+            if (result.DueDatesSet > 0)
+                summary += $"\n{result.DueDatesSet} job(s) due {options.DueDate.Value:d MMM yyyy}";
+            if (result.DueDatesLeftBooked > 0)
+                summary += $"\n{result.DueDatesLeftBooked} job(s) left on the day they are booked in for";
+            if (result.BalancesCleared > 0)
+                summary += $"\n{result.BalancesCleared} balance(s) cleared - each one is in that customer's history";
             if (result.TnbFromNotes > 0)
                 summary += $"\n{result.TnbFromNotes} set to text the night before (from notes)";
             if (result.PhonesFound > 0)

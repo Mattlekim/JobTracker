@@ -728,6 +728,39 @@ note. Payee text is matched through `StatementText.PayeeKey`, which strips the r
 "direct debit"/"card payment" wrapping the bank puts around the name. Rules are editable on the
 `Layouts/ExpenseRules` page, and live in `expenserules.rjt` alongside the other data files.
 
+## Importing a round off a spreadsheet
+
+`ImportExport/RoundSheetParser` reads the .xlsx (straight over the zip/XML, so there is no NuGet package to add for
+Android) and `ImportExport/CustomerImporter` maps its rows onto customers and jobs, matched on house number plus
+street: a house not on the round is created, one already there has its price, frequency, TNB and front price
+brought up to date.
+
+A sheet says where the houses are, what they cost and how often they come round, and **nothing above the street**.
+Four things it cannot say are asked once for the whole file on `Layouts/ImportSheet` — the town and area, which
+round the work goes on, whether everybody starts owing nothing, and whether the whole lot is due on one day. They
+used to be a run of `DisplayPromptAsync` alerts (town, then area), which gives no way back to an answer already
+given and no room to say what any of them mean. The page decides nothing: it hands back an
+`ImportExport.ImportOptions` and the importer does the work, so an import started from somewhere else would behave
+the same.
+
+- **The round** goes on through `Job.SetRound`, so it lands on **every visit** of a house rather than on the one
+  the import happened to touch — the same rule as everywhere else a round is set. A **blank round asks for
+  nothing**: work already on one keeps it, and new work starts on none. Taking a whole sheet's houses *off* their
+  rounds is not something an import should be able to do by being left alone. A round typed in rather than picked
+  is new, so the settings are saved when `Job.RoundNames` has grown, exactly as the work list does it.
+- **Starting everybody at nothing owed** is for a round taken on off somebody else's spreadsheet: what a sheet
+  carries is the work, not the ledger. Each balance cleared leaves a `BalanceAdjustment` write-off behind it, like
+  every other balance changed by hand — see *Changing things from the customer's page*. A customer already owing
+  nothing has nothing to record, which is also what keeps a customer with two houses on the sheet from being
+  written off twice.
+- **One due date for all of it** is for a sheet that has not been kept up to date; left off, each house is worked
+  out from the last clean ticked on the sheet and how often it comes round, which is what a sheet that *has* been
+  kept up is for. Three sorts of visit are left where they are: a clean already written up (that day is what a
+  month's takings are read off), a cancelled one, and **a day already booked in** — the calendar puts booked work
+  on `DateJobBookinFor` rather than on the due date, so moving the date under a booking would say one thing on the
+  calendar and another on the round. Anything left behind is counted and said in the summary rather than passed
+  over quietly.
+
 ## Google Drive sync
 
 `WorkTracker/CloudSync.cs` syncs the `.rjt` data files and receipt photos with the user's Drive `appDataFolder`
