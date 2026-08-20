@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:UiInterface.Controles"
+             xmlns:local="clr-namespace:UiInterface"
              x:Class="UiInterface.Layouts.BookedWork"
              Title="Booked In Work">
 
@@ -52,11 +53,19 @@
                      most on: a booked day is a day with a date on it, so it
                      is the one list that says which of tomorrow's houses want
                      telling tonight. It was off only because the hand written
-                     row this control replaced never had the chips. -->
+                     row this control replaced never had the chips.
+
+                     RowStyle is the one option this page does not decide:
+                     the round is set to read its days as cards or as the
+                     paper round book's rows (Settings, Calendar And Booked
+                     Work), and both day pages follow it. It is bound rather
+                     than set, because the rows are recycled as the list is
+                     scrolled - see Controles/JobCard. -->
                 <controls:JobCard Job="{Binding .}"
                                   AddressStyle="NumberOnly"
                                   ShowDue="False"
-                                  ShowDoneChip="True">
+                                  ShowDoneChip="True"
+                                  RowStyle="{Binding Source={x:Static local:DayListView.Current}, Path=RowStyle}">
                     <!-- holding a row brings up everything that can be
                          done to it, the swipe actions included. the
                          behaviour is what does it on a phone; the pointer

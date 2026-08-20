@@ -1196,6 +1196,48 @@ wants those two.
 Everything the row can be tapped for survived the change: street, town, area, type, price, round and money owed
 each still filter the list (see below), and the swipes, the hold, and the right-click menu are untouched.
 
+### Reading a day on paper instead of as cards
+
+`JobCard.RowStyle` is the second way the same control draws a house: `Card` is everything above, `Paper` is the
+round book's row — one tight line of the house, the TNB/ENB badges, the price on its green, whatever is written
+down about it with the visit's tags under that, what is owed, and the **mark** for what happened to it. No card
+behind it, no gap between rows and a rule underneath, so a whole day fits a phone screen the way a page of the
+book does.
+
+**It is one setting for the calendar and the booked work page and nothing else** (`WorkTracker/DayListView.cs`,
+the *Calendar and Booked Work* section on the settings page, list view to begin with). Those two are the same day
+looked at twice, so a round read one way on one of them and the other way on the next would only be two habits to
+keep up. The work list and All Jobs are not in it — they are the round rather than a day — and `Layouts/PaperView`
+is already the paper view. It is a preference and not a setting in the data files, like the paper view's own view
+options and the calendar's `HideDueWork`: how a page is being read is not something about the round, so it has no
+business travelling in a backup.
+
+Three things about it that are easy to undo:
+
+- **The pages bind it, they do not set it.** A row on a virtualised list is built when it is scrolled into view
+  and handed a different house every time it comes back round, so a card that read the setting once and
+  remembered the answer would draw whatever it was when that row happened to be built — half a day in cards and
+  half of it on paper, which is the shape of the bug the tick boxes on the work list once had. `DayListView.Current`
+  raises `PropertyChanged`, the two templates bind to it, and every row that exists is told.
+- **The paper pieces are built only if a card is ever asked to draw one** (`JobCard.EnsurePaperRow`). A round is
+  hundreds of houses and every list in the app draws cards unless this is turned on, so building both bodies in
+  the constructor would be a dozen labels a row that nobody ever sees.
+- **Every option is still the page's.** `ApplyPaper` asks the same `Show*` bools and the same `AddressStyle`,
+  `OwedStyle` and folds the card does, so a page with its notes or its extra chips turned off gets the same answer
+  whichever way its days are being read. What a paper row deliberately drops is the town and area (the street
+  heading above the row already says where this is) and the due date (a day list's day *is* the date) — neither
+  fits on one line, and a paper row that wraps is not a paper row. The **info button stays**, smaller, on a page
+  that asked for one: the paper view can do without it because a row there opens the job when it is tapped, but
+  the calendar's day list has no tap on its rows at all, so taking it off would leave nothing to open a house
+  with but the swipe.
+
+**The marks are kept once, on the job** — `Job.PaperMark`/`Job.MarkDone` and friends in `Kernel/JobDisplay.cs`.
+They used to live on `PaperView.PaperItem`, which was fine while that page was the only thing that drew them;
+`PaperItem.StringDone` and the rest are now properties forwarding to the job's, so the settings page still edits
+them under *Paper View* by the names everything already knows, and a visit cannot be marked one way on the
+calendar and another on the sheet. `PaperMark` asks the same questions in the same order the paper view's record
+columns do — **completed before cancelled**, like every other count of the work.
+
 ## Putting the prices up
 
 A price rise is **agreed before it happens**, so the thing that matters about one is the **day it starts** —

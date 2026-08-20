@@ -52,7 +52,43 @@ public partial class PaperView : ContentPage
             }
         }
 
-        public static string StringPaid = "/", StringDone = "\\", StringDonePaid = "X", StringSkipped = "O", StringCanceld = "-";
+        //  The marks this page writes in the record columns. They are kept
+        //  on the job's display half (Kernel/JobDisplay.cs) rather than here
+        //  now that this is not the only page that draws them - the calendar
+        //  and the booked work page draw houses in the paper style too when
+        //  the round is set to read that way. These stay as the names
+        //  everything already knows them by, so nothing else had to change,
+        //  and there is still only one of each symbol.
+        public static string StringPaid
+        {
+            get { return Job.MarkPaid; }
+            set { Job.MarkPaid = value; }
+        }
+
+        public static string StringDone
+        {
+            get { return Job.MarkDone; }
+            set { Job.MarkDone = value; }
+        }
+
+        public static string StringDonePaid
+        {
+            get { return Job.MarkDonePaid; }
+            set { Job.MarkDonePaid = value; }
+        }
+
+        public static string StringSkipped
+        {
+            get { return Job.MarkSkipped; }
+            set { Job.MarkSkipped = value; }
+        }
+
+        public static string StringCanceld
+        {
+            get { return Job.MarkCancelled; }
+            set { Job.MarkCancelled = value; }
+        }
+
 		public string Title { get; set; } = " ";
 
 		//the real address. rows are matched on these, streets are grouped by

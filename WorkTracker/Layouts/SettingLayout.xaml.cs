@@ -477,6 +477,8 @@ public partial class SettingLayout : ContentPage
         sw_workSharing.IsToggled = Settings.EnableWorkSharing;
         _loadingWorkSharing = false;
 
+        ShowDayViewSection();
+
         e_pv_done.Text = PaperView.PaperItem.StringDone;
         e_pv_paid.Text = PaperView.PaperItem.StringPaid;
         e_pv_donepaid.Text = PaperView.PaperItem.StringDonePaid;
@@ -502,6 +504,41 @@ public partial class SettingLayout : ContentPage
 
         ShowPhotoQualityDetail();
         ShowReceiptStorage();
+    }
+
+    /// <summary>
+    /// How the calendar and the booked work page list a day - the cards, or
+    /// the paper round book's rows.
+    ///
+    /// It is a preference rather than a setting in the data files, like the
+    /// paper view's own view options, so it is kept the moment it is chosen
+    /// and there is nothing here for Settings.Save to write. The pages bind
+    /// to it, so a day already on screen changes with it.
+    /// </summary>
+    private void ShowDayViewSection()
+    {
+        if (p_dayView.Items.Count == 0)
+            foreach (string name in DayListView.ChoiceNames)
+                p_dayView.Items.Add(name);
+
+        //set straight rather than through the handler, so showing the view
+        //that is already in use does not count as a change
+        _loadingDayView = true;
+        p_dayView.SelectedIndex = DayListView.Choice;
+        _loadingDayView = false;
+    }
+
+    private bool _loadingDayView = false;
+
+    private void p_dayView_Changed(object sender, EventArgs e)
+    {
+        if (_loadingDayView)
+            return;
+
+        if (p_dayView.SelectedIndex < 0)
+            return;
+
+        DayListView.Choice = p_dayView.SelectedIndex;
     }
 
     private bool _loadingPhotoQuality = false;
