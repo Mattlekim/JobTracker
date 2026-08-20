@@ -1,4 +1,4 @@
-﻿namespace UiInterface.Layouts;
+namespace UiInterface.Layouts;
 
 using Microsoft.Maui.Controls.Shapes;
 using Kernel;
@@ -140,7 +140,7 @@ public class CalenderDay: INotifyPropertyChanged
     /// day is already coloured by its work and a coloured dot on top of that
     /// would read as more of the same
     /// </summary>
-    public static string NoteMark = "\u270e";
+    public static string NoteMark = "✎";
 
 	public ObservableCollection<Job> Jobs = new ObservableCollection<Job>();
 
@@ -710,18 +710,9 @@ public partial class CalenderView : ContentPage
         //at the point we need to refresh the current day
       
 
-        if (_selectedDay.Jobs.Count > 0)
-        {
-            ShowDaysWork();
-            l_noJobs.IsVisible = false;
-        }
-        else
-        {
-            l_noJobs.IsVisible = true;
-            _jobsToDisplay.Clear();
-            
-        }
-
+        //the day's list and whether anything is on it are RefreshPageDate's
+        //to say, at the bottom of this method: it is the one place that knows
+        //what is being left off the day - see ShowDaysWork
 
     //    _selectedDay.ResetColor();
 //_selectedDay = dayTapped;
@@ -929,10 +920,6 @@ public partial class CalenderView : ContentPage
         //picking a day is asking for that day, so any filter comes off
         _showingOwing = false;
 
-        if (dayTapped.Jobs.Count > 0)
-            l_noJobs.IsVisible = false;
-        else
-            l_noJobs.IsVisible = true;
         RefreshPageDate();
 
         int index = Convert.ToInt32(b.ClassId);
@@ -1086,10 +1073,6 @@ public partial class CalenderView : ContentPage
         //picking a day is asking for that day, so any filter comes off
         _showingOwing = false;
 
-        if (dayTapped.Jobs.Count > 0)
-            l_noJobs.IsVisible = false;
-        else
-            l_noJobs.IsVisible = true;
         RefreshPageDate();
     }
 
@@ -1356,22 +1339,200 @@ public partial class CalenderView : ContentPage
         }
     }
     /// <summary>
-    /// The day's work as it is shown: street headings with the houses under
-    /// them, in street order and up each street by house number - the same
-    /// street format All Jobs reads the round in (Controles/StreetSplit).
+    /// whether the work that only falls due on a day is left off that day's
+    /// list, leaving what was actually booked in for it.
+    ///
+    /// Off to begin with: until somebody says otherwise a day's work is
+    /// everything that lands on it. It is kept like the paper view's view
+    /// options - how the page is being read is not something about the round,
+    /// so it does not belong in the data files - and it is kept rather than
+    /// asked again every time, because a round that is worked to what was
+    /// booked in is worked that way every day.
+    /// </summary>
+    public static bool HideDueWork
+    {
+        get { return Preferences.Get("Calendar_HideDueWork", false); }
+        set { Preferences.Set("Calendar_HideDueWork", value); }
+    }
+
+    /// <summary>how much of the picked day's work the last build left off it,
+    /// which is what the bar above the list has to say out loud</summary>
+    private int _dueHidden = 0;
+
+    /// <summary>
+    /// The day's work as it is shown: the work booked in for the day first,
+    /// then the work that merely falls due on it, each under a title of its
+    /// own and each split into street headings with the houses under them, in
+    /// street order and up each street by house number - the same street
+    /// format All Jobs reads the round in (Controles/StreetSplit).
+    ///
+    /// The two are separated because they are two different things: a booked
+    /// day is what you have arranged to turn up for, and the rest is work the
+    /// round says is ready. Mixed into one list, a day planned out read the
+    /// same as a day nobody had touched.
+    ///
     /// Work already done stays on its street, folded to the faded line, so a
     /// street is one run of houses however far through it the day is.
+    ///
+    /// Hands back the jobs actually drawn, because the day's figures under the
+    /// calendar are about what is on screen - see <see cref="RefreshPageDate"/>.
     /// </summary>
-    private void ShowDaysWork()
+    private List<Job> ShowDaysWork()
     {
+        List<Job> booked = new List<Job>();
+        List<Job> due = new List<Job>();
+
+        foreach (Job j in _selectedDay.Jobs)
+        {
+            if (j == null)
+                continue;
+
+            if (j.IsBookedIn)
+                booked.Add(j);
+            else
+                due.Add(j);
+        }
+
+        _dueHidden = 0;
+        if (HideDueWork)
+        {
+            //a clean that was done on the day is what the day was, booked in
+            //or not - it is not work waiting to be arranged, so hiding the due
+            //work never hides it. What comes off is the outstanding work that
+            //nobody has booked
+            _dueHidden = due.RemoveAll(x => !x.IsCompleted);
+        }
+
+        //a title is only drawn when there is something to tell apart: a day
+        //that is all booked in, or all due, is one list and reads as one
+        bool titles = booked.Count > 0 && due.Count > 0;
+
         _jobsToDisplay.Clear();
-        foreach (object row in StreetSplit.WithHeadings(_selectedDay.Jobs))
+
+        List<Job> shown = new List<Job>();
+        AddDaySection(booked, titles ? "Booked In" : null, BookedSectionColour, shown);
+        AddDaySection(due, titles ? "Due" : null, DueSectionColour, shown);
+
+        return shown;
+    }
+
+    /// <summary>the booked half is in the page's booking orange, which reads
+    /// on either theme</summary>
+    private static readonly Color BookedSectionColour = Color.FromArgb("#EF6C00");
+
+    private static readonly Color DueSectionSlate = Color.FromArgb("#546E7A");
+
+    private static readonly Color DueSectionSlateDark = Color.FromArgb("#90A4AE");
+
+    /// <summary>
+    /// the due half is written in slate, and it takes the lighter one on the
+    /// dark page - the same slate that reads as quiet on a white page is too
+    /// dark to read on a near black one. Like the rest of the colours here the
+    /// theme is asked at build time and not watched
+    /// </summary>
+    private static Color DueSectionColour
+    {
+        get
+        {
+            return Application.Current != null
+                && Application.Current.PlatformAppTheme == AppTheme.Dark
+                ? DueSectionSlateDark : DueSectionSlate;
+        }
+    }
+
+    /// <summary>
+    /// one part of the day on to the list: its title, then its streets with
+    /// their houses under them
+    /// </summary>
+    private void AddDaySection(List<Job> jobs, string title, Color colour, List<Job> shown)
+    {
+        if (jobs.Count == 0)
+            return;
+
+        if (title != null)
+            _jobsToDisplay.Add(new SectionHeading()
+            {
+                Title = title,
+                Detail = SectionDetail(jobs),
+                Colour = colour,
+            });
+
+        foreach (object row in StreetSplit.WithHeadings(jobs))
         {
             if (row is Job j)
+            {
                 j.CollapsedInList = j.IsCompleted;
+                shown.Add(j);
+            }
 
             _jobsToDisplay.Add(row);
         }
+    }
+
+    /// <summary>
+    /// what a section comes to, said under its title - how many houses and
+    /// what they are worth, worded by <see cref="DayProgress"/> so a part of a
+    /// day and the whole day cannot be worded differently
+    /// </summary>
+    private static string SectionDetail(List<Job> jobs)
+    {
+        DayProgress part = DayProgress.For(jobs);
+
+        string houses = jobs.Count == 1 ? "1 house" : $"{jobs.Count} houses";
+
+        return part.ShowValue ? $"{houses} - {part.ValueText}" : houses;
+    }
+
+    /// <summary>
+    /// The way the due work is taken off the day and put back, and - while it
+    /// is off - what is not being shown.
+    ///
+    /// A filter that is on with nothing on screen saying so is the one thing
+    /// this must not do, which is why the bar comes up as soon as anything is
+    /// actually hidden. A day with nothing due has nothing to say either way.
+    /// </summary>
+    private void ShowDueWorkOption()
+    {
+        hsl_dueHidden.IsVisible = false;
+        bnt_hideDue.IsVisible = false;
+
+        if (_selectedDay == null)
+            return;
+
+        if (HideDueWork)
+        {
+            if (_dueHidden == 0)
+                return;
+
+            l_dueHidden.Text = _dueHidden == 1
+                ? "1 job just due not shown"
+                : $"{_dueHidden} jobs just due not shown";
+            hsl_dueHidden.IsVisible = true;
+            return;
+        }
+
+        int due = 0;
+        foreach (Job j in _selectedDay.Jobs)
+            if (j != null && !j.IsBookedIn && !j.IsCompleted && !j.HaveCanceled)
+                due++;
+
+        if (due == 0)
+            return;
+
+        bnt_hideDue.Text = due == 1 ? "Hide The One Just Due" : $"Hide The {due} Just Due";
+        bnt_hideDue.IsVisible = true;
+    }
+
+    private void bnt_hideDue_Clicked(object sender, EventArgs e)
+    {
+        HideDueWork = true;
+        RefreshPageDate();
+    }
+
+    private void bnt_showDue_Clicked(object sender, EventArgs e)
+    {
+        HideDueWork = false;
+        RefreshPageDate();
     }
 
     /// <summary>the list is showing everyone who owes rather than a day's work</summary>
@@ -1431,6 +1592,9 @@ public partial class CalenderView : ContentPage
 
         bool dark = Application.Current.PlatformAppTheme == AppTheme.Dark;
         bool altColor = false;
+
+        //the day itself is not what is on screen, so nothing of it is hidden
+        _dueHidden = 0;
 
         _jobsToDisplay.Clear();
         foreach (Job j in owing)
@@ -1534,6 +1698,8 @@ public partial class CalenderView : ContentPage
     {
         hsl_filter.IsVisible = false;
         bnt_bookDayIn.IsVisible = false;
+        hsl_dueHidden.IsVisible = false;
+        bnt_hideDue.IsVisible = false;
 
         if (_showingOwing && _selectedDay != null)
         {
@@ -1562,15 +1728,23 @@ public partial class CalenderView : ContentPage
             return;
         }
 
-        l_noJobs.Text = "No Jobs To Do";
         l_currentDayName.Text = $"{_selectedDay.Date.DayOfWeek} {_selectedDay.Day}/{_selectedDay.Date.Month}/{_selectedDay.Date.Year}";
 
-        ShowDaysWork();
-        l_noJobs.IsVisible = _selectedDay.Jobs.Count == 0;
+        List<Job> shown = ShowDaysWork();
+
+        //a day emptied by the due work being hidden is not a day with nothing
+        //on it, and saying "No Jobs To Do" over a day with five houses due on
+        //it would be a plain lie. The bar above says how many are hidden
+        l_noJobs.Text = _dueHidden > 0 ? "Nothing Booked In For This Day" : "No Jobs To Do";
+        l_noJobs.IsVisible = shown.Count == 0;
 
         //how the day stands, worked out in the kernel so this page and the
-        //booked work page cannot say the same day two different ways
-        DayProgress day = DayProgress.For(_selectedDay.Jobs);
+        //booked work page cannot say the same day two different ways.
+        //
+        //It is asked of the work on screen rather than of the whole day: with
+        //the due work hidden the chips are about the day as it is being read,
+        //and the day as a whole is still what colours the cell on the grid
+        DayProgress day = DayProgress.For(shown);
 
         float paymentsTotal = 0;
         foreach (Payment p in Payment.Query())
@@ -1594,6 +1768,7 @@ public partial class CalenderView : ContentPage
 
         ShowDayProgress(day);
         ShowDayNote();
+        ShowDueWorkOption();
         ShowBookInOption();
     }
 
