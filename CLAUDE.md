@@ -575,6 +575,34 @@ nowhere to go on a phone). They all go through `WorkPlanner.CancelBooking`, whic
 Cancelling a booking is **not** cancelling the work: the jobs go back on the round, due as they were, and
 anything already done stays done.
 
+### How much of a day is done
+
+`Kernel/DayProgress.cs` is the one answer to "how far through this day am I", and both pages that show a day read
+it: the day headings on `Layouts/BookedWork` and the day panel under the calendar. They each used to work it out
+for themselves — two copies of the same loop with two copies of the same wording under them — which is two chances
+to word the same day differently.
+
+It says it two ways, because they are two questions:
+
+- **In houses** — `CountText`, *3 of 12 done, 9 left*.
+- **In money** — `ValueText`, *£45.00 of £120.00 done*. This is the one the count cannot answer: eight houses of
+  twelve is not two thirds of the day's money when the four left are the expensive ones. A day with nothing done
+  yet says *£120.00 to do* and a finished one says *£120.00 done*, so the chip always answers rather than
+  disappearing.
+
+On the calendar it goes **inside the existing Jobs chip** (*Jobs £45.00 of £120.00 done*) rather than in a second
+one next to it, which would only carry the same total round again. On the booked work page it is a chip of its own
+beside the count, since that page has no money on it otherwise.
+
+**A clean that was done counts even though the job has been cancelled since**, so completed is tested *before*
+cancelled — the same order `RoundStats`, `CalenderView.PopulateDays` and `TaxReporting` go in, and the reason the
+money here agrees with the month's takings. Both pages tested cancelled first before this, so a house done and
+then cancelled was quietly missing from the day it was done on. A cancelled visit that never happened is not work
+and is left out either way.
+
+`ShortMinutes` is *2h 30m* rather than `Job.SpellMinutes`' *2 hrs 30 mins*, deliberately: that one is a tag on a
+row and is read on its own, this one rides in a chip beside two others on a day heading.
+
 ### Skipping work that is booked in
 
 Skipping a job takes it off the day it was booked for. Skipping says you were there and passed the house over, and

@@ -26,6 +26,16 @@ public partial class BookedWork : ContentPage, IHoldRows
         /// <summary>how much of the day is done, e.g. "3 of 8 done, 5 left"</summary>
         public string Progress { get; set; } = string.Empty;
 
+        /// <summary>
+        /// what the day comes to and how much of that has been earned, e.g.
+        /// "£45.00 of £120.00 done". The count cannot answer that on its own:
+        /// eight houses of twelve is not two thirds of the money when the
+        /// four left are the expensive ones
+        /// </summary>
+        public string DoneValue { get; set; } = string.Empty;
+
+        public bool ShowDoneValue { get; set; }
+
         /// <summary>roughly how long what is left will take</summary>
         public string TimeLeft { get; set; } = string.Empty;
 
@@ -101,54 +111,26 @@ public partial class BookedWork : ContentPage, IHoldRows
         }
 
         /// <summary>
-        /// How the day is going, the same figures the calendar shows. A job
-        /// with no estimate of its own falls back to the default job time on
-        /// the settings page, so the figure is not quietly optimistic on a
-        /// round that has never had times filled in. Cancelled jobs are not
-        /// work left and are not counted either way.
+        /// How the day is going - and it is <see cref="DayProgress"/> that
+        /// works it out, not this page. The calendar shows a day the same way
+        /// and the two must not be able to disagree about how far through it
+        /// you are, so the counting and the wording are in the kernel with
+        /// the work.
         /// </summary>
         private void WorkOutProgress()
         {
-            int minutesLeft = 0;
+            DayProgress day = DayProgress.For(Jobs);
 
-            foreach (Job j in Jobs)
-            {
-                if (j.HaveCanceled)
-                    continue;
+            DoneCount = day.Done;
+            LeftCount = day.Left;
 
-                if (j.IsCompleted)
-                {
-                    DoneCount++;
-                    continue;
-                }
+            Progress = day.CountText;
 
-                LeftCount++;
-                minutesLeft += JobDuration.MinutesFor(j);
-            }
+            DoneValue = day.ValueText;
+            ShowDoneValue = day.ShowValue;
 
-            int total = DoneCount + LeftCount;
-
-            if (LeftCount == 0)
-                Progress = total == 1 ? "Done" : $"All {total} done";
-            else
-                Progress = $"{DoneCount} of {total} done, {LeftCount} left";
-
-            //no times filled in anywhere - better to say nothing than "0m left"
-            ShowTimeLeft = minutesLeft > 0;
-            TimeLeft = $"About {FormatMinutes(minutesLeft)} left";
-        }
-
-        /// <summary>minutes as a person would say them - 2h 30m, 45m, 3h</summary>
-        private static string FormatMinutes(int minutes)
-        {
-            int hours = minutes / 60;
-            int rest = minutes % 60;
-
-            if (hours == 0)
-                return $"{rest}m";
-            if (rest == 0)
-                return $"{hours}h";
-            return $"{hours}h {rest}m";
+            TimeLeft = day.TimeLeftText;
+            ShowTimeLeft = day.ShowTimeLeft;
         }
     }
 
