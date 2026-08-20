@@ -210,16 +210,20 @@ namespace WorkTracker
                     string copy = System.IO.Path.Combine(
                         Microsoft.Maui.Storage.FileSystem.CacheDirectory, name);
 
-                    using (System.IO.Stream from = ContentResolver.OpenInputStream(uri))
+                    string why;
+                    if (!CopyTheFileOut(uri, copy, out why))
                     {
-                        if (from == null)
-                        {
-                            UiInterface.ImportExport.WorkShareOpen.UnreadableFileWasOpened(name);
-                            return;
-                        }
+                        //  the app that sent the file would not hand it over,
+                        //  which is a different thing from a file that is not
+                        //  one of ours and has a different answer - so it is
+                        //  said differently. What was tried goes in the log:
+                        //  every attempt was caught and worked past, so there
+                        //  is no other way to know which of them failed how
+                        CrashLogger.Log($"MainActivity.TakeTheFile ({Describe(uri, name)})",
+                            new System.Exception(why));
 
-                        using (System.IO.Stream to = System.IO.File.Create(copy))
-                            from.CopyTo(to);
+                        UiInterface.ImportExport.WorkShareOpen.FileCouldNotBeFetched(name);
+                        return;
                     }
 
                     if (Kernel.WorkShare.LooksLikeShare(name))
@@ -250,10 +254,100 @@ namespace WorkTracker
                     //a file we cannot read is not worth taking the app down
                     //for - but it is worth a line in the crash log, because
                     //"nothing happened" cannot be chased without one
-                    CrashLogger.Log("MainActivity.TakeTheFile", ex);
+                    CrashLogger.Log($"MainActivity.TakeTheFile ({Describe(uri, name)})", ex);
                     UiInterface.ImportExport.WorkShareOpen.UnreadableFileWasOpened(name);
                 }
             });
+        }
+
+        /// <summary>
+        /// Gets the bytes of whatever was opened out of the app that sent it
+        /// and into our own cache.
+        ///
+        /// It takes two goes at it, because openInputStream - the ordinary
+        /// way, and the one a file manager or the downloads list answers -
+        /// says only "file not found" about a document the sending app is not
+        /// actually holding. A backup sitting in Drive, or on an email that
+        /// has never been downloaded, is exactly that: the provider has a
+        /// record of the file and no bytes to give. Asked for as a *typed
+        /// asset* the provider goes and fetches it first, which is what that
+        /// call is for, and it is the one that gets a backup off an email on
+        /// to a new phone.
+        ///
+        /// Neither is allowed to throw out of here. A file that cannot be got
+        /// hold of is worth saying plainly and is not worth taking the app
+        /// down for, so what was tried is handed back for the log instead.
+        /// </summary>
+        /// <returns>true when the file is now sitting in <paramref name="destination"/></returns>
+        private bool CopyTheFileOut(Android.Net.Uri uri, string destination, out string why)
+        {
+            System.Collections.Generic.List<string> tried = new System.Collections.Generic.List<string>();
+
+            try
+            {
+                using (System.IO.Stream from = ContentResolver.OpenInputStream(uri))
+                    if (from != null)
+                    {
+                        using (System.IO.Stream to = System.IO.File.Create(destination))
+                            from.CopyTo(to);
+
+                        why = string.Empty;
+                        return true;
+                    }
+
+                tried.Add("openInputStream: gave nothing back");
+            }
+            catch (System.Exception ex)
+            {
+                tried.Add($"openInputStream: {ex.Message}");
+            }
+
+            try
+            {
+                using (Android.Content.Res.AssetFileDescriptor asset =
+                           ContentResolver.OpenTypedAssetFileDescriptor(uri, "*/*", (Android.OS.Bundle)null))
+                    if (asset != null)
+                        using (Java.IO.InputStream from = asset.CreateInputStream())
+                            if (from != null)
+                            {
+                                //copied a block at a time off the java stream
+                                //rather than handed to CopyTo: what comes back
+                                //here is java's own stream and not one of ours
+                                byte[] buffer = new byte[64 * 1024];
+
+                                using (System.IO.Stream to = System.IO.File.Create(destination))
+                                {
+                                    int read;
+                                    while ((read = from.Read(buffer)) > 0)
+                                        to.Write(buffer, 0, read);
+                                }
+
+                                why = string.Empty;
+                                return true;
+                            }
+
+                tried.Add("openTypedAssetFileDescriptor: gave nothing back");
+            }
+            catch (System.Exception ex)
+            {
+                tried.Add($"openTypedAssetFileDescriptor: {ex.Message}");
+            }
+
+            why = string.Join("; ", tried);
+            return false;
+        }
+
+        /// <summary>
+        /// what is known about a uri that would not open, for the log. The
+        /// path itself is left out: it is somebody's file name and the log
+        /// gets sent to us
+        /// </summary>
+        private static string Describe(Android.Net.Uri uri, string name)
+        {
+            if (uri == null)
+                return $"no uri, name={name}";
+
+            return $"{uri.Scheme}://{uri.Authority} name={name}";
         }
 
         /// <summary>

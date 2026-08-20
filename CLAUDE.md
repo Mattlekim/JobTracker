@@ -192,6 +192,19 @@ carry the name.
   silently, and "opened the file, app loads, nothing happens" was exactly how that was reported. Failures in the
   copy land in the crash log, so a silent path cannot come back unnoticed.
 
+**Getting the bytes takes two goes** (`MainActivity.CopyTheFileOut`). `openInputStream` is the ordinary way and
+what a file manager or the downloads list answers, but it says only *file not found* about a document the sending
+app is not actually holding — one still in Drive, or on an email that has never been downloaded. The provider has
+a record of the file and no bytes to give. Asked for as a **typed asset** (`OpenTypedAssetFileDescriptor`) it
+fetches the file first, which is what that call is for and what gets a backup off an email on to a new phone. That
+was a real crash log: `FileNotFoundException` out of `ContentResolver.OpenInputStream` on a Pixel, and the user was
+told the file was *not something Work Tracker recognises* — which sent them looking at the backup rather than at
+where it was kept. **The two failures are said differently now**: `WorkShareOpen.FileCouldNotBeFetched` for a file
+the sending app would not part with (with what to do about it — save it to the phone first),
+`UnreadableFileWasOpened` for one that is genuinely not ours. Both build the whole sentence, because `AppShell`
+cannot tell them apart by the time it shows the alert. What was tried goes in the crash log with the uri's scheme
+and authority: every attempt is caught and worked past, so there is nothing else to go on afterwards.
+
 The second kind is the one that matters: a backup off an email or out of Drive lands in the downloads list, and
 **with only the pattern filters the app never appeared in the chooser at all**. Do not take them out. For the same
 reason, a backup saved with *Save To This Device* is written as `application/octet-stream` rather than left for
