@@ -165,12 +165,11 @@ public class Settings
         sd.SymbolPaid = PaperView.PaperItem.StringPaid;
         sd.SymbolDonePaid = PaperView.PaperItem.StringDonePaid;
 
-        using (FileStream fs = File.Create(fileLocation))
-        {
-            XmlSerializer xs = new XmlSerializer(typeof(SettingsData));
-            xs.Serialize(fs, sd);
-
-        }
+        //written only when something in it would actually differ, so opening
+        //the settings page and coming back out does not read as the round
+        //having been changed
+        if (YearlyStore.WriteIfChanged(fileLocation, YearlyStore.Serialise(sd)))
+            DataStamp.Touch(DataStamp.Settings, dir);
 
     }
 
@@ -449,6 +448,7 @@ public partial class SettingLayout : ContentPage
     private void SettingLayout_NavigatedTo(object sender, NavigatedToEventArgs e)
     {
         ShowTidyCustomers();
+        ShowWhenTheDataChanged();
 
         ShowJobNames();
         ShowTagNames();
@@ -679,6 +679,25 @@ public partial class SettingLayout : ContentPage
         l_tidyCustomers.Text = spare == 1
             ? "1 customer has no work against them."
             : $"{spare} customers have no work against them.";
+    }
+
+    /// <summary>
+    /// when the round was last changed. It is worth having in front of
+    /// somebody about to press Create Backup: the date that goes into the
+    /// backup is this one, not the day the backup is taken
+    /// </summary>
+    private void ShowWhenTheDataChanged()
+    {
+        if (!DataStamp.Known)
+        {
+            l_lastChanged.Text = "Nothing has been recorded on this device yet.";
+            return;
+        }
+
+        DateTime when = DataStamp.LastModified;
+
+        l_lastChanged.Text = $"Your data was last changed {when:d MMM yyyy} at {when:HH:mm}"
+            + $" ({DataStamp.LastChanged}). A backup carries that date, not the day it is made.";
     }
 
     private async void bnt_tidyCustomers_Clicked(object sender, EventArgs e)
@@ -1058,7 +1077,8 @@ public partial class SettingLayout : ContentPage
         }
 
         await DisplayAlert("Backup Created",
-            $"Backed up {result.FormattedYears}, with {result.Receipts} receipt photo(s) and {result.Statements} bank statement(s).",
+            $"Backed up {result.FormattedYears}, with {result.Receipts} receipt photo(s) and {result.Statements} bank statement(s)."
+            + $"\n\nIt holds the round as it stood when it was last changed - {result.WhenTheDataChanged}.",
             "Ok");
 
         //the backup is written to the cache, which nothing else can see, so it

@@ -13,6 +13,12 @@ namespace WorkTracker
             //rather than the first of this round's own
             Settings.Load();
 
+            //when the data was last changed, which is kept with the data
+            //rather than read off the files: a copy of the round - a backup,
+            //a restore, a phone swap - stamps every file with the day the
+            //copy was taken and says nothing about how old the work in it is
+            DataStamp.Load();
+
             Customer.Load();
             Job.Load();
             Payment.Load();

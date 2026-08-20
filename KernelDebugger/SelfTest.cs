@@ -1,3 +1,5 @@
+using System.IO.Compression;
+
 using Kernel;
 
 namespace KernelDebugger;
@@ -37,6 +39,11 @@ public static class SelfTest
 
         Directory.CreateDirectory(folder);
 
+        //the round lives in that folder for the length of the run, so the
+        //dates written down against it never land in the real data folder of
+        //whatever machine this is being run on
+        DataStamp.Load(Folder);
+
         try
         {
             RoundAndDurationSurviveASave();
@@ -50,11 +57,16 @@ public static class SelfTest
             APriceRiseTakesEffectOnTheDayItSays();
             ASkipIsMeasuredFromTheDayItWasSkipped();
             EachBankAccountKeepsItsOwnLayoutAndItsOwnReferences(folder);
+            TheDateMovesOnlyWhenSomethingActuallyChanges();
+            ABackupCarriesTheDateItsDataWasLastChanged();
         }
         catch (Exception ex)
         {
             Fail($"threw: {ex}");
         }
+
+        //nothing after this run should be stamping the test folder
+        DataStamp.HomeFolder = null;
 
         Console.WriteLine();
         Console.WriteLine(_failures == 0 ? "PASSED" : $"FAILED - {_failures} problem(s)");
@@ -780,6 +792,159 @@ public static class SelfTest
         BankAccount.LegacyRef = -1;
         BankAccount.LegacyAmount = -1;
         BankAccount.LegacyDebit = -1;
+    }
+
+    /// <summary>
+    /// the date is a note about when the data changed, so a save that changes
+    /// nothing must leave it alone. Otherwise opening the app becomes a
+    /// change, and every backup ever made reads as out of date the moment
+    /// somebody looks at it
+    /// </summary>
+    private static void TheDateMovesOnlyWhenSomethingActuallyChanges()
+    {
+        Console.WriteLine();
+        Console.WriteLine("The date only moves when something actually changes");
+
+        Reset();
+        DataStamp.DeleteData();
+
+        AddJob("12", "High Street", 10.50f);
+        Job.Save(Folder);
+
+        Check("a save writes down when the data changed", DataStamp.Known, "nothing was recorded");
+        Check("and which part of it changed", DataStamp.LastChanged == DataStamp.Jobs,
+            $"said '{DataStamp.LastChanged}'");
+
+        DateTime first = DataStamp.LastModified;
+
+        //the clock has to have moved on, or "it did not change" and "it
+        //changed within the same tick" cannot be told apart
+        Thread.Sleep(30);
+        Job.Save(Folder);
+
+        Check("saving the same data again leaves the date alone",
+            DataStamp.LastModified == first, $"moved to {DataStamp.LastModified:HH:mm:ss.fff}");
+
+        Thread.Sleep(30);
+        AddJob("14", "High Street", 12f);
+        Job.Save(Folder);
+
+        Check("saving something different moves it on",
+            DataStamp.LastModified > first, "the date stood still");
+    }
+
+    /// <summary>
+    /// A backup holds the date its data was last changed, not the day
+    /// somebody pressed Back Up - and what is in it can be counted without
+    /// unpacking it, which is what makes it possible to say what restoring
+    /// would cost before it is done.
+    /// </summary>
+    private static void ABackupCarriesTheDateItsDataWasLastChanged()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A backup carries the date its data was last changed");
+
+        Reset();
+        Customer.DeleteData();
+        Payment.DeleteData();
+        Expense.DeleteData();
+        DataStamp.DeleteData();
+
+        Customer customer = new Customer("12", "High Street");
+        Customer.Add(customer);
+
+        Job first = AddJob("12", "High Street", 10f);
+        first.CustomerId = customer.Id;
+        first.MarkJobDone(forceNotSave: true);
+
+        AddJob("14", "High Street", 12f);
+
+        Payment.Add(customer.Id, 10f, PaymentMethod.Cash, "12 High Street", DateTime.Now);
+
+        Expense.Add(new Expense()
+        {
+            Date = DateTime.Now,
+            Amount = 25.50f,
+            Merchant = "Garage",
+        });
+
+        //the round, saved where the round lives
+        Customer.Save(Folder);
+        Job.Save(Folder);
+        Payment.Save(Folder);
+        Expense.Save(Folder);
+
+        DateTime roundLastChanged = DataStamp.LastModified;
+        DataSnapshot round = DataSnapshot.Current();
+
+        //and the backup: the same data written into a folder of its own and
+        //zipped, which is what TaxYearBackup does. Every file in there is
+        //written a moment ago, so only the stamp can say how old the work is
+        Thread.Sleep(30);
+
+        string backupData = Path.Combine(Folder, "backupdata");
+        YearlyStore.Folder(backupData);
+
+        Customer.Save(backupData);
+        Job.Save(backupData);
+        Payment.Save(backupData);
+        Expense.Save(backupData);
+        DataStamp.CopyInto(backupData);
+
+        string zip = Path.Combine(YearlyStore.Folder(Folder), "selftest.rbf");
+        if (File.Exists(zip))
+            File.Delete(zip);
+
+        ZipFile.CreateFromDirectory(YearlyStore.Folder(backupData), zip);
+
+        DataSnapshot read = DataSnapshot.FromBackup(zip);
+
+        Check("the backup can be read without unpacking it", read.Readable, "could not be read");
+        Check("it says when its data was last changed",
+            read.KnowsWhenItChanged && !read.DateIsGuessed, "no date in it");
+        Check("and that date is the round's, not the day the copy was taken",
+            Math.Abs((read.LastModified - roundLastChanged).TotalSeconds) < 1,
+            $"backup says {read.LastModified:HH:mm:ss.fff}, the round {roundLastChanged:HH:mm:ss.fff}");
+
+        Check("the jobs in it are counted", read.Jobs == round.Jobs, $"{read.Jobs} against {round.Jobs}");
+        Check("the ones already done are counted", read.JobsDone == round.JobsDone && read.JobsDone > 0,
+            $"{read.JobsDone} against {round.JobsDone}");
+        Check("the customers are counted", read.Customers == round.Customers,
+            $"{read.Customers} against {round.Customers}");
+        Check("the payments are counted", read.Payments == round.Payments && read.Payments > 0,
+            $"{read.Payments} against {round.Payments}");
+        Check("and the money with them", Math.Abs(read.MoneyIn - round.MoneyIn) < 0.005f,
+            $"{read.MoneyIn} against {round.MoneyIn}");
+        Check("the expenses are counted", read.Expenses == round.Expenses && read.Expenses > 0,
+            $"{read.Expenses} against {round.Expenses}");
+        Check("and the money with them", Math.Abs(read.MoneyOut - round.MoneyOut) < 0.005f,
+            $"{read.MoneyOut} against {round.MoneyOut}");
+
+        Check("a backup of the round as it stands is not older than it",
+            !DataSnapshot.BackupIsOlder(read, DataSnapshot.Current(read.TaxYears)), "called older");
+
+        //a house taken on since, which is what makes the backup out of date
+        Thread.Sleep(30);
+        AddJob("16", "High Street", 9f);
+        Job.Save(Folder);
+
+        DataSnapshot now = DataSnapshot.Current(read.TaxYears);
+
+        Check("work done since leaves the backup older than the round",
+            DataSnapshot.BackupIsOlder(read, now), "not called older");
+
+        string difference = DataSnapshot.Difference(read, now);
+
+        Check("and the difference says the house that would go",
+            difference.Contains("Jobs: ") && difference.Contains("(1 fewer)"), difference);
+        Check("it says the money it is counting and for which years",
+            difference.Contains("Payments: ") && difference.Contains("tax year"), difference);
+
+        //leave nothing behind for whatever runs next
+        Customer.DeleteData();
+        Payment.DeleteData();
+        Expense.DeleteData();
+        Job.DeleteData();
     }
 
     private static void Reset()

@@ -209,6 +209,10 @@
             <!--  DATA  -->
             <Button Text="▸ Data, Backup and Import" ClassId="sec_data" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
             <VerticalStackLayout x:Name="sec_data" IsVisible="false" Padding="10,0,10,10">
+                <!-- when the round was last changed, which is what a backup
+                     carries with it rather than the day the backup was made -->
+                <Label x:Name="l_lastChanged" FontSize="12" TextColor="Gray"></Label>
+                <Label></Label>
                 <Button Text="Create Backup" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_createBackup_Clicked"></Button>
                 <Label></Label>
                 <Button Text="Restore From Backup" BackgroundColor="Transparent" TextColor="Orange" BorderColor="Orange" BorderWidth="2" Clicked="bnt_restorBackup_Clicked"></Button>
