@@ -56,29 +56,59 @@ public static class WorkShareOpen
         return _pending;
     }
 
+    //  what to say about a file that was opened with the app and could not
+    //  be dealt with. It is the whole sentence rather than the file's name,
+    //  because there is more than one way for it to go wrong and they have
+    //  different answers - a file that is not one of ours is not the same
+    //  problem as one the sending app would not part with, and telling
+    //  somebody the wrong one of those sends them looking in the wrong place
     private static volatile string _pendingUnreadable;
 
     /// <summary>
     /// a file was opened with the app and turned out to be nothing the app
-    /// knows - unreadable, or neither a backup nor a work list. held so
-    /// AppShell can say so: opening a file with Work Tracker was a
-    /// deliberate act, and silence reads as the app being broken
+    /// knows - neither a backup nor a work list. held so AppShell can say so:
+    /// opening a file with Work Tracker was a deliberate act, and silence
+    /// reads as the app being broken
     /// </summary>
     public static void UnreadableFileWasOpened(string name)
     {
-        _pendingUnreadable = string.IsNullOrWhiteSpace(name) ? "that file" : name;
+        CannotDealWith(name,
+            "is not something Work Tracker recognises - it is not a backup (.rbf) or a shared work list (.rwk), or it could not be read. "
+            + "If it should be one, it may have been renamed or damaged on the way.");
+    }
+
+    /// <summary>
+    /// The file was one to open, and the app it was opened from would not
+    /// hand the bytes over.
+    ///
+    /// That is nearly always a file the phone has not actually got yet - one
+    /// still in Drive, or on an email that has never been downloaded. The
+    /// provider has a record of it and nothing to give, and it says so as
+    /// "file not found", which is no use to anybody reading it. So it is said
+    /// as what to do about it instead.
+    /// </summary>
+    public static void FileCouldNotBeFetched(string name)
+    {
+        CannotDealWith(name,
+            "could not be read from the app it was opened in. That usually means the file is not on this phone yet - one kept in Drive, or on an email, has to be downloaded first. "
+            + "Save it to the phone and open it again from your Files or Downloads.");
+    }
+
+    private static void CannotDealWith(string name, string what)
+    {
+        _pendingUnreadable = $"{(string.IsNullOrWhiteSpace(name) ? "That file" : name)} {what}";
 
         Action opened = Opened;
         if (opened != null)
             opened();
     }
 
-    /// <summary>the name of the file that could not be dealt with, if any</summary>
+    /// <summary>what to say about the file that could not be dealt with, if any</summary>
     public static string TakePendingUnreadable()
     {
-        string name = _pendingUnreadable;
+        string said = _pendingUnreadable;
         _pendingUnreadable = null;
-        return name;
+        return said;
     }
 
     /// <summary>what could not be dealt with, without claiming it</summary>

@@ -92,6 +92,7 @@ public static class TaxYearBackup
         BankAccount.Save(Settings.SaveDataFolder);
         GoCardlessRequest.Save(Settings.SaveDataFolder);
         BalanceAdjustment.Save(Settings.SaveDataFolder);
+        DayNote.Save(Settings.SaveDataFolder);
         Settings.Save(Settings.SaveDataFolder);
 
         //the tax records, for the years asked for

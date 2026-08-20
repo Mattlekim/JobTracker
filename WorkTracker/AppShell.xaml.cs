@@ -31,6 +31,7 @@ namespace WorkTracker
             StatementRecord.Load();
             GoCardlessRequest.Load();
             BalanceAdjustment.Load();
+            DayNote.Load();
 
             //photos taken before receipts were filed by tax year are still
             //loose in the receipts folder - put them where they belong
@@ -384,12 +385,13 @@ namespace WorkTracker
                 //a file that was opened with the app and could not be dealt
                 //with gets told to the user, not swallowed - "nothing
                 //happened" is a bug report waiting to be written
+                //what to say is worked out where the failure was - a file
+                //that is not one of ours and a file the sending app would not
+                //part with read the same from here and have different answers
                 string unreadable = UiInterface.ImportExport.WorkShareOpen.TakePendingUnreadable();
                 if (!string.IsNullOrWhiteSpace(unreadable))
                 {
-                    await page.DisplayAlert("Opened File",
-                        $"{unreadable} is not something Work Tracker recognises - it is not a backup (.rbf) or a shared work list (.rwk), or it could not be read. "
-                        + "If it should be one, it may have been renamed or damaged on the way.", "Ok");
+                    await page.DisplayAlert("Opened File", unreadable, "Ok");
                     return;
                 }
 
