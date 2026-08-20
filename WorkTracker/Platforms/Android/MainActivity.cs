@@ -307,20 +307,11 @@ namespace WorkTracker
                 using (Android.Content.Res.AssetFileDescriptor asset =
                            ContentResolver.OpenTypedAssetFileDescriptor(uri, "*/*", (Android.OS.Bundle)null))
                     if (asset != null)
-                        using (Java.IO.InputStream from = asset.CreateInputStream())
+                        using (System.IO.Stream from = asset.CreateInputStream())
                             if (from != null)
                             {
-                                //copied a block at a time off the java stream
-                                //rather than handed to CopyTo: what comes back
-                                //here is java's own stream and not one of ours
-                                byte[] buffer = new byte[64 * 1024];
-
                                 using (System.IO.Stream to = System.IO.File.Create(destination))
-                                {
-                                    int read;
-                                    while ((read = from.Read(buffer)) > 0)
-                                        to.Write(buffer, 0, read);
-                                }
+                                    from.CopyTo(to);
 
                                 why = string.Empty;
                                 return true;
