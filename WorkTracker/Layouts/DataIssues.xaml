@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:kernel="clr-namespace:Kernel"
+             xmlns:controls="clr-namespace:UiInterface.Controles"
+             x:Class="UiInterface.Layouts.DataIssues"
+             Title="Data Issues">
+
+    <!-- every house Verify Data found something wrong with, and what it
+         is. Tapping one opens the house, which is where all of it is put
+         right: the price and the time have their own Change buttons there
+         and Edit Details is the rest -->
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!--  what was found, before any of it is scrolled through  -->
+        <Border Grid.Row="0" Style="{StaticResource Card}" Margin="12,12,12,0">
+            <VerticalStackLayout Spacing="4">
+                <Label x:Name="l_total" FontAttributes="Bold" FontSize="16"></Label>
+                <Label x:Name="l_summary" Style="{StaticResource Caption}"></Label>
+                <Label Style="{StaticResource Caption}"
+                       Text="Nothing here has been changed. Tap a house to open it - the price and the time have a Change beside them, and Edit Details is the rest."></Label>
+            </VerticalStackLayout>
+        </Border>
+
+        <Label Grid.Row="1" x:Name="l_empty" IsVisible="false" Margin="16,16" Style="{StaticResource Caption}"
+               Text="Nothing to put right. Every house on the round has a price, a time, and a way of telling the customer whatever it is set to tell them."></Label>
+
+        <!-- the classic pull down: the round gone over again, so a house
+             just put right drops off the list -->
+        <RefreshView Grid.Row="1" x:Name="rv_issues" Refreshing="rv_issues_Refreshing">
+        <CollectionView x:Name="cv_issues" SelectionMode="Single" SelectionChanged="cv_issues_SelectionChanged">
+            <CollectionView.ItemTemplate>
+                <!--  x:DataType compiles the bindings, so a row that is
+                      renamed is a build error rather than a blank label
+                      nobody notices  -->
+                <DataTemplate x:DataType="kernel:DataProblem">
+
+                    <!--  the same card control every work list draws a house
+                          with (Controles/JobCard). The whole address, because
+                          this list is not walked up a street; the price as
+                          the figure it really is, because "£0.00" is half of
+                          what these rows are about; and the chips left on,
+                          because a TNB chip on a house with no phone number
+                          is the problem said twice - once in the tick and
+                          once in the line under it.
+
+                          What is wrong with the house goes in the card's own
+                          caption line, in orange rather than the usual quiet
+                          grey: on this page it is not an aside, it is the
+                          reason the row is here at all.  -->
+                    <controls:JobCard Job="{Binding Job}"
+                                      ExtraCaption="{Binding Says}"
+                                      ExtraCaptionColour="#EF6C00"
+                                      PriceStyle="Effective"
+                                      ShowTags="False"
+                                      ShowNotes="False" />
+
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        </RefreshView>
+
+    </Grid>
+
+</ContentPage>

@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:UiInterface.Controles"
+             xmlns:local="clr-namespace:UiInterface"
              x:Class="UiInterface.Layouts.CalenderView"
              Title="Calendar">
 
@@ -90,13 +91,21 @@
                      the number alone. This is the one list that mixes
                      booked, unbooked and cancelled work, so those chips are
                      on; done work folds to the faded line that taps back
-                     open, which the card handles itself -->
+                     open, which the card handles itself.
+
+                     RowStyle is the one option this page does not decide:
+                     the round is set to read its days as cards or as the
+                     paper round book's rows (Settings, Calendar And Booked
+                     Work), and both day pages follow it. It is bound rather
+                     than set, because the rows are recycled as the list is
+                     scrolled - see Controles/JobCard. -->
                 <controls:JobCard Job="{Binding .}"
                                   AddressStyle="NumberOnly"
                                   ShowInfo="True"
                                   ShowBookedChip="True"
                                   ShowCancelledChip="True"
                                   CollapseCompleted="True"
+                                  RowStyle="{Binding Source={x:Static local:DayListView.Current}, Path=RowStyle}"
                                   InfoClicked="Card_Info">
                     <!-- swipe gestures only work with touch, so desktop
                          (right click) gets the same actions as a menu -->

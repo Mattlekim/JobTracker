@@ -811,6 +811,47 @@ references and anything the kept record is missing before deleting the old one. 
 cannot work out for itself — the duplicate was made with a *copy* of the figure, so adding the two would charge for
 the same work twice — which is why the page asks whenever both records carry one and they differ.
 
+## Verifying the data
+
+`Kernel/DataCheck.cs` goes over the round looking for the work that is quietly not set up properly, and
+**Verify Data** on the settings page is how it is asked. It is a separate feature from *Tidy Customers* above:
+that one clears up after a bug, this one clears up after a wet Tuesday.
+
+Everything it looks for has the same shape — a job that looks perfectly normal on every list right up until the
+moment it matters:
+
+- **No price** (`EffectivePrice <= 0`) — the house is still on every list and still gets cleaned, it just never
+  asks anybody for money.
+- **No time** (`Job.Minutes <= 0`) — and that is the job's own estimate *or* the round's usual, so a house with
+  nothing of its own on a round that has a usual set is not a problem; it is the usual.
+- **Ticked to be told with no way of telling them** — TNB or TAC with no phone number, ENB or EAC with no email.
+  This is the one that goes unnoticed longest: `WorkPlanner.TextCustomers` sends to whoever it can and says
+  nothing at all about the rest, so the house is simply left out of the night's messages.
+- **No customer record** — the job is pointed at somebody who is not there. Nothing else is asked about that
+  house afterwards, because the four questions above are all *have they got a number* and there is nobody to ask.
+
+Three rules it must keep:
+
+- **It changes nothing, and there is deliberately no Fix Them All.** What a missing price or a missing phone
+  number ought to be is not something the app can know, and filling one in with a guess would be worse than the
+  gap. Every row is a way in to the house instead.
+- **One visit per house, the one next due** — the same `Job.SameJobKey`/`Job.NextDue` pair `Layouts/AllJobs` and
+  `RoundStats` pick a house with, so the three cannot disagree about how many houses there are. The job list
+  keeps every visit ever done, so checking the lot would report the same missing price twenty times over. A
+  clean already written up and a cancelled one are left out for the same reason they are left off the round
+  everywhere else, and the booking summary rows (`CustomerId == -1`) are not houses at all.
+- **The wording is said once** (`DataCheck.Say`), because the summary in the alert and the line on the page are
+  the same sentence about the same house. `Summarise` counts a problem at a time rather than a house at a time,
+  so the lines can add up to more than the houses — a house with four things wrong with it is four jobs of work
+  — and both pages say so out loud rather than leaving it looking like a miscount.
+
+`Layouts/DataIssues` is the seeing half: the same `Controles/JobCard` every other list draws a house with, with
+what is wrong in the card's own caption line (`ExtraCaptionColour`, orange — on that page the caption is not an
+aside, it is the reason the row is there). Tapping a row opens `Layouts/ViewCustomerDetails`, which is where all
+of it is actually mended — the price and the time have a **Change** of their own there and Edit Details is the
+rest — and the page builds again on the way back, so a house put right has dropped off rather than sitting there
+fixed. It is covered by the KernelDebugger self test.
+
 ## Bank statement imports
 
 A statement is read once and then looked at from two sides:
@@ -1135,8 +1176,8 @@ not something anybody will do.
 
 **`Controles/JobCard` is the one place a house on a list is drawn**: a card with the address in bold, the price
 beside it, the town and area quiet underneath, when it is due and what is owed said in colour as text, and the
-tags under that. The work list, the booked work page, the calendar's day list and All Jobs all put this control
-in their row template rather than each writing the row — it is the same round looked at four ways and it should
+tags under that. The work list, the booked work page, the calendar's day list, All Jobs and the data issues
+list all put this control in their row template rather than each writing the row — it is the same round looked at four ways and it should
 not read as four different apps. The paper view is deliberately not one of them: that page is a printed sheet,
 not a list of cards. The extra-work and returned-work pages build their cards in code from work-share data
 rather than from `Job` rows, so they are not on it either.
@@ -1159,7 +1200,11 @@ inside a template: `InfoClicked` and `PartTapped` for the work list's
 filter taps — gated by `EnableFilterTaps`, off by default, because a tap recogniser on a label swallows the
 tap a page's own row gesture was waiting for. All Jobs hands the card its one line the control cannot word
 itself — how often the house comes round and which round it is on — through `ExtraCaption`, because the round
-is read off the whole job through that page's grouping. The `AltColour` stripes are only the customer page's
+is read off the whole job through that page's grouping. `ExtraCaptionColour` says what colour that line is:
+quiet grey by default, because on All Jobs it is a detail, and orange on `Layouts/DataIssues`, where the line
+is what is wrong with the house and is the reason the row is on the page at all. The line is two lines at most
+and takes the money side of the card as well unless the always-answered balance is sharing it — one column was
+enough for All Jobs' couple of words and cut a sentence off in the middle. The `AltColour` stripes are only the customer page's
 now; the gap between cards is what tells one house from the next everywhere else.
 
 `ShowExtraChips` — TNB, ENB and a direct debit on its way — is **on everywhere**, the booked work page
@@ -1195,6 +1240,48 @@ wants those two.
 
 Everything the row can be tapped for survived the change: street, town, area, type, price, round and money owed
 each still filter the list (see below), and the swipes, the hold, and the right-click menu are untouched.
+
+### Reading a day on paper instead of as cards
+
+`JobCard.RowStyle` is the second way the same control draws a house: `Card` is everything above, `Paper` is the
+round book's row — one tight line of the house, the TNB/ENB badges, the price on its green, whatever is written
+down about it with the visit's tags under that, what is owed, and the **mark** for what happened to it. No card
+behind it, no gap between rows and a rule underneath, so a whole day fits a phone screen the way a page of the
+book does.
+
+**It is one setting for the calendar and the booked work page and nothing else** (`WorkTracker/DayListView.cs`,
+the *Calendar and Booked Work* section on the settings page, list view to begin with). Those two are the same day
+looked at twice, so a round read one way on one of them and the other way on the next would only be two habits to
+keep up. The work list and All Jobs are not in it — they are the round rather than a day — and `Layouts/PaperView`
+is already the paper view. It is a preference and not a setting in the data files, like the paper view's own view
+options and the calendar's `HideDueWork`: how a page is being read is not something about the round, so it has no
+business travelling in a backup.
+
+Three things about it that are easy to undo:
+
+- **The pages bind it, they do not set it.** A row on a virtualised list is built when it is scrolled into view
+  and handed a different house every time it comes back round, so a card that read the setting once and
+  remembered the answer would draw whatever it was when that row happened to be built — half a day in cards and
+  half of it on paper, which is the shape of the bug the tick boxes on the work list once had. `DayListView.Current`
+  raises `PropertyChanged`, the two templates bind to it, and every row that exists is told.
+- **The paper pieces are built only if a card is ever asked to draw one** (`JobCard.EnsurePaperRow`). A round is
+  hundreds of houses and every list in the app draws cards unless this is turned on, so building both bodies in
+  the constructor would be a dozen labels a row that nobody ever sees.
+- **Every option is still the page's.** `ApplyPaper` asks the same `Show*` bools and the same `AddressStyle`,
+  `OwedStyle` and folds the card does, so a page with its notes or its extra chips turned off gets the same answer
+  whichever way its days are being read. What a paper row deliberately drops is the town and area (the street
+  heading above the row already says where this is) and the due date (a day list's day *is* the date) — neither
+  fits on one line, and a paper row that wraps is not a paper row. The **info button stays**, smaller, on a page
+  that asked for one: the paper view can do without it because a row there opens the job when it is tapped, but
+  the calendar's day list has no tap on its rows at all, so taking it off would leave nothing to open a house
+  with but the swipe.
+
+**The marks are kept once, on the job** — `Job.PaperMark`/`Job.MarkDone` and friends in `Kernel/JobDisplay.cs`.
+They used to live on `PaperView.PaperItem`, which was fine while that page was the only thing that drew them;
+`PaperItem.StringDone` and the rest are now properties forwarding to the job's, so the settings page still edits
+them under *Paper View* by the names everything already knows, and a visit cannot be marked one way on the
+calendar and another on the sheet. `PaperMark` asks the same questions in the same order the paper view's record
+columns do — **completed before cancelled**, like every other count of the work.
 
 ## Putting the prices up
 

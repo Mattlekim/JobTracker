@@ -160,6 +160,21 @@
                 </Border>
             </VerticalStackLayout>
 
+            <!--  CALENDAR AND BOOKED WORK  -->
+            <!-- how a day is read, which is the one thing these two pages
+                 share: they are the same day looked at twice. The work list
+                 and All Jobs are not in it - they are the round rather than
+                 a day - and the paper view is already the paper view -->
+            <Button Text="▸ Calendar and Booked Work" ClassId="sec_dayview" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
+            <VerticalStackLayout x:Name="sec_dayview" IsVisible="false" Padding="10,0,10,10">
+                <Label Text="How a day's work is listed on the calendar and on the booked in work page." TextColor="Grey"></Label>
+                <Label></Label>
+                <Label Text="Day view"></Label>
+                <Picker x:Name="p_dayView" SelectedIndexChanged="p_dayView_Changed"></Picker>
+                <Label Text="List view is a card for each house - the address, the price, what is owed, the tags and the notes. Paper view is the round book's tight rows: the house, the price, what is written down and the mark for what happened to it, so a whole day fits the screen." FontSize="12" TextColor="Grey"></Label>
+                <Label Text="It changes how the two pages are read and nothing about the work itself. The marks paper view writes are the ones set under Paper View below." FontSize="12" TextColor="Grey"></Label>
+            </VerticalStackLayout>
+
             <!--  PAPER VIEW  -->
             <Button Text="▸ Paper View" ClassId="sec_paper" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
             <VerticalStackLayout x:Name="sec_paper" IsVisible="false" Padding="10,0,10,10">
@@ -222,6 +237,14 @@
                 <Button Text="Export Round To Excel" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_exportXlsx_Clicked"></Button>
                 <Label></Label>
                 <Button Text="Reset Banking Import Settings"  BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_resetImportBanking"></Button>
+                <Label></Label>
+                <!-- goes over the round looking for the work that is
+                     quietly not set up properly - no price, no time, ticked
+                     to be texted with no number to text. None of it shows up
+                     on a page, because every page is showing what it was
+                     told, so it has to be asked for. See Kernel/DataCheck -->
+                <Button Text="Verify Data" BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_verifyData_Clicked"></Button>
+                <Label Text="Checks every house on the round has a price and a time, and that anybody set to be texted or emailed has a number or an address to reach them on. It changes nothing - it says what it found." FontSize="12" TextColor="Grey"></Label>
                 <Label></Label>
                 <!-- puts duplicate customer records back into one. see
                      Layouts/TidyCustomers for why there are any -->

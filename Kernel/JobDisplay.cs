@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -88,6 +88,62 @@ namespace Kernel
             RaisePropertyChanged("Tags");
             RaisePropertyChanged("HaveTags");
             RaisePropertyChanged("TagsText");
+        }
+
+        //  The marks the paper round book writes against a visit, and the
+        //  one place they are kept.
+        //
+        //  They live here rather than on the paper view's own rows because
+        //  the paper view is no longer the only thing that draws them: a
+        //  house on the calendar or on a booked day is drawn in the paper
+        //  style too when the round is set to read that way, and a mark that
+        //  said one thing on one page and another on the next would be worse
+        //  than no mark at all. The settings page still edits them through
+        //  the paper view's names for them, which now forward to these.
+        //
+        //  They are settable because they are the round's own shorthand -
+        //  whatever was written in the book before there was an app.
+        public static string MarkDone = "\\", MarkPaid = "/", MarkDonePaid = "X", MarkSkipped = "O", MarkCancelled = "-";
+
+        /// <summary>
+        /// What happened to this visit, said the way it would be written in
+        /// the paper round book: done, paid, both, skipped or cancelled, and
+        /// blank for work that is still waiting.
+        ///
+        /// The same order of questions the paper view asks
+        /// (PaperView.PaperItem.UpdatePaperRecordI3), because the two are
+        /// writing up the same visit.
+        /// </summary>
+        [XmlIgnore]
+        public string PaperMark
+        {
+            get
+            {
+                //a visit that was cancelled and never happened is struck out
+                //of the book. one that was done and cancelled afterwards was
+                //still done, and keeps its mark - the same order every count
+                //of the work goes in
+                if (IsCompleted)
+                    return IsPaidFor ? MarkDonePaid : MarkDone;
+
+                if (HaveCanceled)
+                    return MarkCancelled;
+
+                if (IsPaidFor)
+                    return MarkPaid;
+
+                if (HaveSkipped)
+                    return MarkSkipped;
+
+                return string.Empty;
+            }
+        }
+
+        /// <summary>true while there is a mark to put on the row at all</summary>
+        [XmlIgnore]
+        public bool HavePaperMark
+        {
+            get { return !string.IsNullOrEmpty(PaperMark); }
         }
 
         /// <summary>true while there is a length worth putting on the row</summary>
@@ -295,6 +351,8 @@ namespace Kernel
             //fades and puts a chip on
             RaisePropertyChanged("IsCompleted");
             RaisePropertyChanged("HaveCanceled");
+            RaisePropertyChanged("PaperMark");
+            RaisePropertyChanged("HavePaperMark");
             RaisePropertyChanged("NotCanceled");
             RaisePropertyChanged("IsBookedIn");
             RaisePropertyChanged("CollapsedInList");
@@ -305,6 +363,7 @@ namespace Kernel
             RaisePropertyChanged("Name");
             RaisePropertyChanged("HaveJobName");
             RaisePropertyChanged("JobFormattedStringPrice");
+            RaisePropertyChanged("JobFormattedPriceOnly");
             RaisePropertyChanged("HaveJobNotes");
             RaisePropertyChanged("JobFormattedStringNotes");
             RaisePropertyChanged("TNB");
@@ -354,6 +413,30 @@ namespace Kernel
                 return $"Price {Gloable.CurrenceSymbol}{Price}";
             }
         }
+        /// <summary>
+        /// The figure on its own, for a row with no room for the word in
+        /// front of it - the paper rows' price badge.
+        ///
+        /// Worded the way the paper round book has always worded it: the
+        /// pence are only written when there are any, so a round of round
+        /// pounds is not a column of ".00". It is the price the house is
+        /// actually charged (<see cref="EffectivePrice"/>), so a house on an
+        /// alternative price says what it really comes to.
+        /// </summary>
+        [XmlIgnore]
+        public string JobFormattedPriceOnly
+        {
+            get
+            {
+                float price = EffectivePrice;
+
+                if (price - (int)price == 0)
+                    return $"{Gloable.CurrenceSymbol}{price}";
+
+                return $"{Gloable.CurrenceSymbol}{price.ToString("n2")}";
+            }
+        }
+
         public string JobFormattedStringNotes
         {
             get

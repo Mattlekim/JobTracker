@@ -477,6 +477,8 @@ public partial class SettingLayout : ContentPage
         sw_workSharing.IsToggled = Settings.EnableWorkSharing;
         _loadingWorkSharing = false;
 
+        ShowDayViewSection();
+
         e_pv_done.Text = PaperView.PaperItem.StringDone;
         e_pv_paid.Text = PaperView.PaperItem.StringPaid;
         e_pv_donepaid.Text = PaperView.PaperItem.StringDonePaid;
@@ -502,6 +504,41 @@ public partial class SettingLayout : ContentPage
 
         ShowPhotoQualityDetail();
         ShowReceiptStorage();
+    }
+
+    /// <summary>
+    /// How the calendar and the booked work page list a day - the cards, or
+    /// the paper round book's rows.
+    ///
+    /// It is a preference rather than a setting in the data files, like the
+    /// paper view's own view options, so it is kept the moment it is chosen
+    /// and there is nothing here for Settings.Save to write. The pages bind
+    /// to it, so a day already on screen changes with it.
+    /// </summary>
+    private void ShowDayViewSection()
+    {
+        if (p_dayView.Items.Count == 0)
+            foreach (string name in DayListView.ChoiceNames)
+                p_dayView.Items.Add(name);
+
+        //set straight rather than through the handler, so showing the view
+        //that is already in use does not count as a change
+        _loadingDayView = true;
+        p_dayView.SelectedIndex = DayListView.Choice;
+        _loadingDayView = false;
+    }
+
+    private bool _loadingDayView = false;
+
+    private void p_dayView_Changed(object sender, EventArgs e)
+    {
+        if (_loadingDayView)
+            return;
+
+        if (p_dayView.SelectedIndex < 0)
+            return;
+
+        DayListView.Choice = p_dayView.SelectedIndex;
     }
 
     private bool _loadingPhotoQuality = false;
@@ -698,6 +735,49 @@ public partial class SettingLayout : ContentPage
 
         l_lastChanged.Text = $"Your data was last changed {when:d MMM yyyy} at {when:HH:mm}"
             + $" ({DataStamp.LastChanged}). A backup carries that date, not the day it is made.";
+    }
+
+    /// <summary>
+    /// Goes over the round looking for the work that is quietly not set up
+    /// properly, and says what it found.
+    ///
+    /// The finding is all <see cref="DataCheck"/>'s, in the kernel with the
+    /// work - this only asks and puts the answer up. Nothing is changed:
+    /// what a missing price or a missing phone number ought to be is not
+    /// something the app can know, and filling one in with a guess would be
+    /// worse than the gap.
+    ///
+    /// The figures come with a way through to the houses behind them, for
+    /// the same reason the stats page's rounds do: "eleven houses have no
+    /// price" is no use on its own, and nobody is going to find eleven
+    /// houses out of a round by scrolling.
+    /// </summary>
+    private async void bnt_verifyData_Clicked(object sender, EventArgs e)
+    {
+        List<DataProblem> problems = DataCheck.Run();
+
+        if (problems.Count == 0)
+        {
+            await DisplayAlert("Verify Data",
+                "Nothing to put right. Every house on the round has a price and a time, and everybody set to be texted or emailed has a number or an address to reach them on.",
+                "OK");
+            return;
+        }
+
+        string houses = problems.Count == 1 ? "1 house needs" : $"{problems.Count} houses need";
+
+        //the houses are counted here and the lines under them a problem at a
+        //time, so a house with three things wrong with it is on three of
+        //them. The lines can add up to more than the houses, and that is not
+        //a miscount
+        bool see = await DisplayAlert("Verify Data",
+            $"{houses} putting right:\n\n{DataCheck.Summarise(problems)}",
+            "See The Jobs", "Close");
+
+        if (!see)
+            return;
+
+        await Navigation.PushAsync(new DataIssues());
     }
 
     private async void bnt_tidyCustomers_Clicked(object sender, EventArgs e)

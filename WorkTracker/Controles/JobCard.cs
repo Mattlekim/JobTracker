@@ -60,6 +60,13 @@ public class JobCard : ContentView
     private static readonly Color OverdueRed = Color.FromArgb("#C62828");
     private static readonly Color QuietGrey = Color.FromArgb("#6B7280");
 
+    //the paper row's own two: the tags said as text in the record's colour
+    //rather than as a filled tag, and the rule that separates one house from
+    //the next once there are no cards to do it
+    private static readonly Color TagTeal = Color.FromArgb("#00838F");
+    private static readonly Color RuleLight = Color.FromArgb("#D8DCE3");
+    private static readonly Color RuleDark = Color.FromArgb("#333333");
+
     public event EventHandler<JobCardEventArgs> InfoClicked;
 
     /// <summary>a filter tap - the street, the price, a chip. only raised
@@ -109,6 +116,24 @@ public class JobCard : ContentView
         Effective,
     }
 
+    /// <summary>
+    /// The two ways a house can be drawn: the card, and the paper round
+    /// book's row. See <see cref="RowStyle"/>.
+    /// </summary>
+    public enum RowStyles
+    {
+        /// <summary>the card - what every list has always drawn</summary>
+        Card,
+
+        /// <summary>
+        /// one tight line across the page: the house, what it costs, what is
+        /// written down about it, what is owed and the mark for what happened
+        /// to it. No card behind it and a rule under it, so a day reads as
+        /// the table it is on paper
+        /// </summary>
+        Paper,
+    }
+
     private bool _showInfo = false;
     private bool _showPlace = true;
     private bool _showDue = true;
@@ -124,6 +149,7 @@ public class JobCard : ContentView
     private bool _collapseCancelled = false;
     private bool _collapseCompleted = false;
     private bool _enableFilterTaps = false;
+    private Color _extraCaptionColour = null;
     private AddressStyles _addressStyle = AddressStyles.Full;
     private DueStyles _dueStyle = DueStyles.Relative;
     private OwedStyles _owedStyle = OwedStyles.WhenOwed;
@@ -182,6 +208,17 @@ public class JobCard : ContentView
     /// rows are tapped as a whole must leave this off</summary>
     public bool EnableFilterTaps { get { return _enableFilterTaps; } set { _enableFilterTaps = value; Apply(); } }
 
+    /// <summary>
+    /// What colour the page's own caption line is said in. Null - the
+    /// default - is the same quiet grey every other caption on the card uses.
+    ///
+    /// It is an option because the line is not always an aside: All Jobs puts
+    /// how often the house comes round there, which is a detail, while
+    /// Layouts/DataIssues puts what is wrong with the house there, which is
+    /// the entire reason that row is on the page.
+    /// </summary>
+    public Color ExtraCaptionColour { get { return _extraCaptionColour; } set { _extraCaptionColour = value; Apply(); } }
+
     public AddressStyles AddressStyle { get { return _addressStyle; } set { _addressStyle = value; Apply(); RefreshComputed(); } }
 
     public DueStyles DueStyle { get { return _dueStyle; } set { _dueStyle = value; Apply(); RefreshComputed(); } }
@@ -189,6 +226,38 @@ public class JobCard : ContentView
     public OwedStyles OwedStyle { get { return _owedStyle; } set { _owedStyle = value; Apply(); RefreshComputed(); } }
 
     public PriceStyles PriceStyle { get { return _priceStyle; } set { _priceStyle = value; Apply(); RefreshComputed(); } }
+
+    /// <summary>
+    /// The card, or the paper round book's row.
+    ///
+    /// This one is a bindable property rather than a plain one because it is
+    /// the only option that is not the page's own decision: the calendar and
+    /// the booked work page follow whatever the round is set to read days as
+    /// (see DayListView), and that can change under a page that is already
+    /// up. A row on a virtualised list is built when it is scrolled to and
+    /// handed a different house every time it comes back round, so an answer
+    /// read once and remembered would leave half a day in cards and half of
+    /// it on paper. Bound, every row that exists is told.
+    ///
+    /// The pieces of whichever style is not being drawn are simply not built
+    /// - see <see cref="EnsurePaperRow"/> - so a page that never asks for
+    /// paper pays nothing for it.
+    /// </summary>
+    public static readonly BindableProperty RowStyleProperty = BindableProperty.Create(
+        nameof(RowStyle), typeof(RowStyles), typeof(JobCard), RowStyles.Card, propertyChanged: OnRowStyleChanged);
+
+    public RowStyles RowStyle
+    {
+        get { return (RowStyles)GetValue(RowStyleProperty); }
+        set { SetValue(RowStyleProperty, value); }
+    }
+
+    private static void OnRowStyleChanged(BindableObject bindable, object oldValue, object newValue)
+    {
+        JobCard card = (JobCard)bindable;
+        card.Apply();
+        card.RefreshComputed();
+    }
 
     // ------------------------------------------------------------- the job
 
@@ -270,6 +339,29 @@ public class JobCard : ContentView
     private readonly Label _chipPending;
     private readonly Label _tags;
     private readonly Label _notes;
+
+    /// <summary>the stack the two bodies live in, so the paper one can be
+    /// put in later without the card being rebuilt</summary>
+    private readonly VerticalStackLayout _stack;
+
+    //  The paper row, built only if a page ever asks for it. Every list in
+    //  the app draws cards unless the round has been set to read days on
+    //  paper, so building these in the constructor would be a dozen labels a
+    //  row that nobody ever sees - on a list that is hundreds of houses long.
+    private Grid _paperRow;
+    private BoxView _paperRule;
+    private HorizontalStackLayout _paperAddressStack;
+    private Label _paperWhere;
+    private HorizontalStackLayout _paperBadges;
+    private Label _paperTNB;
+    private Label _paperENB;
+    private Label _paperPrice;
+    private VerticalStackLayout _paperWritten;
+    private Label _paperNotes;
+    private Label _paperTags;
+    private Label _paperOwed;
+    private Label _paperMark;
+    private ImageButton _paperInfo;
 
     /// <summary>one recogniser per tappable piece, made once and put on or
     /// taken off as EnableFilterTaps changes</summary>
@@ -373,8 +465,14 @@ public class JobCard : ContentView
         _owed = new Label() { FontSize = 12, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation };
         Put(_owed, 2, 2);
 
-        //the page's own caption line - how often, on All Jobs
+        //the page's own caption line - how often on All Jobs, what is wrong
+        //with the house on Layouts/DataIssues. Two lines rather than one,
+        //because that second page's line is a list of things and one line of
+        //it would be cut off in the middle of the first - and bounded rather
+        //than left to wrap, so a row's height is still something the list can
+        //work out without measuring the text
         _extra = Caption();
+        _extra.MaxLines = 2;
         _extra.IsVisible = false;
         Put(_extra, 3, 1);
 
@@ -420,10 +518,10 @@ public class JobCard : ContentView
 
         // ---- the card around it all
 
-        VerticalStackLayout stack = new VerticalStackLayout();
-        stack.Children.Add(_cancelledLine);
-        stack.Children.Add(_collapsedLine);
-        stack.Children.Add(_grid);
+        _stack = new VerticalStackLayout();
+        _stack.Children.Add(_cancelledLine);
+        _stack.Children.Add(_collapsedLine);
+        _stack.Children.Add(_grid);
 
         _border = new Border()
         {
@@ -431,7 +529,7 @@ public class JobCard : ContentView
             StrokeShape = new RoundRectangle() { CornerRadius = new CornerRadius(12) },
             Margin = new Thickness(12, 0, 12, 6),
             Padding = new Thickness(12, 10),
-            Content = stack,
+            Content = _stack,
         };
         _border.SetAppThemeColor(Border.BackgroundColorProperty, CardLight, CardDark);
 
@@ -439,6 +537,148 @@ public class JobCard : ContentView
 
         //deliberately no Apply() here - the options have not been set yet.
         //SettleOptions does it once, when the card reaches a page
+    }
+
+    // -------------------------------------------------------- the paper row
+
+    /// <summary>
+    /// The paper round book's row, made the first time a card is asked to
+    /// draw one and kept afterwards.
+    ///
+    /// It is a table rather than a card: the house, the badges about telling
+    /// them, the price, whatever is written down about it, what is owed, and
+    /// the mark for what happened to the visit. The columns are fixed so the
+    /// prices and the marks line up down the page, which is the whole reason
+    /// anybody reads a round off paper.
+    ///
+    /// What is deliberately not on it: the town and the area (the street
+    /// heading above the row already says where this is) and the due date (a
+    /// day list's day is the date). Neither would fit on one line, and a
+    /// paper row that wraps is not a paper row.
+    ///
+    /// The info button does stay, smaller, on a page that asked for one. The
+    /// paper view has never had one because a row there opens the job when it
+    /// is tapped - but the calendar's day list has no tap on its rows at all,
+    /// so taking the button off it would leave nothing to open a house with
+    /// but the swipe.
+    /// </summary>
+    private void EnsurePaperRow()
+    {
+        if (_paperRow != null)
+            return;
+
+        _paperRow = new Grid() { ColumnSpacing = 6 };
+        _paperRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));      //the house
+        _paperRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));      //telling them
+        _paperRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));      //the price
+        _paperRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));      //what is written down
+        _paperRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));      //what is owed
+        _paperRow.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(20)));   //the mark
+        _paperRow.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));      //the info button
+
+        //the house. the same two wordings the card has - the number alone
+        //where the street is the heading above the row
+        Label number = new Label() { FontAttributes = FontAttributes.Bold, FontSize = 14, VerticalOptions = LayoutOptions.Center };
+        number.SetBinding(Label.TextProperty, "JobFormattedHouseNumber");
+        Label street = new Label() { FontAttributes = FontAttributes.Bold, FontSize = 14, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation };
+        street.SetBinding(Label.TextProperty, "JobFormattedStreetOnly");
+        _paperAddressStack = new HorizontalStackLayout() { Spacing = 4, VerticalOptions = LayoutOptions.Center };
+        _paperAddressStack.Children.Add(number);
+        _paperAddressStack.Children.Add(street);
+        PutPaper(_paperAddressStack, 0);
+
+        _paperWhere = new Label() { FontAttributes = FontAttributes.Bold, FontSize = 14, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation };
+        PutPaper(_paperWhere, 0);
+
+        //which houses want telling. small enough to sit in the column the
+        //paper view keeps for them, between the house and the price
+        _paperBadges = new HorizontalStackLayout() { Spacing = 3, VerticalOptions = LayoutOptions.Center };
+        _paperBadges.Children.Add(_paperTNB = PaperBadge("TNB"));
+        _paperBadges.Children.Add(_paperENB = PaperBadge("ENB"));
+        PutPaper(_paperBadges, 1);
+
+        //the figure alone on the paper view's green - there is no room for
+        //the word in front of it, and a column of figures is what is being
+        //read anyway
+        _paperPrice = new Label()
+        {
+            TextColor = Colors.White,
+            BackgroundColor = PriceGreen,
+            Padding = new Thickness(5, 1),
+            FontSize = 12,
+            FontAttributes = FontAttributes.Bold,
+            VerticalOptions = LayoutOptions.Center,
+        };
+        _paperPrice.SetBinding(Label.TextProperty, "JobFormattedPriceOnly");
+        PutPaper(_paperPrice, 2);
+
+        //what is written down about the house, with what was different about
+        //this visit under it - the way the paper view says them, the tags in
+        //the record's own colour rather than as a filled tag
+        _paperNotes = new Label() { FontSize = 11, LineBreakMode = LineBreakMode.TailTruncation, MaxLines = 1 };
+        _paperNotes.SetBinding(Label.TextProperty, "JobFormattedStringNotes");
+        _paperTags = new Label() { FontSize = 10, FontAttributes = FontAttributes.Bold, TextColor = TagTeal, LineBreakMode = LineBreakMode.TailTruncation, MaxLines = 1 };
+        _paperTags.SetBinding(Label.TextProperty, "TagsText");
+        _paperWritten = new VerticalStackLayout() { VerticalOptions = LayoutOptions.Center };
+        _paperWritten.Children.Add(_paperNotes);
+        _paperWritten.Children.Add(_paperTags);
+        PutPaper(_paperWritten, 3);
+
+        _paperOwed = new Label() { FontSize = 11, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation };
+        PutPaper(_paperOwed, 4);
+
+        //what happened to the visit, in the round's own shorthand - the same
+        //marks the paper view writes in its record columns, kept in one place
+        //on the job so the two pages cannot say a day differently
+        _paperMark = new Label() { FontSize = 15, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+        _paperMark.SetBinding(Label.TextProperty, "PaperMark");
+        PutPaper(_paperMark, 5);
+
+        //the same button as the card's and the same picture, sized to a row
+        //rather than to a card. It raises the same event, so the page cannot
+        //tell which body it was pressed on
+        _paperInfo = new ImageButton()
+        {
+            Source = "info.png",
+            HeightRequest = 26,
+            WidthRequest = 26,
+            Padding = 4,
+            CornerRadius = 13,
+            BackgroundColor = Color.FromArgb("#1E88E5"),
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center,
+        };
+        ToolTipProperties.SetText(_paperInfo, "Everything about this job - price, notes, when it is due and who it is for");
+        _paperInfo.Clicked += (s, e) => InfoClicked?.Invoke(this, new JobCardEventArgs() { Job = Job });
+        PutPaper(_paperInfo, 6);
+
+        //a rule under each row instead of the gap between cards: it is what
+        //tells one house from the next once the cards are gone
+        _paperRule = new BoxView() { HeightRequest = 1, Margin = new Thickness(0, 4, 0, 0) };
+        _paperRule.SetAppThemeColor(BoxView.ColorProperty, RuleLight, RuleDark);
+
+        _stack.Children.Add(_paperRow);
+        _stack.Children.Add(_paperRule);
+    }
+
+    private void PutPaper(View piece, int column)
+    {
+        Grid.SetColumn(piece, column);
+        _paperRow.Children.Add(piece);
+    }
+
+    private static Label PaperBadge(string text)
+    {
+        return new Label()
+        {
+            Text = text,
+            TextColor = Colors.White,
+            BackgroundColor = OverdueRed,
+            Padding = new Thickness(3, 0),
+            FontSize = 10,
+            FontAttributes = FontAttributes.Bold,
+            VerticalOptions = LayoutOptions.Center,
+        };
     }
 
     // ------------------------------------------ when the options are applied
@@ -504,17 +744,27 @@ public class JobCard : ContentView
         if (!_optionsSettled)
             return;
 
+        //which of the two bodies this card is. the paper one is built the
+        //first time it is asked for and never for a page that only ever
+        //draws cards
+        bool paper = RowStyle == RowStyles.Paper;
+        if (paper)
+            EnsurePaperRow();
+
+        StyleTheCard(paper);
+
         Gate(_cancelledLine, _collapseCancelled, "HaveCanceled");
         Gate(_collapsedLine, _collapseCompleted, "CollapsedInList");
 
-        //the folded lines stand in for the card, so the card steps aside for
-        //whichever fold this page uses. one fold per page - see the options
-        if (_collapseCancelled)
-            Gate(_grid, true, "NotCanceled");
-        else if (_collapseCompleted)
-            Gate(_grid, true, "ExpandedInList");
-        else
-            Gate(_grid, true);
+        //the folded lines stand in for the body, so whichever body this card
+        //is steps aside for the fold this page uses. one fold per page - see
+        //the options
+        GateBody(_grid, !paper);
+        if (_paperRow != null)
+        {
+            GateBody(_paperRow, paper);
+            Gate(_paperRule, paper);
+        }
 
         Gate(_info, _showInfo);
 
@@ -579,6 +829,21 @@ public class JobCard : ContentView
         Gate(_tags, _showTags, "HaveTags");
         Gate(_notes, _showNotes, "HaveJobNotes");
 
+        //the caption takes the money side of the card as well when the owed
+        //figure is not sharing the line with it. Left at one column it is cut
+        //off at a third of the width, which is fine for All Jobs' couple of
+        //words and no use at all for a sentence
+        Grid.SetColumnSpan(_extra, _owedStyle == OwedStyles.Always ? 1 : 2);
+
+        //the caption's colour is set rather than themed once a page has asked
+        //for one of its own, so the binding has to come off first - left on,
+        //it would put the grey back the next time the theme was read
+        _extra.RemoveBinding(Label.TextColorProperty);
+        if (_extraCaptionColour == null)
+            _extra.SetAppThemeColor(Label.TextColorProperty, CaptionLight, CaptionDark);
+        else
+            _extra.TextColor = _extraCaptionColour;
+
         FilterTap(_street, JobCardPart.Street);
         FilterTap(_city, JobCardPart.City);
         FilterTap(_area, JobCardPart.Area);
@@ -586,6 +851,106 @@ public class JobCard : ContentView
         FilterTap(_owed, JobCardPart.Owed);
         FilterTap(_chipType, JobCardPart.Type);
         FilterTap(_chipRound, JobCardPart.Round);
+
+        ApplyPaper(paper);
+    }
+
+    /// <summary>
+    /// The same options again, said in the paper row's pieces. Every one of
+    /// them is asked of the option the page set as well as of the style, so a
+    /// page that has its notes or its extra chips turned off gets the same
+    /// answer whichever way its days are being read.
+    ///
+    /// Nothing here runs until a paper row has actually been built, and a
+    /// card that has never drawn one has nothing to switch off.
+    /// </summary>
+    private void ApplyPaper(bool paper)
+    {
+        if (_paperRow == null)
+            return;
+
+        Gate(_paperAddressStack, paper && _addressStyle == AddressStyles.Full);
+        Gate(_paperWhere, paper && _addressStyle == AddressStyles.NumberOnly);
+
+        Gate(_paperBadges, paper && _showChips && _showExtraChips);
+        Gate(_paperTNB, paper && _showChips && _showExtraChips, "TNB");
+        Gate(_paperENB, paper && _showChips && _showExtraChips, "ENB");
+
+        //the price is always the figure alone here whatever the page's price
+        //style is: a paper row is a column of figures, and there is no room
+        //for the word in front of it
+        Gate(_paperPrice, paper);
+
+        Gate(_paperWritten, paper && (_showNotes || _showTags));
+        Gate(_paperNotes, paper && _showNotes, "HaveJobNotes");
+        Gate(_paperTags, paper && _showTags, "HaveTags");
+
+        if (_owedStyle == OwedStyles.WhenOwed)
+        {
+            _paperOwed.SetBinding(Label.TextProperty, "JobFormattedOwed");
+            _paperOwed.SetBinding(Label.TextColorProperty, "OwedTextColour");
+            Gate(_paperOwed, paper && _showOwed, "ShowOwed");
+        }
+        else
+        {
+            //worded by the card itself - RefreshComputed
+            _paperOwed.RemoveBinding(Label.TextProperty);
+            _paperOwed.RemoveBinding(Label.TextColorProperty);
+            Gate(_paperOwed, paper && _showOwed);
+        }
+
+        //blank on work still waiting, which is most of a day before it is
+        //started, so the column is only written in once there is something to
+        //say about the house
+        Gate(_paperMark, paper, "HavePaperMark");
+
+        Gate(_paperInfo, paper && _showInfo);
+    }
+
+    /// <summary>
+    /// whether a body is on this card at all, and which fold it steps aside
+    /// for while it is. Said once because both bodies follow the same rule
+    /// </summary>
+    private void GateBody(VisualElement body, bool on)
+    {
+        if (!on)
+        {
+            Gate(body, false);
+            return;
+        }
+
+        if (_collapseCancelled)
+            Gate(body, true, "NotCanceled");
+        else if (_collapseCompleted)
+            Gate(body, true, "ExpandedInList");
+        else
+            Gate(body, true);
+    }
+
+    /// <summary>
+    /// A card is a card and a paper row is a line in a table, so the thing
+    /// they sit in changes with them: the card keeps its rounded panel and
+    /// the gap that tells one house from the next, the paper row loses both
+    /// and is ruled off underneath instead.
+    /// </summary>
+    private void StyleTheCard(bool paper)
+    {
+        if (paper)
+        {
+            _border.SetAppThemeColor(Border.BackgroundColorProperty, Colors.Transparent, Colors.Transparent);
+            _border.StrokeShape = new RoundRectangle() { CornerRadius = new CornerRadius(0) };
+            _border.Margin = new Thickness(0);
+
+            //tight, but still a row a wet finger can hit: a paper round book
+            //is read at arm's length and tapped at the gate
+            _border.Padding = new Thickness(12, 5);
+            return;
+        }
+
+        _border.SetAppThemeColor(Border.BackgroundColorProperty, CardLight, CardDark);
+        _border.StrokeShape = new RoundRectangle() { CornerRadius = new CornerRadius(12) };
+        _border.Margin = new Thickness(12, 0, 12, 6);
+        _border.Padding = new Thickness(12, 10);
     }
 
     /// <summary>
@@ -654,12 +1019,17 @@ public class JobCard : ContentView
             string number = j.JobFormattedHouseNumber.Trim();
             string who = c == null ? string.Empty : $"{c.FName} {c.SName}".Trim();
 
+            string where;
             if (number.Length > 0)
-                _where.Text = number;
+                where = number;
             else if (who.Length > 0)
-                _where.Text = who;
+                where = who;
             else
-                _where.Text = "(no address)";
+                where = "(no address)";
+
+            _where.Text = where;
+            if (_paperWhere != null)
+                _paperWhere.Text = where;
         }
 
         if (_priceStyle == PriceStyles.Effective)
@@ -693,25 +1063,37 @@ public class JobCard : ContentView
         {
             float balance = c == null ? 0 : c.Balance;
 
+            string owed;
+            Color colour;
+
             if (c == null)
             {
-                _owed.Text = string.Empty;
-                _owed.TextColor = Colors.Transparent;
+                owed = string.Empty;
+                colour = Colors.Transparent;
             }
             else if (balance > 0)
             {
-                _owed.Text = $"Owes {Money(balance)}";
-                _owed.TextColor = OverdueRed;
+                owed = $"Owes {Money(balance)}";
+                colour = OverdueRed;
             }
             else if (balance < 0)
             {
-                _owed.Text = $"{Money(Math.Abs(balance))} in credit";
-                _owed.TextColor = PriceGreen;
+                owed = $"{Money(Math.Abs(balance))} in credit";
+                colour = PriceGreen;
             }
             else
             {
-                _owed.Text = "Nothing owed";
-                _owed.TextColor = QuietGrey;
+                owed = "Nothing owed";
+                colour = QuietGrey;
+            }
+
+            _owed.Text = owed;
+            _owed.TextColor = colour;
+
+            if (_paperOwed != null)
+            {
+                _paperOwed.Text = owed;
+                _paperOwed.TextColor = colour;
             }
         }
     }
