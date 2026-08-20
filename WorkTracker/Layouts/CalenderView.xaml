@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:controls="clr-namespace:UiInterface.Controles"
@@ -14,6 +14,18 @@
              of people rather than a walk up a street, so it stays flat -->
         <DataTemplate x:Key="StreetRow">
             <Label Text="{Binding Street}" FontAttributes="Bold" FontSize="14" Margin="12,8,12,2"/>
+        </DataTemplate>
+
+        <!-- what the run of streets under it is: the day's booked work, or
+             the work that merely falls due on it. Drawn bigger than a street
+             heading and ruled off in its own colour, so the two kinds of
+             heading are not read as the same thing -->
+        <DataTemplate x:Key="SectionRow">
+            <VerticalStackLayout Margin="12,16,12,2">
+                <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" TextColor="{Binding Colour}"/>
+                <Label Text="{Binding Detail}" FontSize="12" TextColor="Gray" IsVisible="{Binding HaveDetail}" Margin="0,1,0,4"/>
+                <BoxView HeightRequest="2" Color="{Binding Colour}" Opacity="0.5"/>
+            </VerticalStackLayout>
         </DataTemplate>
 
         <DataTemplate x:Key="JobRow">
@@ -107,6 +119,7 @@
         </DataTemplate>
 
         <controls:StreetSplitTemplateSelector x:Key="CalendarRows"
+                                              SectionTemplate="{StaticResource SectionRow}"
                                               HeadingTemplate="{StaticResource StreetRow}"
                                               JobTemplate="{StaticResource JobRow}"/>
 
@@ -202,6 +215,15 @@
                         <Label x:Name="l_dayTimeLeft" FontAttributes="Bold" TextColor="White" BackgroundColor="#EF6C00" Padding="6" Margin="8,0,0,0" IsVisible="false"></Label>
                     </HorizontalStackLayout>
 
+                    <!-- while the due work is off: what is not being shown,
+                         and the way back to it. A filter with nothing on
+                         screen saying so is the thing this page must never do -->
+                    <HorizontalStackLayout x:Name="hsl_dueHidden" HorizontalOptions="Center" Spacing="8" Margin="0,6,0,0" IsVisible="false">
+                        <Label x:Name="l_dueHidden" FontAttributes="Bold" TextColor="White" BackgroundColor="#546E7A" Padding="6" VerticalOptions="Center"></Label>
+                        <Button Text="Show Them" Clicked="bnt_showDue_Clicked" FontSize="12" Padding="12,2"
+                                BackgroundColor="Transparent" BorderWidth="2" BorderColor="#546E7A" TextColor="#546E7A" CornerRadius="8"></Button>
+                    </HorizontalStackLayout>
+
                     <!-- a note about the day itself - the van in for its MOT,
                          a bank holiday. Written from here rather than only
                          from the day's action sheet, which takes a double tap
@@ -209,6 +231,14 @@
                     <Button x:Name="bnt_dayNote" Text="Add A Note" Clicked="bnt_dayNote_Clicked"
                             FontSize="12" Padding="14,4" Margin="0,8,0,0" HorizontalOptions="Center"
                             BackgroundColor="Transparent" BorderWidth="2" BorderColor="#00838F" TextColor="#00838F" CornerRadius="8"></Button>
+
+                    <!-- a day that is worked to what was booked in for it
+                         has no use for the work that merely falls due on it -
+                         this takes it off the day's list. The answer is kept,
+                         so the calendar goes on reading the way it was left -->
+                    <Button x:Name="bnt_hideDue" Text="Hide The Work Just Due" Clicked="bnt_hideDue_Clicked" IsVisible="false"
+                            FontSize="12" Padding="14,4" Margin="0,8,0,0" HorizontalOptions="Center"
+                            BackgroundColor="Transparent" BorderWidth="2" BorderColor="#546E7A" TextColor="#546E7A" CornerRadius="8"></Button>
 
                     <!-- work due on a day still to come can be booked in for
                          it right here, so it is one tap on the day and one on
