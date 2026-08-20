@@ -60,6 +60,7 @@ public static class SelfTest
             TheDateMovesOnlyWhenSomethingActuallyChanges();
             ABackupCarriesTheDateItsDataWasLastChanged();
             ADaySaysHowMuchOfItIsDone();
+            ANoteStaysOnTheDayItWasWrittenAgainst();
         }
         catch (Exception ex)
         {
@@ -1025,6 +1026,67 @@ public static class SelfTest
         Check("and nothing is said about time left", !day.ShowTimeLeft, day.TimeLeftText);
 
         Reset();
+    }
+
+    /// <summary>
+    /// A note is written against a day and belongs to nothing else, so it
+    /// survives a save and load, one day never ends up with two, and rubbing
+    /// it out is what takes it off.
+    /// </summary>
+    private static void ANoteStaysOnTheDayItWasWrittenAgainst()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A note stays on the day it was written against");
+
+        DayNote.DeleteData();
+
+        DateTime day = new DateTime(2026, 4, 20);
+        DateTime other = day.AddDays(1);
+
+        Check("a day with nothing written on it has no note", !DayNote.Has(day), "one was found");
+
+        Check("writing one is a change", DayNote.Set(day, "  van in for its MOT  "), "said nothing changed");
+        Check("and it is there", DayNote.Has(day), "not found");
+        Check("with the spaces taken off", DayNote.TextFor(day) == "van in for its MOT",
+            $"'{DayNote.TextFor(day)}'");
+
+        Check("writing the same thing again changes nothing",
+            !DayNote.Set(day, "van in for its MOT"), "said it changed");
+
+        DayNote.Set(other, "bank holiday");
+        Check("the next day keeps its own", DayNote.TextFor(other) == "bank holiday", DayNote.TextFor(other));
+
+        //the time of day must not come into it - a note is about the date
+        Check("the time on the date makes no difference",
+            DayNote.TextFor(day.AddHours(17)) == "van in for its MOT", "not found by a time");
+
+        //written down and read back
+        DayNote.Save(Folder);
+        DayNote.DeleteData();
+
+        Check("thrown away, there is nothing", !DayNote.Has(day), "still there");
+
+        DayNote.Load(Folder);
+
+        Check("and both come back off the file",
+            DayNote.TextFor(day) == "van in for its MOT" && DayNote.TextFor(other) == "bank holiday",
+            $"'{DayNote.TextFor(day)}' / '{DayNote.TextFor(other)}'");
+        Check("with one note per day", DayNote.Query().Count == 2, $"{DayNote.Query().Count}");
+
+        //changing one leaves the other alone
+        DayNote.Set(day, "van back");
+        Check("changing a note replaces it rather than adding another",
+            DayNote.Query().Count == 2 && DayNote.TextFor(day) == "van back",
+            $"{DayNote.Query().Count} note(s), '{DayNote.TextFor(day)}'");
+
+        //rubbing it out is how it comes off - there is no second button for it
+        Check("clearing it out is a change", DayNote.Set(day, "   "), "said nothing changed");
+        Check("and the note has gone", !DayNote.Has(day), "still there");
+        Check("without touching the other day", DayNote.TextFor(other) == "bank holiday", "lost it");
+        Check("clearing a day with no note changes nothing", !DayNote.Set(day, string.Empty), "said it changed");
+
+        DayNote.DeleteData();
+        DayNote.Save(Folder);
     }
 
     private static void Reset()

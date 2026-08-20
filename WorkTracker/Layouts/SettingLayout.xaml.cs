@@ -1262,6 +1262,7 @@ public partial class SettingLayout : ContentPage
                 StatementRecord.DeleteData();
                 GoCardlessRequest.DeleteData();
                 BalanceAdjustment.DeleteData();
+                DayNote.DeleteData();
 
                 Job.Save();
                 Customer.Save();
@@ -1271,6 +1272,7 @@ public partial class SettingLayout : ContentPage
                 StatementRecord.Save();
                 GoCardlessRequest.Save();
                 BalanceAdjustment.Save();
+                DayNote.Save();
                 DataRefreshNotifier.NotifyDataChanged();
                 await DisplayAlert("Complete", "All data erased", "Ok");
             }

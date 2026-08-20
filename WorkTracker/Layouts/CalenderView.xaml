@@ -164,6 +164,16 @@
                 </Grid>
                 <VerticalStackLayout HorizontalOptions="Center" Margin="0,0,0,12">
                     <Label x:Name="l_currentDayName" FontSize="Default" FontAttributes="Bold" HorizontalOptions="Center" Padding="8,8,8,4"></Label>
+                    <!-- what is written against this day. it sits under the
+                         date because that is what it is about - the day
+                         itself, not the work on it - and tapping it is the
+                         quickest way back into it -->
+                    <Label x:Name="l_dayNote" FontSize="13" HorizontalTextAlignment="Center" HorizontalOptions="Center"
+                           Padding="16,0,16,6" IsVisible="false" TextColor="#00838F">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="l_dayNote_Tapped"/>
+                        </Label.GestureRecognizers>
+                    </Label>
                     <HorizontalStackLayout HorizontalOptions="Center">
                         <!-- what the day's work comes to and how much of it
                              has actually been done. Not the same question as
@@ -191,6 +201,14 @@
                         <Label x:Name="l_dayProgress" FontAttributes="Bold" TextColor="White" BackgroundColor="#455A64" Padding="6" IsVisible="false"></Label>
                         <Label x:Name="l_dayTimeLeft" FontAttributes="Bold" TextColor="White" BackgroundColor="#EF6C00" Padding="6" Margin="8,0,0,0" IsVisible="false"></Label>
                     </HorizontalStackLayout>
+
+                    <!-- a note about the day itself - the van in for its MOT,
+                         a bank holiday. Written from here rather than only
+                         from the day's action sheet, which takes a double tap
+                         nobody does on a phone -->
+                    <Button x:Name="bnt_dayNote" Text="Add A Note" Clicked="bnt_dayNote_Clicked"
+                            FontSize="12" Padding="14,4" Margin="0,8,0,0" HorizontalOptions="Center"
+                            BackgroundColor="Transparent" BorderWidth="2" BorderColor="#00838F" TextColor="#00838F" CornerRadius="8"></Button>
 
                     <!-- work due on a day still to come can be booked in for
                          it right here, so it is one tap on the day and one on

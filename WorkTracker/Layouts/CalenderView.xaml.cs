@@ -115,6 +115,33 @@ public class CalenderDay: INotifyPropertyChanged
             return $"Spent {Gloable.CurrenceSymbol}{ExpensesTotal:0.00}";
         }
     }
+    private bool _showNote;
+
+    /// <summary>
+    /// true when something is written against this day. A note nobody can see
+    /// without tapping the day is a note nobody reads, so the day carries a
+    /// mark on the grid - the day panel is where the note itself is said
+    /// </summary>
+    public bool ShowNote
+    {
+        get
+        {
+            return _showNote;
+        }
+        set
+        {
+            _showNote = value;
+            RaisePropertyChanged("ShowNote");
+        }
+    }
+
+    /// <summary>
+    /// the mark a day with a note carries. A pencil rather than a dot: the
+    /// day is already coloured by its work and a coloured dot on top of that
+    /// would read as more of the same
+    /// </summary>
+    public static string NoteMark = "\u270e";
+
 	public ObservableCollection<Job> Jobs = new ObservableCollection<Job>();
 
     private Color _bgColor = Colors.Transparent;
@@ -451,6 +478,8 @@ public class CalenderDay: INotifyPropertyChanged
         ExpensesTotal = Expense.TotalForDate(Date);
         ShowExpenses = ExpensesTotal != 0;
 
+        ShowNote = DayNote.Has(Date);
+
         RaisePropertyChanged("FormatAmount");
         RaisePropertyChanged("FormatJobCount");
         RaisePropertyChanged("FormatPayments");
@@ -617,6 +646,15 @@ public partial class CalenderView : ContentPage
             l.SetBinding(Label.IsVisibleProperty, "ShowExpenses");
             cell.Add(l);
 
+            //a day with something written against it says so on the grid.
+            //the note itself is far too long for a cell this size - this is
+            //only what makes somebody tap the day and read it
+            l = new Label() { FontSize = 12, Text = CalenderDay.NoteMark };
+            l.BindingContext = _calenderDays[i];
+            l.SetBinding(Label.TextColorProperty, "TextColor");
+            l.SetBinding(Label.IsVisibleProperty, "ShowNote");
+            cell.Add(l);
+
             border = new Border();
             border.ClassId = i.ToString();
             border.SetAppThemeColor(Border.StrokeProperty, Colors.Black, Colors.White);
@@ -743,6 +781,12 @@ public partial class CalenderView : ContentPage
 
         List<string> options = new List<string>();
 
+        //asked for once and compared against, rather than worked out twice:
+        //the two would have to be changed together, and the one that was not
+        //would quietly fall through to whatever is below it
+        string noteOption = DayNoteEditor.ButtonText(day.Date);
+
+        options.Add(noteOption);
         options.Add("Add Expense");
 
         if (day.Jobs.Count > 0)
@@ -779,6 +823,15 @@ public partial class CalenderView : ContentPage
         string result = await DisplayActionSheet($"{day.Date.DayOfWeek} {day.Date.ToShortDateString()}", "Cancel", null, options.ToArray());
         if (result == null)
             return;
+        if (result == noteOption)
+        {
+            if (await DayNoteEditor.ChangeAsync(day.Date, this))
+            {
+                day.ShowNote = DayNote.Has(day.Date);
+                ShowDayNote();
+            }
+            return;
+        }
         if (result == "Add Expense")
         {
             NewExpense.ExpenseToEdit = null;
@@ -1504,6 +1557,8 @@ public partial class CalenderView : ContentPage
             l_dayExpenseTotal.IsVisible = false;
             l_dayProgress.IsVisible = false;
             l_dayTimeLeft.IsVisible = false;
+            l_dayNote.IsVisible = false;
+            bnt_dayNote.IsVisible = false;
             return;
         }
 
@@ -1538,7 +1593,68 @@ public partial class CalenderView : ContentPage
         l_dayExpenseTotal.IsVisible = expensesTotal != 0;
 
         ShowDayProgress(day);
+        ShowDayNote();
         ShowBookInOption();
+    }
+
+    /// <summary>
+    /// What is written against the day being looked at, and the way in to
+    /// writing it. The button is there whether or not there is a note -
+    /// a note nobody can find out how to add is no feature at all - and it
+    /// says which of the two it is about to do.
+    /// </summary>
+    private void ShowDayNote()
+    {
+        string note = _selectedDay == null ? string.Empty : DayNote.TextFor(_selectedDay.Date);
+
+        l_dayNote.Text = note;
+        l_dayNote.IsVisible = note.Length > 0;
+
+        bnt_dayNote.IsVisible = _selectedDay != null;
+        bnt_dayNote.Text = _selectedDay == null
+            ? "Add A Note" : DayNoteEditor.ButtonText(_selectedDay.Date);
+    }
+
+    private void l_dayNote_Tapped(object sender, EventArgs e)
+    {
+        WriteTheDayNote();
+    }
+
+    private void bnt_dayNote_Clicked(object sender, EventArgs e)
+    {
+        WriteTheDayNote();
+    }
+
+    /// <summary>
+    /// asks for the note and puts the day right afterwards - the day panel
+    /// says it and the grid carries the mark, so both have to be told
+    /// </summary>
+    private async void WriteTheDayNote()
+    {
+        if (_selectedDay == null)
+            return;
+
+        DateTime day = _selectedDay.Date;
+
+        try
+        {
+            if (!await DayNoteEditor.ChangeAsync(day, this))
+                return;
+
+            //the mark on the grid is worked out with the day's figures, so
+            //the day is put right rather than only the panel under it
+            foreach (CalenderDay cd in _calenderDays)
+                if (cd.Date.Date == day.Date)
+                    cd.ShowNote = DayNote.Has(cd.Date);
+
+            ShowDayNote();
+        }
+        catch (Exception ex)
+        {
+            //an alert on a page that has gone never comes back, and this is
+            //an async void - it would take the app down rather than the page
+            WorkTracker.CrashLogger.Log("CalenderView.WriteTheDayNote", ex);
+        }
     }
 
     /// <summary>

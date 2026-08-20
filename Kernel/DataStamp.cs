@@ -55,6 +55,7 @@ namespace Kernel
         public const string Statements = "statements";
         public const string DirectDebits = "direct debits";
         public const string BalanceAdjustments = "balance adjustments";
+        public const string DayNotes = "day notes";
         public const string Settings = "settings";
 
         /// <summary>
@@ -266,6 +267,8 @@ namespace Kernel
                 return DirectDebits;
             if (Is(name, "balanceadjustments.rjt"))
                 return BalanceAdjustments;
+            if (Is(name, "daynotes.rjt"))
+                return DayNotes;
             if (Is(name, "settings.txt"))
                 return Settings;
 

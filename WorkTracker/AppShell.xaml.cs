@@ -31,6 +31,7 @@ namespace WorkTracker
             StatementRecord.Load();
             GoCardlessRequest.Load();
             BalanceAdjustment.Load();
+            DayNote.Load();
 
             //photos taken before receipts were filed by tax year are still
             //loose in the receipts folder - put them where they belong

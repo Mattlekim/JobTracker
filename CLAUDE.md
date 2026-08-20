@@ -708,6 +708,33 @@ this page the theme is asked at build time and not watched, so a page already on
 theme keeps what it was built with. The day numbers themselves are the outstanding half of that: `ResetColor`
 puts them in white, which is a white number on a `#F4F6F8` page for every future day in the light theme.
 
+## Notes on a day
+
+`Kernel/DayNote.cs` keeps something written against a date — the van in for its MOT, a bank holiday, somebody
+coming out with you. It is deliberately **about the day and not about the work**: a note on a job is a standing
+note about that house (`Job.Notes`) and a tag says what one visit was like, and neither can say anything at all
+about a day with no work on it, which is most of what somebody wants to write down. So it is kept against the date
+alone, and the note stays put whether that day's work is moved, done or cancelled.
+
+`daynotes.rjt` is a global file like the expense rules — a note is not a tax record, and last year's are worth as
+much as this week's to anybody looking back — so it rides in every backup, comes back with a restore and is
+cleared by Delete All Data.
+
+**Blank takes the note off.** There is no separate delete: rubbing out what is written is what somebody does when
+a note stops applying, and a second button for it would only be a second thing to get wrong. `Set` says whether
+anything actually changed and, like `Job.SetRound`, leaves the saving to whoever asked — `DayNoteEditor` is the
+one place a note is written, so there is nowhere else for the save to be forgotten.
+
+On `Layouts/CalenderView` the note sits under the date on the day panel and is tapped to change, with a button
+beside it that says which of *Add A Note* and *Edit The Note* it is about to do — a note nobody can work out how
+to add is no feature at all. It is on the day's action sheet too, but that takes a double tap and nobody double
+taps a phone, so the button is what it is really reached by.
+
+A day carrying a note is **marked on the grid** (`CalenderDay.ShowNote`, a pencil), because a note you cannot see
+without tapping the day is a note you never read. A mark rather than the note itself: a cell is not big enough for
+a sentence, and it is only there to make somebody tap the day. It is a pencil rather than a coloured dot because
+the day is already filled by its work and a dot would read as more of the same.
+
 ## Changing things from the customer's page
 
 `Layouts/ViewCustomerDetails` is where a customer is looked at, so it is where the two figures that go wrong get
