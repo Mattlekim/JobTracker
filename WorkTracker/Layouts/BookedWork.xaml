@@ -149,9 +149,11 @@
                     <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
                         <Label Text="{Binding Header}" FontAttributes="Bold" FontSize="16" TextColor="{Binding HeaderColour}"/>
                         <Label Text="{Binding OverdueText}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#C62828" Padding="6,2" IsVisible="{Binding IsOverdue}"/>
-                        <!-- how far through the day you are, and what is left of it -->
+                        <!-- how far through the day you are, what that has
+                             come to in money, and what is left of it -->
                         <HorizontalStackLayout Spacing="8">
                             <Label Text="{Binding Progress}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#455A64" Padding="6,2"/>
+                            <Label Text="{Binding DoneValue}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#2E7D32" Padding="6,2" IsVisible="{Binding ShowDoneValue}"/>
                             <Label Text="{Binding TimeLeft}" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#EF6C00" Padding="6,2" IsVisible="{Binding ShowTimeLeft}"/>
                         </HorizontalStackLayout>
                         <!-- the tags on this day's work, so a day tagged as a

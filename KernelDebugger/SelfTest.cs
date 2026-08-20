@@ -59,6 +59,7 @@ public static class SelfTest
             EachBankAccountKeepsItsOwnLayoutAndItsOwnReferences(folder);
             TheDateMovesOnlyWhenSomethingActuallyChanges();
             ABackupCarriesTheDateItsDataWasLastChanged();
+            ADaySaysHowMuchOfItIsDone();
         }
         catch (Exception ex)
         {
@@ -945,6 +946,85 @@ public static class SelfTest
         Payment.DeleteData();
         Expense.DeleteData();
         Job.DeleteData();
+    }
+
+    /// <summary>
+    /// A day says how much of it is done - in houses and in money, which are
+    /// not the same question when the ones left are the expensive ones. Both
+    /// the booked work page and the calendar read it from here, so it is the
+    /// one definition that has to be right.
+    /// </summary>
+    private static void ADaySaysHowMuchOfItIsDone()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A day says how much of it is done");
+
+        Reset();
+
+        //four houses: two cheap ones done, two dear ones still to do
+        Job first = AddJob("12", "High Street", 10f);
+        Job second = AddJob("14", "High Street", 10f);
+        Job third = AddJob("16", "High Street", 40f);
+        Job fourth = AddJob("18", "High Street", 40f);
+
+        third.EstimatedTime = 30;
+        fourth.EstimatedTime = 45;
+
+        first.MarkJobDone(forceNotSave: true);
+        second.MarkJobDone(forceNotSave: true);
+
+        //the day is the four houses as they were booked, not the fresh visits
+        //marking them done made for next time
+        List<Job> theDay = new List<Job>() { first, second, third, fourth };
+
+        DayProgress day = DayProgress.For(theDay);
+
+        Check("the houses done are counted", day.Done == 2, $"{day.Done}");
+        Check("the houses left are counted", day.Left == 2, $"{day.Left}");
+        Check("it says so in words", day.CountText == "2 of 4 done, 2 left", day.CountText);
+
+        Check("the money done is the cheap two", Math.Abs(day.ValueDone - 20f) < 0.005f, $"{day.ValueDone}");
+        Check("the money left is the dear two", Math.Abs(day.ValueLeft - 80f) < 0.005f, $"{day.ValueLeft}");
+        Check("and the day is worth the lot", Math.Abs(day.Value - 100f) < 0.005f, $"{day.Value}");
+
+        //half the houses is a fifth of the money, which is the whole reason
+        //the money is said as well as the count
+        Check("the money is said against the day's total",
+            day.ValueText.Contains("20.00") && day.ValueText.Contains("100.00") && day.ValueText.EndsWith("done"),
+            day.ValueText);
+
+        Check("what is left is timed off the jobs", day.MinutesLeft == 75, $"{day.MinutesLeft}");
+        Check("and said as a person would say it", day.TimeLeftText == "About 1h 15m left", day.TimeLeftText);
+
+        //a clean that was done counts even though the job has been cancelled
+        //since - the same rule the month totals, the stats page and the tax
+        //figures go by. The money for it is real
+        second.CancelJob();
+
+        day = DayProgress.For(theDay);
+
+        Check("a clean already done still counts once the job is cancelled",
+            day.Done == 2, $"{day.Done} done");
+        Check("and its money with it", Math.Abs(day.ValueDone - 20f) < 0.005f, $"{day.ValueDone}");
+
+        //one never done and then cancelled is not work at all
+        fourth.CancelJob();
+
+        day = DayProgress.For(theDay);
+
+        Check("work cancelled before it was done is not counted",
+            day.Left == 1 && Math.Abs(day.ValueLeft - 40f) < 0.005f,
+            $"{day.Left} left worth {day.ValueLeft}");
+
+        //everything done is said as such rather than as "3 of 3"
+        third.MarkJobDone(forceNotSave: true);
+
+        day = DayProgress.For(theDay);
+
+        Check("a day with nothing left says so", day.AllDone && day.CountText == "All 3 done", day.CountText);
+        Check("and nothing is said about time left", !day.ShowTimeLeft, day.TimeLeftText);
+
+        Reset();
     }
 
     private static void Reset()

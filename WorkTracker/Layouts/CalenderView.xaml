@@ -165,6 +165,10 @@
                 <VerticalStackLayout HorizontalOptions="Center" Margin="0,0,0,12">
                     <Label x:Name="l_currentDayName" FontSize="Default" FontAttributes="Bold" HorizontalOptions="Center" Padding="8,8,8,4"></Label>
                     <HorizontalStackLayout HorizontalOptions="Center">
+                        <!-- what the day's work comes to and how much of it
+                             has actually been done. Not the same question as
+                             what has been paid: the money for a clean comes
+                             in weeks after it -->
                         <Label x:Name="l_dayJobTotal" FontAttributes="Bold" TextColor="White" BackgroundColor="#2E7D32" Padding="6"></Label>
                         <!-- tapping what has come in asks the other question:
                              who has not paid -->
