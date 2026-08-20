@@ -158,11 +158,9 @@ namespace Kernel
             data.Adjustments = new List<BalanceAdjustment>(_Adjustments);
             data.NextId = _IdGenerator;
 
-            using (FileStream fs = File.Create(PathFor(dir)))
-            {
-                XmlSerializer xs = new XmlSerializer(typeof(SaveData));
-                xs.Serialize(fs, data);
-            }
+            if (YearlyStore.WriteIfChanged(PathFor(dir), YearlyStore.Serialise(data)))
+                DataStamp.Touch(DataStamp.BalanceAdjustments, dir);
+
             SyncNotifier.NotifySaved();
         }
 

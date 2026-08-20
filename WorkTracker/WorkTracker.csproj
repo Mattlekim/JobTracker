@@ -114,6 +114,8 @@
 
 	<ItemGroup>
 	  <Compile Include="..\Kernel\CResult.cs" Link="Kernal\CResult.cs" />
+	  <Compile Include="..\Kernel\DataSnapshot.cs" Link="Kernal\DataSnapshot.cs" />
+	  <Compile Include="..\Kernel\DataStamp.cs" Link="Kernal\DataStamp.cs" />
 	  <Compile Include="..\Kernel\Customer.cs" Link="Kernal\Customer.cs" />
 	  <Compile Include="..\Kernel\CustomerMerge.cs" Link="Kernal\CustomerMerge.cs" />
 	  <Compile Include="..\Kernel\Expense.cs" Link="Kernal\Expense.cs" />

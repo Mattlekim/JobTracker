@@ -38,6 +38,25 @@ public static class TaxYearBackup
         public int Statements;
         public List<int> Years = new List<int>();
 
+        /// <summary>
+        /// when the data in it was last changed - not when the backup was
+        /// taken. A backup made this morning out of a round nobody has
+        /// touched since March holds a March round, and that is what has to
+        /// be said before it is put back over anything
+        /// </summary>
+        public DateTime DataLastChanged = DateTime.MinValue;
+
+        /// <summary>the date said the way the rest of the app says dates</summary>
+        public string WhenTheDataChanged
+        {
+            get
+            {
+                if (DataLastChanged <= DateTime.MinValue)
+                    return "not known";
+                return DataLastChanged.ToString("d MMM yyyy") + " at " + DataLastChanged.ToString("HH:mm");
+            }
+        }
+
         public string FormattedYears
         {
             get
@@ -93,6 +112,14 @@ public static class TaxYearBackup
         //receipts from before they were filed by year, which no year folder
         //claims - they go in so nothing is left behind
         result.Receipts += CopyLooseReceipts(Path.Combine(saveDir, Expense.ReceiptFolder));
+
+        //and the date the round was last changed, carried across unchanged.
+        //Every file in here was written a moment ago by the saves above, so
+        //the files themselves can only say when the backup was taken - which
+        //is exactly the thing that must not be mistaken for how old the work
+        //in it is
+        DataStamp.CopyInto(Settings.SaveDataFolder);
+        result.DataLastChanged = DataStamp.LastModified;
 
         string path = Path.Combine(FileSystem.CacheDirectory, fileName);
         if (File.Exists(path))

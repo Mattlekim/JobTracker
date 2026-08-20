@@ -22,6 +22,13 @@ public static class BackupRestore
     /// <summary>what a backup is called</summary>
     public const string Extension = ".rbf";
 
+    /// <summary>
+    /// the way in to the figures on the restore question. Said once because
+    /// the answer is compared against it - a wording changed in one place and
+    /// not the other would quietly restore instead of showing the figures
+    /// </summary>
+    private const string ShowChanges = "Show What Would Change";
+
     /// <summary>is this a backup, by its name</summary>
     public static bool LooksLikeBackup(string fileName)
     {
@@ -192,10 +199,59 @@ public static class BackupRestore
         //a nameless one still has to be called something in the question
         string shownAs = LooksLikeBackup(fileName) ? fileName : $"{fileName} (a Work Tracker backup)";
 
-        if (!await page.DisplayAlert("Restore Backup",
-                $"{shownAs}\n\nEverything on this device is replaced by what is in this backup. Anything done since it was made will be lost.",
-                "Restore", "Cancel"))
-            return false;
+        //what is in the backup, and what is here, before anything is unpacked.
+        //reading the backup walks every job in it, so it is done off the UI
+        //thread - what is on the device is counted on it, because those are
+        //the app's own lists
+        DataSnapshot backup = await Task.Run(() => DataSnapshot.FromBackup(path));
+        DataSnapshot here = DataSnapshot.Current(backup.TaxYears);
+
+        //the one thing worth stopping somebody over: a backup holding older
+        //work than the phone it is about to be put on. The date comes out of
+        //the backup rather than off the file, so a backup taken this morning
+        //of a round last touched in March says March
+        if (DataSnapshot.BackupIsOlder(backup, here))
+        {
+            string older = DataSnapshot.HowLong(here.LastModified - backup.LastModified);
+
+            if (!await page.DisplayAlert("This Backup Is Older Than Your Data",
+                    $"The data on this device was last changed {here.WhenText}.\n\n"
+                    + $"This backup was last changed {backup.WhenText} - {older} earlier"
+                    + (backup.DateIsGuessed ? ", going by the files in it" : string.Empty) + ".\n\n"
+                    + "Restoring it puts the round back to how it was then. Anything done since is lost.",
+                    "Carry On", "Cancel"))
+                return false;
+        }
+
+        string when = backup.KnowsWhenItChanged
+            ? (backup.DateIsGuessed
+                ? $"It does not say when it was last changed. Going by the files in it, {backup.WhenText}."
+                : $"Last changed {backup.WhenText}.")
+            : "It does not say when it was last changed.";
+
+        string question = $"{shownAs}\n{when}\n\n"
+            + "Everything on this device is replaced by what is in this backup. Anything done since it was made will be lost.";
+
+        //asked in a loop so the figures can be looked at and the question
+        //comes back afterwards, rather than the answer being lost to a look
+        while (true)
+        {
+            string[] options = backup.Readable
+                ? new string[] { ShowChanges } : new string[0];
+
+            string choice = await page.DisplayActionSheet(question, "Cancel", "Restore", options);
+
+            if (choice == ShowChanges)
+            {
+                await page.DisplayAlert("What Would Change", DataSnapshot.Difference(backup, here), "Ok");
+                continue;
+            }
+
+            if (choice != "Restore")
+                return false;
+
+            break;
+        }
 
         try
         {
@@ -224,6 +280,10 @@ public static class BackupRestore
             StatementRecord.Load();
             GoCardlessRequest.Load();
             BalanceAdjustment.Load();
+
+            //the device's data is the backup's now, and so is the date it was
+            //last changed - the stamp came out of the zip with everything else
+            DataStamp.Load();
 
             DataRefreshNotifier.NotifyDataChanged();
         }

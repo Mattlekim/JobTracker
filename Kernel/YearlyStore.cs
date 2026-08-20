@@ -97,6 +97,16 @@ namespace Kernel
         }
 
         /// <summary>
+        /// the same, out of a stream rather than a file - a data file being
+        /// read straight out of a backup without unpacking the zip first
+        /// </summary>
+        public static T Deserialise<T>(Stream stream)
+        {
+            XmlSerializer xs = new XmlSerializer(typeof(T));
+            return (T)xs.Deserialize(stream);
+        }
+
+        /// <summary>
         /// writes the file only when what is in it would actually change.
         /// this is the whole point of splitting the years up: a year that has
         /// not been touched keeps its timestamp, so the cloud sees nothing to

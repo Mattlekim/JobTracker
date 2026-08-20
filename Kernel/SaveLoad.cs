@@ -44,12 +44,13 @@ namespace Kernel
             csd.Customers = new List<Customer>();
             csd.Customers.AddRange(_Customers);
             csd.NextCustomerId = _IdGenerator;
-            using (FileStream fs = File.Create(fileLocation))
-            {
-                XmlSerializer xs = new XmlSerializer(typeof(CustomerSaveData));
-                xs.Serialize(fs, csd);
 
-            }
+            //written only when it would actually differ, so a save that
+            //changes nothing does not move the date the data was last changed
+            //- nor give the cloud a file to send
+            if (YearlyStore.WriteIfChanged(fileLocation, YearlyStore.Serialise(csd)))
+                DataStamp.Touch(DataStamp.Customers, dir);
+
             SyncNotifier.NotifySaved();
         }
         public static void Load(string dir = null)
@@ -143,12 +144,7 @@ namespace Kernel
             csd.Jobs.AddRange(_Jobs);
             csd.NextJobId = _IdGenerator;
 
-            using (FileStream fs = File.Create(fileLocation))
-            {
-                XmlSerializer xs = new XmlSerializer(typeof(JobSaveData));
-                xs.Serialize(fs, csd);
-
-            }
+            bool changed = YearlyStore.WriteIfChanged(fileLocation, YearlyStore.Serialise(csd));
 
 
             //written every time, empty or not. this used to be skipped when
@@ -166,11 +162,12 @@ namespace Kernel
             csd.Jobs = new List<Job>();
             csd.Jobs.AddRange(_Quotes);
 
-            using (FileStream fs = File.Create(fileLocation))
-            {
-                XmlSerializer xs = new XmlSerializer(typeof(JobSaveData));
-                xs.Serialize(fs, csd);
-            }
+            if (YearlyStore.WriteIfChanged(fileLocation, YearlyStore.Serialise(csd)))
+                changed = true;
+
+            if (changed)
+                DataStamp.Touch(DataStamp.Jobs, dir);
+
             SyncNotifier.NotifySaved();
         }
 
@@ -474,14 +471,17 @@ namespace Kernel
             //expense today cannot change a finished year's file
             int currentYear = TaxCalendar.TaxYearOf(UsfulFuctions.DateNow);
 
+            bool changed = false;
+
             foreach (KeyValuePair<int, List<Expense>> year in byYear)
             {
                 ExpenseSaveData esd = new ExpenseSaveData();
                 esd.Expenses = year.Value;
                 esd.NextExpenseId = year.Key == currentYear ? _IdGenerator : 0;
 
-                YearlyStore.WriteIfChanged(YearlyStore.PathFor(FilePrefix, year.Key, dir),
-                    YearlyStore.Serialise(esd));
+                if (YearlyStore.WriteIfChanged(YearlyStore.PathFor(FilePrefix, year.Key, dir),
+                        YearlyStore.Serialise(esd)))
+                    changed = true;
             }
 
             //a year whose last expense has been deleted should not be left
@@ -489,7 +489,13 @@ namespace Kernel
             if (onlyYears == null)
                 foreach (int year in YearlyStore.YearsOnDisk(FilePrefix, dir))
                     if (!byYear.ContainsKey(year))
+                    {
                         YearlyStore.DeleteYear(FilePrefix, year, dir);
+                        changed = true;
+                    }
+
+            if (changed)
+                DataStamp.Touch(DataStamp.Expenses, dir);
 
             SyncNotifier.NotifySaved();
         }
@@ -595,11 +601,9 @@ namespace Kernel
             ersd.Rules.AddRange(_Rules);
             ersd.NextRuleId = _IdGenerator;
 
-            using (FileStream fs = File.Create(fileLocation))
-            {
-                XmlSerializer xs = new XmlSerializer(typeof(ExpenseRuleSaveData));
-                xs.Serialize(fs, ersd);
-            }
+            if (YearlyStore.WriteIfChanged(fileLocation, YearlyStore.Serialise(ersd)))
+                DataStamp.Touch(DataStamp.ExpenseRules, dir);
+
             SyncNotifier.NotifySaved();
         }
 
@@ -662,11 +666,9 @@ namespace Kernel
             basd.Accounts.AddRange(_Accounts);
             basd.NextAccountId = _IdGenerator;
 
-            using (FileStream fs = File.Create(fileLocation))
-            {
-                XmlSerializer xs = new XmlSerializer(typeof(BankAccountSaveData));
-                xs.Serialize(fs, basd);
-            }
+            if (YearlyStore.WriteIfChanged(fileLocation, YearlyStore.Serialise(basd)))
+                DataStamp.Touch(DataStamp.BankAccounts, dir);
+
             SyncNotifier.NotifySaved();
         }
 
@@ -749,20 +751,29 @@ namespace Kernel
 
             int currentYear = TaxCalendar.TaxYearOf(UsfulFuctions.DateNow);
 
+            bool changed = false;
+
             foreach (KeyValuePair<int, List<StatementRecord>> year in byYear)
             {
                 StatementRecordSaveData srsd = new StatementRecordSaveData();
                 srsd.Records = year.Value;
                 srsd.NextRecordId = year.Key == currentYear ? _IdGenerator : 0;
 
-                YearlyStore.WriteIfChanged(YearlyStore.PathFor(FilePrefix, year.Key, dir),
-                    YearlyStore.Serialise(srsd));
+                if (YearlyStore.WriteIfChanged(YearlyStore.PathFor(FilePrefix, year.Key, dir),
+                        YearlyStore.Serialise(srsd)))
+                    changed = true;
             }
 
             if (onlyYears == null)
                 foreach (int year in YearlyStore.YearsOnDisk(FilePrefix, dir))
                     if (!byYear.ContainsKey(year))
+                    {
                         YearlyStore.DeleteYear(FilePrefix, year, dir);
+                        changed = true;
+                    }
+
+            if (changed)
+                DataStamp.Touch(DataStamp.Statements, dir);
 
             SyncNotifier.NotifySaved();
         }
@@ -827,11 +838,9 @@ namespace Kernel
             gsd.Requests.AddRange(_Requests);
             gsd.NextRequestId = _IdGenerator;
 
-            using (FileStream fs = File.Create(fileLocation))
-            {
-                XmlSerializer xs = new XmlSerializer(typeof(GoCardlessRequestSaveData));
-                xs.Serialize(fs, gsd);
-            }
+            if (YearlyStore.WriteIfChanged(fileLocation, YearlyStore.Serialise(gsd)))
+                DataStamp.Touch(DataStamp.DirectDebits, dir);
+
             SyncNotifier.NotifySaved();
         }
 
@@ -926,6 +935,8 @@ namespace Kernel
             //payment today cannot change a finished year's file
             int currentYear = TaxCalendar.TaxYearOf(UsfulFuctions.DateNow);
 
+            bool changed = false;
+
             foreach (KeyValuePair<int, List<Payment>> year in byYear)
             {
                 PaymentSaveData psd = new PaymentSaveData();
@@ -933,28 +944,36 @@ namespace Kernel
                 psd.NextPaymentId = year.Key == currentYear ? _IdGenerator : 0;
                 psd.paymentsToIgnore = new List<string>();
 
-                YearlyStore.WriteIfChanged(YearlyStore.PathFor(FilePrefix, year.Key, dir),
-                    YearlyStore.Serialise(psd));
+                if (YearlyStore.WriteIfChanged(YearlyStore.PathFor(FilePrefix, year.Key, dir),
+                        YearlyStore.Serialise(psd)))
+                    changed = true;
             }
 
             if (onlyYears == null)
                 foreach (int year in YearlyStore.YearsOnDisk(FilePrefix, dir))
                     if (!byYear.ContainsKey(year))
+                    {
                         YearlyStore.DeleteYear(FilePrefix, year, dir);
+                        changed = true;
+                    }
 
-            SaveIgnoreList(dir);
+            if (SaveIgnoreList(dir))
+                changed = true;
+
+            if (changed)
+                DataStamp.Touch(DataStamp.Payments, dir);
 
             SyncNotifier.NotifySaved();
         }
 
-        private static void SaveIgnoreList(string dir)
+        private static bool SaveIgnoreList(string dir)
         {
             PaymentIgnoreSaveData pisd = new PaymentIgnoreSaveData();
             pisd.paymentsToIgnore = new List<string>();
             if (IgnorePaymentList != null)
                 pisd.paymentsToIgnore.AddRange(IgnorePaymentList);
 
-            YearlyStore.WriteIfChanged(Path.Combine(YearlyStore.Folder(dir), IgnoreFilePath),
+            return YearlyStore.WriteIfChanged(Path.Combine(YearlyStore.Folder(dir), IgnoreFilePath),
                 YearlyStore.Serialise(pisd));
         }
 

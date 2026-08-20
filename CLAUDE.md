@@ -111,6 +111,62 @@ The global files go into every backup regardless. Restoring is unchanged — the
 a one-year backup puts that year back and leaves the others alone. Backup files are written to the cache folder,
 not next to the data.
 
+## When the data was last changed
+
+`Kernel/DataStamp.cs` writes the date down **with the data** (`datastamp.rjt`), and it is there because a file's own
+timestamp cannot answer the question. The moment the round is copied anywhere — into a backup, out of a zip, down
+from Drive, off one phone on to another — every file is stamped with the day the copy was taken, and that says
+nothing about how old the work in it is. A backup made this morning out of a round nobody has touched since March
+is a **March round**, and putting it back over a round worked all summer is the one mistake there is no undoing.
+
+It is kept a part at a time — the jobs, the customers, the payments, the settings — because "the jobs were last
+changed in March" is worth more than one date for the lot; `LastModified` is the newest of them and `LastChanged`
+says which part it was. The settings page shows it above Create Backup.
+
+Two rules make it mean anything, and both are easy to undo by accident:
+
+- **A save into another folder does not move the date.** That is a copy of the round being built, not the round
+  changing, so `Touch` sees the folder is not `HomeFolder` and *copies* the round's date into it instead
+  (`TaxYearBackup.Create` also asks for it outright, since a backup with every file rewritten a second ago has
+  nothing else to go on). Move the date there and every backup would claim to be as new as the day it was made,
+  which is the whole thing this exists to stop.
+- **A save that changes nothing does not move it either.** That is why the whole-file savers — customers, jobs,
+  quotes, expense rules, bank accounts, direct debits, balance adjustments, settings — now go through
+  `YearlyStore.WriteIfChanged` like the per-year files always have, and only stamp when it says it wrote. Left
+  writing unconditionally, opening the app would count as changing the round and every backup ever made would read
+  as out of date the moment somebody looked at it. It also stops the cloud being handed an unchanged `jobs.rjt`.
+
+`HomeFolder` is where the round lives — null, the data folder, for the app. It is settable so the self test can
+work in a folder of its own rather than stamping the real data folder of whatever machine it runs on.
+
+A round worked for years before any of this has no stamp in it. `SeedFromTheFiles` dates each part from the newest
+file it is kept in, so the first backup off an existing phone still carries a real date rather than nothing.
+
+## What a backup would change
+
+`Kernel/DataSnapshot.cs` counts what is in a backup — jobs, jobs done, quotes, customers, payments and expenses,
+with the money for the last two — **straight out of the zip**, without unpacking it and without touching anything
+loaded. `Current()` counts the same things off the app's own lists, and `Difference` says the two side by side.
+
+That is what `BackupRestore.RestoreAsync` puts behind **Show What Would Change** on the restore question, which is
+asked in a loop so looking at the figures does not throw the answer away. Before that, if the backup's date is
+older than the device's, it says so on its own and has to be got past: *restoring is not a merge* is easy to read
+past, *this backup is four months older than what is on this phone* is not.
+
+Two things it must keep getting right:
+
+- **Money is compared only for the tax years the backup holds.** Restoring unpacks the zip over the data folder, so
+  a one-year backup puts that year back and leaves the others alone — counting all of them against one year's worth
+  would say a thousand payments were about to vanish when not one of them is going anywhere. `TaxYears` is read off
+  the `payments-<year>.rjt` / `expenses-<year>.rjt` files actually in the zip and `Current` is given the same list.
+  A backup with no money files in it says so instead of drawing the lines.
+- **The figures come from the files, not from a count written down.** A stored count would be a second version of
+  the truth and could disagree with what is about to be restored. Only the *date* is taken from the stamp, and a
+  backup made before the stamp existed falls back to the newest file in the zip, marked as a guess where it is said
+  out loud.
+
+`DataStamp.Load()` runs again at the end of a restore: the device's data is the backup's now, and so is its date.
+
 ## Opening a backup
 
 A backup is a `.rbf` (a zip, built by `ImportExport/TaxYearBackup`). `ImportExport/BackupRestore` is the only
