@@ -114,6 +114,7 @@
 
 	<ItemGroup>
 	  <Compile Include="..\Kernel\CResult.cs" Link="Kernal\CResult.cs" />
+	  <Compile Include="..\Kernel\DataCheck.cs" Link="Kernal\DataCheck.cs" />
 	  <Compile Include="..\Kernel\DataSnapshot.cs" Link="Kernal\DataSnapshot.cs" />
 	  <Compile Include="..\Kernel\DayNote.cs" Link="Kernal\DayNote.cs" />
 	  <Compile Include="..\Kernel\DayProgress.cs" Link="Kernal\DayProgress.cs" />
@@ -225,6 +226,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TidyCustomers.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Layouts\DataIssues.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\AllJobs.xaml">

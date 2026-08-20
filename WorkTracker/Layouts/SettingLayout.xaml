@@ -238,6 +238,14 @@
                 <Label></Label>
                 <Button Text="Reset Banking Import Settings"  BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_resetImportBanking"></Button>
                 <Label></Label>
+                <!-- goes over the round looking for the work that is
+                     quietly not set up properly - no price, no time, ticked
+                     to be texted with no number to text. None of it shows up
+                     on a page, because every page is showing what it was
+                     told, so it has to be asked for. See Kernel/DataCheck -->
+                <Button Text="Verify Data" BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_verifyData_Clicked"></Button>
+                <Label Text="Checks every house on the round has a price and a time, and that anybody set to be texted or emailed has a number or an address to reach them on. It changes nothing - it says what it found." FontSize="12" TextColor="Grey"></Label>
+                <Label></Label>
                 <!-- puts duplicate customer records back into one. see
                      Layouts/TidyCustomers for why there are any -->
                 <Button x:Name="bnt_tidyCustomers" Text="Tidy Customers" BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_tidyCustomers_Clicked"></Button>

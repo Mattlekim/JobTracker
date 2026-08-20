@@ -737,6 +737,49 @@ public partial class SettingLayout : ContentPage
             + $" ({DataStamp.LastChanged}). A backup carries that date, not the day it is made.";
     }
 
+    /// <summary>
+    /// Goes over the round looking for the work that is quietly not set up
+    /// properly, and says what it found.
+    ///
+    /// The finding is all <see cref="DataCheck"/>'s, in the kernel with the
+    /// work - this only asks and puts the answer up. Nothing is changed:
+    /// what a missing price or a missing phone number ought to be is not
+    /// something the app can know, and filling one in with a guess would be
+    /// worse than the gap.
+    ///
+    /// The figures come with a way through to the houses behind them, for
+    /// the same reason the stats page's rounds do: "eleven houses have no
+    /// price" is no use on its own, and nobody is going to find eleven
+    /// houses out of a round by scrolling.
+    /// </summary>
+    private async void bnt_verifyData_Clicked(object sender, EventArgs e)
+    {
+        List<DataProblem> problems = DataCheck.Run();
+
+        if (problems.Count == 0)
+        {
+            await DisplayAlert("Verify Data",
+                "Nothing to put right. Every house on the round has a price and a time, and everybody set to be texted or emailed has a number or an address to reach them on.",
+                "OK");
+            return;
+        }
+
+        string houses = problems.Count == 1 ? "1 house needs" : $"{problems.Count} houses need";
+
+        //the houses are counted here and the lines under them a problem at a
+        //time, so a house with three things wrong with it is on three of
+        //them. The lines can add up to more than the houses, and that is not
+        //a miscount
+        bool see = await DisplayAlert("Verify Data",
+            $"{houses} putting right:\n\n{DataCheck.Summarise(problems)}",
+            "See The Jobs", "Close");
+
+        if (!see)
+            return;
+
+        await Navigation.PushAsync(new DataIssues());
+    }
+
     private async void bnt_tidyCustomers_Clicked(object sender, EventArgs e)
     {
         await Navigation.PushAsync(new TidyCustomers());

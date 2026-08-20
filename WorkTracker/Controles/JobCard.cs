@@ -149,6 +149,7 @@ public class JobCard : ContentView
     private bool _collapseCancelled = false;
     private bool _collapseCompleted = false;
     private bool _enableFilterTaps = false;
+    private Color _extraCaptionColour = null;
     private AddressStyles _addressStyle = AddressStyles.Full;
     private DueStyles _dueStyle = DueStyles.Relative;
     private OwedStyles _owedStyle = OwedStyles.WhenOwed;
@@ -206,6 +207,17 @@ public class JobCard : ContentView
     /// Off by default because a recogniser swallows the tap - a page whose
     /// rows are tapped as a whole must leave this off</summary>
     public bool EnableFilterTaps { get { return _enableFilterTaps; } set { _enableFilterTaps = value; Apply(); } }
+
+    /// <summary>
+    /// What colour the page's own caption line is said in. Null - the
+    /// default - is the same quiet grey every other caption on the card uses.
+    ///
+    /// It is an option because the line is not always an aside: All Jobs puts
+    /// how often the house comes round there, which is a detail, while
+    /// Layouts/DataIssues puts what is wrong with the house there, which is
+    /// the entire reason that row is on the page.
+    /// </summary>
+    public Color ExtraCaptionColour { get { return _extraCaptionColour; } set { _extraCaptionColour = value; Apply(); } }
 
     public AddressStyles AddressStyle { get { return _addressStyle; } set { _addressStyle = value; Apply(); RefreshComputed(); } }
 
@@ -453,8 +465,14 @@ public class JobCard : ContentView
         _owed = new Label() { FontSize = 12, VerticalOptions = LayoutOptions.Center, LineBreakMode = LineBreakMode.TailTruncation };
         Put(_owed, 2, 2);
 
-        //the page's own caption line - how often, on All Jobs
+        //the page's own caption line - how often on All Jobs, what is wrong
+        //with the house on Layouts/DataIssues. Two lines rather than one,
+        //because that second page's line is a list of things and one line of
+        //it would be cut off in the middle of the first - and bounded rather
+        //than left to wrap, so a row's height is still something the list can
+        //work out without measuring the text
         _extra = Caption();
+        _extra.MaxLines = 2;
         _extra.IsVisible = false;
         Put(_extra, 3, 1);
 
@@ -810,6 +828,21 @@ public class JobCard : ContentView
 
         Gate(_tags, _showTags, "HaveTags");
         Gate(_notes, _showNotes, "HaveJobNotes");
+
+        //the caption takes the money side of the card as well when the owed
+        //figure is not sharing the line with it. Left at one column it is cut
+        //off at a third of the width, which is fine for All Jobs' couple of
+        //words and no use at all for a sentence
+        Grid.SetColumnSpan(_extra, _owedStyle == OwedStyles.Always ? 1 : 2);
+
+        //the caption's colour is set rather than themed once a page has asked
+        //for one of its own, so the binding has to come off first - left on,
+        //it would put the grey back the next time the theme was read
+        _extra.RemoveBinding(Label.TextColorProperty);
+        if (_extraCaptionColour == null)
+            _extra.SetAppThemeColor(Label.TextColorProperty, CaptionLight, CaptionDark);
+        else
+            _extra.TextColor = _extraCaptionColour;
 
         FilterTap(_street, JobCardPart.Street);
         FilterTap(_city, JobCardPart.City);

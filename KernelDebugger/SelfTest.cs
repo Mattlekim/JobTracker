@@ -61,6 +61,7 @@ public static class SelfTest
             ABackupCarriesTheDateItsDataWasLastChanged();
             ADaySaysHowMuchOfItIsDone();
             ANoteStaysOnTheDayItWasWrittenAgainst();
+            WorkThatIsNotSetUpProperlyIsFound();
         }
         catch (Exception ex)
         {
@@ -1087,6 +1088,126 @@ public static class SelfTest
 
         DayNote.DeleteData();
         DayNote.Save(Folder);
+    }
+
+    /// <summary>
+    /// Verify Data finds the work that is quietly not set up properly - no
+    /// price, no time, ticked to be told with no way of telling them - once
+    /// per house, and leaves the houses that are set up right alone.
+    /// </summary>
+    private static void WorkThatIsNotSetUpProperlyIsFound()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Verify Data finds the work that is not set up properly");
+
+        Reset();
+        Customer.DeleteData();
+
+        //no usual for the round, so a house with no time of its own has no
+        //time at all - which is what is being checked. Set outright because
+        //it is a static and an earlier test may have left one on it
+        Job.DefaultDuration = 0;
+
+        Customer reachable = new Customer("12", "High Street");
+        reachable.Phone = "07000 000000";
+        reachable.Email = "somebody@example.com";
+        Customer.Add(reachable);
+
+        Customer outOfReach = new Customer("14", "High Street");
+        Customer.Add(outOfReach);
+
+        //a house with nothing wrong with it: priced, timed, and told the
+        //night before by two routes it actually has
+        Job right = AddJob("12", "High Street", 10f);
+        right.CustomerId = reachable.Id;
+        right.EstimatedTime = 30;
+        right.TNB = true;
+        right.ENB = true;
+
+        //and one with everything wrong with it
+        Job wrong = AddJob("14", "High Street", 0f);
+        wrong.CustomerId = outOfReach.Id;
+        wrong.TNB = true;
+        wrong.ENB = true;
+
+        List<DataProblem> problems = DataCheck.Run();
+
+        Check("the house that is set up right is left alone",
+            problems.Find(x => x.Job == right) == null, "it was reported");
+
+        DataProblem found = problems.Find(x => x.Job == wrong);
+
+        Check("the house that is not is found", found != null, "it was not reported");
+        Check("no price is spotted",
+            found != null && found.Issues.Contains(DataIssue.NoPrice), Said(found));
+        Check("no time is spotted",
+            found != null && found.Issues.Contains(DataIssue.NoTime), Said(found));
+        Check("a text night before with no number is spotted",
+            found != null && found.Issues.Contains(DataIssue.TextNightBeforeNoPhone), Said(found));
+        Check("an email night before with no address is spotted",
+            found != null && found.Issues.Contains(DataIssue.EmailNightBeforeNoEmail), Said(found));
+
+        Check("and they are all said in one line",
+            found != null && found.Says.Contains("No price") && found.Says.Contains("No time set"), Said(found));
+
+        //a house with no estimate of its own still takes the round's usual,
+        //which is a real answer - so it is not a problem once there is one
+        Job.DefaultDuration = 30;
+        found = DataCheck.Run().Find(x => x.Job == wrong);
+        Check("a house with no time of its own is fine once the round has a usual",
+            found != null && !found.Issues.Contains(DataIssue.NoTime), Said(found));
+        Job.DefaultDuration = 0;
+
+        //the job list keeps every visit of a house, so a second visit of the
+        //same house must not report the same missing price twice
+        Job laterVisit = AddJob("14", "High Street", 0f);
+        laterVisit.CustomerId = outOfReach.Id;
+        laterVisit.BaseJobId = wrong.BaseJobId;
+        laterVisit.DueDate = wrong.DueDate.AddDays(7);
+
+        problems = DataCheck.Run();
+        Check("a house with two visits out is reported once",
+            problems.FindAll(x => x.Job.SameJobKey == wrong.SameJobKey).Count == 1,
+            $"{problems.FindAll(x => x.Job.SameJobKey == wrong.SameJobKey).Count} times");
+        Check("and it is the visit next due that is reported",
+            problems.Find(x => x.Job.SameJobKey == wrong.SameJobKey)?.Job == wrong, "the wrong visit");
+
+        //a clean already written up is not the round: the price it was
+        //charged at cannot be put right now, and it is not work anybody is
+        //going to turn up for
+        wrong.IsCompleted = true;
+        laterVisit.IsCompleted = true;
+        Check("work already written up is not reported",
+            DataCheck.Run().Find(x => x.Job.SameJobKey == wrong.SameJobKey) == null, "it was reported");
+
+        wrong.IsCompleted = false;
+        laterVisit.IsCompleted = false;
+
+        //a cancelled house is not on the round either
+        wrong.HaveCanceled = true;
+        laterVisit.HaveCanceled = true;
+        Check("cancelled work is not reported",
+            DataCheck.Run().Find(x => x.Job.SameJobKey == wrong.SameJobKey) == null, "it was reported");
+
+        //the summary counts a problem at a time, so one house with four
+        //things wrong with it draws four lines
+        wrong.HaveCanceled = false;
+        laterVisit.HaveCanceled = false;
+        string summary = DataCheck.Summarise(DataCheck.Run());
+        Check("the summary says each kind of problem on its own line",
+            summary.Contains("No price") && summary.Contains("No time set")
+                && summary.Contains("no phone number") && summary.Contains("no email address"),
+            summary);
+
+        //leave nothing behind for whatever runs next
+        Customer.DeleteData();
+        Job.DeleteData();
+    }
+
+    /// <summary>what a problem says, for the line a failure prints</summary>
+    private static string Said(DataProblem problem)
+    {
+        return problem == null ? "nothing was reported" : problem.Says;
     }
 
     private static void Reset()
