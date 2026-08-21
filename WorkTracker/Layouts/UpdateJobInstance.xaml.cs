@@ -1,6 +1,7 @@
 namespace UiInterface.Layouts;
 
 using Kernel;
+using UiInterface.Controles;
 public partial class UpdateJobInstance : ContentPage
 {
 	public static Job CurrentJob;
@@ -22,11 +23,8 @@ public partial class UpdateJobInstance : ContentPage
 	private void Build()
 	{
         l_customerDescription.Text = $"{CurrentJob.JobFormattedStreet} {CurrentJob.JobFormattedCity}";
-        p_paymentType.Items.Clear();
-        foreach (string s in Enum.GetNames(typeof(PaymentMethod)))
-            p_paymentType.Items.Add(s);
-
-        p_paymentType.SelectedItem = "Cash";
+        PaymentMethodChoice.Fill(p_paymentType);
+        PaymentMethodChoice.Select(p_paymentType, PaymentMethodChoice.Usual(CurrentJob));
 
         l_jobType.Text = CurrentJob.Name;
         l_jobType.BackgroundColor = Colors.Orange;
@@ -117,8 +115,7 @@ public partial class UpdateJobInstance : ContentPage
         if (p.Id == -1) //if not valid
             return;
 
-        string tmp = $"{p.PaymentMethod}";
-        p_paymentType.SelectedItem = $"{p.PaymentMethod}";
+        PaymentMethodChoice.Select(p_paymentType, p.PaymentMethod);
         l_amoutToPay.Text = $"{p.Amount}";
     }
 
@@ -273,7 +270,7 @@ public partial class UpdateJobInstance : ContentPage
             Payment p = Payment.Get(CurrentJob.PaymentId);
             if (p.Id != -1)
             {
-                p.PaymentMethod = (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)p_paymentType.SelectedItem);
+                p.PaymentMethod = PaymentMethodChoice.Picked(p_paymentType, p.PaymentMethod);
                 try
                 {
                     float diff = (float)Convert.ToDouble(l_amoutToPay.Text) - p.Amount;
@@ -323,7 +320,7 @@ public partial class UpdateJobInstance : ContentPage
                     $"A direct debit is already on its way for this job ({pending.FormattedSummary}). " +
                     "It will be marked paid automatically once the money comes through.", "Ok");
             else
-                CurrentJob.MarkJobPaid((float)Convert.ToDouble(l_amoutToPay.Text), (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)p_paymentType.SelectedItem));
+                CurrentJob.MarkJobPaid((float)Convert.ToDouble(l_amoutToPay.Text), PaymentMethodChoice.Picked(p_paymentType, PaymentMethodChoice.Usual(CurrentJob)));
         }
 
         if (CurrentJob.IsCompleted && cb_isCompleated.IsChecked)

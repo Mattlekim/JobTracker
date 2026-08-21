@@ -1,6 +1,7 @@
 namespace UiInterface.Layouts;
 
 using Kernel;
+using UiInterface.Controles;
 
 /// <summary>
 /// Everything that can be marked on one job, in one window: whether it is
@@ -44,8 +45,7 @@ public partial class JobStatus : ContentPage
         if (_job == null)
             return;
 
-        foreach (string s in Enum.GetNames(typeof(PaymentMethod)))
-            p_paymentType.Items.Add(s);
+        PaymentMethodChoice.Fill(p_paymentType);
 
         l_currency.Text = Gloable.CurrenceSymbol;
 
@@ -77,18 +77,19 @@ public partial class JobStatus : ContentPage
         Payment existing = _job.JobPayment;
         if (existing != null)
         {
-            p_paymentType.SelectedItem = existing.PaymentMethod.ToString();
+            PaymentMethodChoice.Select(p_paymentType, existing.PaymentMethod);
             e_amount.Text = existing.Amount.ToString("0.00");
             rb_custom.IsChecked = true;
         }
         else
         {
-            p_paymentType.SelectedItem = PaymentMethod.Cash.ToString();
+            PaymentMethodChoice.Select(p_paymentType, PaymentMethodChoice.Usual(_job));
             rb_thisJob.IsChecked = true;
         }
 
         _building = false;
 
+        ShowMethod();
         ShowAmounts();
         ShowPaidSection();
         ShowDoneSection();
@@ -369,6 +370,31 @@ public partial class JobStatus : ContentPage
                 "Change it on the payments page rather than here.";
     }
 
+    private void p_paymentType_Changed(object sender, EventArgs e)
+    {
+        if (_building)
+            return;
+
+        ShowMethod();
+    }
+
+    /// <summary>
+    /// the chip beside the picker: the method's own colour, icon and wording,
+    /// the same three the payments page and the customer's history draw it
+    /// with. A picker on its own says what is set only while it is being read
+    /// - this is what makes it answerable at a glance, and it is the reason
+    /// the method is worth saying twice here.
+    /// </summary>
+    private void ShowMethod()
+    {
+        PaymentMethod method = PaymentMethodChoice.Picked(p_paymentType, PaymentMethodChoice.Usual(_job));
+
+        brd_method.BackgroundColor = Payment.ColourFor(method);
+        l_method.Text = Payment.NameFor(method);
+        l_method.TextColor = Payment.TextColourFor(method);
+        i_method.Source = Payment.IconFor(method);
+    }
+
     private void AmountMode_Changed(object sender, CheckedChangedEventArgs e)
     {
         if (_building)
@@ -488,9 +514,7 @@ public partial class JobStatus : ContentPage
             return;
         }
 
-        PaymentMethod method = PaymentMethod.Cash;
-        if (p_paymentType.SelectedItem != null)
-            method = (PaymentMethod)Enum.Parse(typeof(PaymentMethod), (string)p_paymentType.SelectedItem);
+        PaymentMethod method = PaymentMethodChoice.Picked(p_paymentType, PaymentMethodChoice.Usual(_job));
 
         if (!await ApplyPaid(amount, method))
             return;
