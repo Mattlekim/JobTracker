@@ -92,7 +92,14 @@ namespace Kernel
         [XmlIgnore]
         public Color MethodTextColour
         {
-            get { return Colors.White; }
+            get { return TextColourFor(PaymentMethod); }
+        }
+
+        /// <summary>the same colour, asked about a method on its own - see
+        /// <see cref="NameFor"/> for why these are static</summary>
+        public static Color TextColourFor(PaymentMethod method)
+        {
+            return Colors.White;
         }
 
         /// <summary>

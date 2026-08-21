@@ -967,9 +967,8 @@ link list** — one added without that builds an app missing it.
 `MethodName`, `MethodColour`, `MethodIcon` and `MethodTextColour` are all one switch each on `PaymentMethod`,
 and each **ends in the Other answer rather than in a case**, so a method added to the enum draws a grey chip
 saying Other instead of a blank one. `MethodName` is the reading version — `Bank` is *Bank Transfer* and
-`GoCardless` is *Direct Debit* — and it is deliberately **not** what the pickers use: those are built from
-`Enum.GetNames` and parsed straight back (`JobStatus`, `WorkPlanner`, `UpdateJobInstance`), and the enum's own
-names are what is saved, so rewording one there would change stored data.
+`GoCardless` is *Direct Debit*. The rule about it is not that the pickers must avoid it: it is that **wording
+is never what is saved**. See *Saying how a job was paid for* below for the one place that squares the two.
 
 The colours are the deep end of each hue because they are **backgrounds with white on them** — the icons are
 white stroked like the toolbar's (`paycash.svg`, `paycard.svg`, `paypaypal.svg`, `paybank.svg`, `paycheque.svg`,
@@ -1015,6 +1014,41 @@ blank references off every cash payment, and `ShowAge` keeps the row from saying
 `PaymentDate` and `PaymentDaysAgo` both say it. A payment matched to nobody says so in red
 (`CustomerTextColour`) rather than in the same grey as a customer's name, which is the one line on the card
 that wants doing something about.
+
+## Saying how a job was paid for
+
+Cash at the gate, a card, a cheque, a bank transfer — which of them the money came as is one of the three things
+being set when a visit is written up, alongside how much and whether it is done. It is asked on the two windows
+on to a single visit: **More** on the work list, the calendar and the booked work page (`Layouts/JobStatus`), and
+the paper view's record window (`Layouts/UpdateJobInstance`).
+
+`Controles/PaymentMethodChoice` is the whole of it, and it exists because the option looked like it was not there
+at all. Both pickers were filled through `Picker.Items` and then pointed at a method with `SelectedItem` — and
+MAUI works that property's index out off **`ItemsSource`**, which is null on a picker filled that way. So the
+selection never landed and the box opened **blank**, with no method named on it and nothing saying cash was what
+would be saved. `Fill` sets an `ItemsSource`, and `Select`/`Picked` carry the answer, so a picker cannot be
+pointed at a method that does not show.
+
+Three rules it keeps:
+
+- **What the picker shows is not what is saved.** The wording is `Payment.NameFor` — the same reading names the
+  payments page and the customer's history use, so a cheque is a *Cheque* here as well as there — and the method
+  travels by **position** through `Methods()`, with the enum value coming back out of `Picked`. That is what lets
+  the wording be changed without touching a stored payment. **Do not go back to parsing the picked text**, which
+  is what tied the two together before.
+- **The method opens on the customer's usual one** (`Usual`, off `Customer.NormalPaymentMethord`, which
+  `Layouts/NewCustomer` asks for) rather than on cash for everybody: a round where half the houses pay by
+  transfer is half a round of payments filed as cash by somebody who never looked at the picker. Two are never
+  opened on — `Other`, which is what a customer nobody has answered for carries, and `GoCardless`, because a
+  direct debit is **requested rather than taken**: picked here it asks for the money instead of writing the
+  payment down, and that is a thing to choose on purpose.
+- **`JobStatus` says the method twice**, the picker and a chip beside it in the method's own colour and icon
+  (`Payment.ColourFor`/`IconFor`/`NameFor`, the static halves the payments page's filter chips use). A picker
+  names what is set only while somebody is reading it; the chip is what makes the answer glanceable on the page
+  where the money is actually being recorded.
+
+The old inline more panel on `Layouts/WorkPlanner` has a third copy of the picker. Nothing opens it — More goes to
+the job's own window — and it is due out with the rest of that panel.
 
 ## Importing a round off a spreadsheet
 

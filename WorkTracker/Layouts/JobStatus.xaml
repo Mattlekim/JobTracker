@@ -131,9 +131,26 @@
                                 <Entry x:Name="e_amount" Keyboard="Numeric" WidthRequest="110" TextChanged="e_amount_Changed"></Entry>
                             </HorizontalStackLayout>
 
-                            <VerticalStackLayout Spacing="2">
+                            <!--  PAID BY  -->
+                            <!-- cash at the gate, a card, a cheque, a bank
+                                 transfer - the picker names the method and
+                                 the chip beside it says which one is set in
+                                 the same colour the payments page uses -->
+                            <VerticalStackLayout Spacing="4">
                                 <Label Text="Paid by" Style="{StaticResource Caption}" />
-                                <Picker x:Name="p_paymentType"></Picker>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"></ColumnDefinition>
+                                        <ColumnDefinition Width="Auto"></ColumnDefinition>
+                                    </Grid.ColumnDefinitions>
+                                    <Picker Grid.Column="0" x:Name="p_paymentType" Title="Paid by" SelectedIndexChanged="p_paymentType_Changed"></Picker>
+                                    <Border Grid.Column="1" x:Name="brd_method" StrokeThickness="0" StrokeShape="RoundRectangle 8" Padding="8,4" VerticalOptions="Center">
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Image x:Name="i_method" HeightRequest="16" WidthRequest="16" VerticalOptions="Center"></Image>
+                                            <Label x:Name="l_method" FontSize="12" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                </Grid>
                             </VerticalStackLayout>
 
                             <Label x:Name="l_paidLocked" Style="{StaticResource Caption}" TextColor="#EF6C00" IsVisible="false"></Label>
