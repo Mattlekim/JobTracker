@@ -1226,38 +1226,13 @@ public partial class SettingLayout : ContentPage
             "Ok");
 
         //the backup is written to the cache, which nothing else can see, so it
-        //has to be sent somewhere before it counts as backed up at all
-        if (!DeviceFileSaver.CanSave)
-        {
-            await Share.RequestAsync(new ShareFileRequest(shareTitle, new ShareFile(result.Path)));
-            return;
-        }
-
-        string choice = await DisplayActionSheet(shareTitle, "Cancel", null, "Save To This Device", "Share");
-
-        if (choice == "Share")
-        {
-            await Share.RequestAsync(new ShareFileRequest(shareTitle, new ShareFile(result.Path)));
-            return;
-        }
-
-        if (choice != "Save To This Device")
-            return;
-
-        try
-        {
-            //saved as its own kind of file rather than left for the phone to
-            //guess at, so tapping it in the downloads list offers Work Tracker
-            //back again - which is the whole point of it being openable
-            string saved = await DeviceFileSaver.SaveAsync(result.Path,
-                System.IO.Path.GetFileName(result.Path), BackupMimeType);
-
-            await DisplayAlert("Saved", $"Saved to {saved}.\n\nOpening it from there puts it back.", "Ok");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Save Failed", ex.Message, "Ok");
-        }
+        //has to be sent somewhere before it counts as backed up at all.
+        //saved as its own kind of file rather than left for the phone to
+        //guess at, so tapping it in the downloads list offers Work Tracker
+        //back again - which is the whole point of it being openable
+        await DeviceFileSaver.OfferAsync(this, shareTitle, result.Path,
+            System.IO.Path.GetFileName(result.Path), BackupMimeType,
+            "Opening it from there puts it back.");
     }
 
     /// <summary>
@@ -1505,24 +1480,66 @@ public partial class SettingLayout : ContentPage
         await DisplayAlert("Import Complete", summary, "Ok");
     }
 
+    /// <summary>what a spreadsheet is called, so the device opens it with the right app</summary>
+    private const string XlsxMimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+    /// <summary>
+    /// The round as a spreadsheet.
+    ///
+    /// It asks which part of the round first, because the whole round is
+    /// usually not what somebody wants out of a sheet - they are handing a
+    /// patch of work to somebody or pricing up one village, and a sheet of
+    /// every house on the books is one they then have to cut down by hand.
+    /// The question is skipped when the round is not split into anything, so
+    /// a one round round is still one tap.
+    ///
+    /// Then it asks where the file should go. Written to the cache it is
+    /// somewhere nothing else on the device can see, so it counts for
+    /// nothing until it is either handed to another app or put where the
+    /// user can find it again.
+    /// </summary>
     private async void bnt_exportXlsx_Clicked(object sender, EventArgs e)
     {
+        List<Job> everything = Job.Query();
+
+        RoundPart part = await RoundPartPicker.AskAsync(this, "Export which houses?", everything);
+        if (part == null)
+            return;
+
+        List<Job> jobs = part.Pick(everything);
+        int houses = RoundPart.CountHouses(jobs);
+
+        //said rather than written out empty: a sheet with nothing but
+        //headings in it looks like the export went wrong, and the answer -
+        //that nothing is on that round any more - is worth hearing
+        if (houses == 0)
+        {
+            await DisplayAlert("Nothing To Export",
+                $"There are no houses on {part.Describe}.", "Ok");
+            return;
+        }
+
+        //the part is in the name, so two exports taken on one day do not
+        //land on the same file and a sheet says what it holds unopened. The
+        //round is typed by whoever has one, so the name is made safe first
+        string fileName = DeviceFileSaver.SafeName($"{part.FileNamePart} {DateTime.Now:yyyy-MM-dd}.xlsx");
+        string path = Path.Combine(FileSystem.CacheDirectory, fileName);
+
         try
         {
-            string path = Path.Combine(FileSystem.CacheDirectory, $"Round {DateTime.Now:yyyy-MM-dd}.xlsx");
             using (FileStream fs = File.Create(path))
-                ImportExport.RoundSheetWriter.Write(fs, Job.Query());
-
-            await Share.Default.RequestAsync(new ShareFileRequest
-            {
-                Title = "Export Round",
-                File = new ShareFile(path),
-            });
+                ImportExport.RoundSheetWriter.Write(fs, jobs);
         }
         catch (Exception ex)
         {
             await DisplayAlert("Export Failed", $"Could not export the round: {ex.Message}", "ok");
+            return;
         }
+
+        await DisplayAlert("Round Exported",
+            $"{houses} house(s) from {part.Describe}.", "Ok");
+
+        await DeviceFileSaver.OfferAsync(this, "Export Round", path, fileName, XlsxMimeType);
     }
 
     private static string GuessCityFromFileName(string fileName)

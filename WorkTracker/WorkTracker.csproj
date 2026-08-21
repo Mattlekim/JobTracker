@@ -139,6 +139,7 @@
 	  <Compile Include="..\Kernel\QueryType.cs" Link="Kernal\QueryType.cs" />
 	  <Compile Include="..\Kernel\RoundStats.cs" Link="Kernal\RoundStats.cs" />
 	  <Compile Include="..\Kernel\ScreenshotMode.cs" Link="Kernal\ScreenshotMode.cs" />
+	  <Compile Include="..\Kernel\RoundSelection.cs" Link="Kernal\RoundSelection.cs" />
 	  <Compile Include="..\Kernel\SaveLoad.cs" Link="Kernal\SaveLoad.cs" />
 	  <Compile Include="..\Kernel\TaxReporting.cs" Link="Kernal\TaxReporting.cs" />
 	  <Compile Include="..\Kernel\UniversalCredit.cs" Link="Kernal\UniversalCredit.cs" />

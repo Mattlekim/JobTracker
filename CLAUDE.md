@@ -1158,6 +1158,54 @@ an unpaid one, so *start everybody owing nothing* is the honest answer and leave
 one), the job type, and the day of the week a round falls on. An existing customer is **topped up, never written
 over** — a town or postcode already on a record was put there by somebody who knows the round.
 
+## Sending the round out as a spreadsheet
+
+`ImportExport/RoundSheetWriter` writes the round as an .xlsx in the same layout `RoundSheetParser` reads, so an
+exported sheet imports again. *Export Round To Excel* on the settings page is how it is asked for, and it asks
+two things before it writes anything.
+
+**Which houses** — `Kernel/RoundSelection.cs` (`RoundPart`) is all of it, and `Layouts/RoundPartPicker` is the one
+place that asks. The whole round is usually not what somebody wants out of a sheet: they are handing a patch of
+work to somebody or pricing up one village, and a sheet of every house on the books is one they then have to cut
+down by hand. So it offers all of it, one round, or one area.
+
+Three rules it has to keep:
+
+- **A house is in or out as a whole.** The decision is made once per house and then *every* visit of it travels,
+  finished ones included — the sheet's Cleaned columns are read off the visits already done, so a house taken
+  half in exports with no history at all and reads as a house nobody has ever cleaned.
+- **The round is read off the job, not off the visit** (`Job.RoundsOfEveryJob`, the same rule `RoundStats` and
+  `SaveLoad.FillRoundsDownTheJob` follow). An older file leaves the finished visits of a house on no round while
+  the visit still to come names one; read off each visit on its own, half the house exports under Tuesday and
+  half of it under No Round — one house on the sheet with no history and a second with nothing but. The area is
+  read off the visit next due (`Job.NextDue`), the same visit `AllJobs`, `RoundStats` and `DataCheck` pick a
+  house with, falling back to the newest visit for a house with nothing outstanding.
+- **Asking for all of it changes nothing.** `Everything` hands the list back as it came rather than rebuilding it
+  out of the houses, so the option that was the only behaviour before cannot quietly start exporting something
+  different.
+
+Only what work is actually on is offered — the rounds and areas in use rather than the settings list, the same
+rule the work list's round filter follows — plus *Work On No Round* and *Houses With No Area* when there are any,
+because work nobody has organised yet is exactly what somebody organising it wants on a sheet. A round that is
+not split into anything at all is not asked about: a question with one answer is not a question. A part with no
+houses left on it **says so** rather than writing a sheet of nothing but headings, which reads as a failed export.
+
+The part is in the file name (`Round Tuesday 2026-08-21.xlsx`), so two exports taken on one day do not land on
+the same name and a sheet says what it holds without being opened. Round names are typed, so the name goes
+through `DeviceFileSaver.SafeName` before it is used to build a path — a round called `Mon/Tue` is a sensible
+round and an impossible file.
+
+**Where the file goes** is `DeviceFileSaver.OfferAsync`, and it is one method because it used to be four copies.
+Every export in the app ends the same way: the file is written to the cache, which nothing else on the device can
+see, so it counts for nothing until it is either handed to another app or put where the user can find it again.
+That choice was written out longhand at each of those endings — the manual backup, the tax export, the tax page's
+save-a-year, and now this — which is four chances to word the same question differently and four places to forget
+that iOS can only share. It takes an optional closing note, which is the only thing the four ever differed by (a
+backup adds that opening it from there puts it back). A platform that cannot save shares without asking, because
+a choice with one answer in it is not a choice.
+
+Covered by the KernelDebugger self test.
+
 ## Google Drive sync
 
 `WorkTracker/CloudSync.cs` syncs the `.rjt` data files and receipt photos with the user's Drive `appDataFolder`

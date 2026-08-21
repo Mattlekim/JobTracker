@@ -63,6 +63,7 @@ public static class SelfTest
             ANoteStaysOnTheDayItWasWrittenAgainst();
             WorkThatIsNotSetUpProperlyIsFound();
             AClaimsMonthRunsToTheDayBeforeItStarted();
+            APartOfTheRoundTakesWholeHousesWithIt();
         }
         catch (Exception ex)
         {
@@ -704,6 +705,95 @@ public static class SelfTest
         Payment.DeleteData();
         Expense.DeleteData();
         Customer.DeleteData();
+    }
+
+    /// <summary>
+    /// exporting one round or one area takes whole houses - every visit of
+    /// them, finished ones included - and decides which house is in off the
+    /// job rather than off each visit on its own
+    /// </summary>
+    private static void APartOfTheRoundTakesWholeHousesWithIt()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A part of the round takes whole houses with it");
+
+        Reset();
+
+        //a house on the Tuesday round with a clean already done behind it.
+        //MarkJobDone leaves the finished visit in the list beside the next
+        //one it generated, which is what the sheet's Cleaned columns are
+        //read off
+        Job tuesday = AddJob("12", "High Street", 10f);
+        tuesday.Address.Area = "Hillside";
+        tuesday.SetRound("Tuesday");
+        tuesday.MarkJobDone(forceNotSave: true);
+
+        Job thursday = AddJob("3", "Mill Lane", 12f);
+        thursday.Address.Area = "Riverside";
+        thursday.SetRound("Thursday");
+
+        //deliberately left on no round and with no area
+        Job loose = AddJob("1", "The Green", 8f);
+
+        Check("the round is offered because work is on it",
+            RoundPart.RoundsWithWork(Job.Query()).Contains("Tuesday"), "Tuesday not offered");
+        Check("and so is the area",
+            RoundPart.AreasWithWork(Job.Query()).Contains("Hillside"), "Hillside not offered");
+        Check("work on no round is noticed",
+            RoundPart.AnyWithNoRound(Job.Query()), "not noticed");
+        Check("and so is a house with no area",
+            RoundPart.AnyWithNoArea(Job.Query()), "not noticed");
+
+        //the whole round is handed back exactly as it came
+        Check("the whole round is everything there is",
+            RoundPart.Everything().Pick(Job.Query()).Count == Job.Query().Count,
+            $"{RoundPart.Everything().Pick(Job.Query()).Count} of {Job.Query().Count}");
+
+        //one round: the house and its history, and nothing from the others
+        List<Job> onTuesday = RoundPart.OnRound("Tuesday").Pick(Job.Query());
+
+        Check("one round is one house", RoundPart.CountHouses(onTuesday) == 1,
+            $"{RoundPart.CountHouses(onTuesday)} house(s)");
+        Check("and the clean already done came with it",
+            onTuesday.Exists(x => x.IsCompleted), "the history was left behind");
+        Check("both visits of the house travelled", onTuesday.Count == 2,
+            $"{onTuesday.Count} visit(s)");
+        Check("nothing off another round came with it",
+            !onTuesday.Exists(x => x.Address.Street == "Mill Lane" || x.Address.Street == "The Green"),
+            "another round's work came too");
+
+        //a round nobody named is a real answer rather than a missing one
+        List<Job> noRound = RoundPart.OnRound(string.Empty).Pick(Job.Query());
+        Check("blank is the work on no round", RoundPart.CountHouses(noRound) == 1
+            && noRound[0].Address.Street == "The Green",
+            $"{RoundPart.CountHouses(noRound)} house(s)");
+
+        //an area is read off the address rather than off the round
+        List<Job> hillside = RoundPart.InArea("Hillside").Pick(Job.Query());
+        Check("one area is one house", RoundPart.CountHouses(hillside) == 1,
+            $"{RoundPart.CountHouses(hillside)} house(s)");
+        Check("with its history too", hillside.Count == 2, $"{hillside.Count} visit(s)");
+
+        Check("an area nobody is in picks nothing",
+            RoundPart.CountHouses(RoundPart.InArea("Nowhere").Pick(Job.Query())) == 0,
+            "it found houses");
+
+        //  The one that matters. An older file leaves the finished visits of
+        //  a house on no round while the visit still to come names one -
+        //  read off each visit on its own, half the house exports under
+        //  Tuesday and half of it under No Round, so the sheet has a house
+        //  on it that has never been cleaned and a second one with nothing
+        //  but history.
+        Job finished = Job.Query().Find(x => x.IsCompleted && x.Address.Street == "High Street");
+        finished.Round = string.Empty;
+
+        List<Job> stillWhole = RoundPart.OnRound("Tuesday").Pick(Job.Query());
+        Check("a house whose finished visit lost its round is still whole",
+            stillWhole.Count == 2 && stillWhole.Exists(x => x.IsCompleted),
+            $"{stillWhole.Count} visit(s), history {(stillWhole.Exists(x => x.IsCompleted) ? "kept" : "lost")}");
+        Check("and it did not turn up on no round as well",
+            RoundPart.CountHouses(RoundPart.OnRound(string.Empty).Pick(Job.Query())) == 1,
+            "the house was counted twice");
     }
 
     private static string Describe(List<RoundStats> rounds)

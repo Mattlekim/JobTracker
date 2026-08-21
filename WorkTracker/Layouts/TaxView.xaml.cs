@@ -277,39 +277,12 @@ public partial class TaxView : ContentPage
             "Ok");
 
         //saving onto the device is a real backup on its own - the same
-        //choice the settings page backup offers, for the same reason
-        string title = "Work Tracker Tax Year";
-
-        if (!DeviceFileSaver.CanSave)
-        {
-            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(result.Path)));
-            return;
-        }
-
-        string choice = await DisplayActionSheet(title, "Cancel", null, "Save To This Device", "Share");
-
-        if (choice == "Share")
-        {
-            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(result.Path)));
-            return;
-        }
-
-        if (choice != "Save To This Device")
-            return;
-
-        try
-        {
-            //as its own kind of file rather than left for the phone to guess
-            //at, so tapping it in the downloads list offers Work Tracker back
-            string saved = await DeviceFileSaver.SaveAsync(result.Path,
-                Path.GetFileName(result.Path), BackupType);
-
-            await DisplayAlert("Saved", $"Saved to {saved}.\n\nOpening it from there puts it back.", "Ok");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Save Failed", ex.Message, "Ok");
-        }
+        //choice the settings page backup offers, for the same reason. as its
+        //own kind of file rather than left for the phone to guess at, so
+        //tapping it in the downloads list offers Work Tracker back
+        await DeviceFileSaver.OfferAsync(this, "Work Tracker Tax Year", result.Path,
+            Path.GetFileName(result.Path), BackupType,
+            "Opening it from there puts it back.");
     }
 
     /// <summary>what a .rbf is saved as - see the same constant on the settings page</summary>
@@ -366,30 +339,6 @@ public partial class TaxView : ContentPage
             : $"Tax {TaxCalendar.YearName(taxYear)}";
         string mime = csv ? "text/csv" : XlsxType;
 
-        if (!DeviceFileSaver.CanSave)
-        {
-            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(path)));
-            return;
-        }
-
-        string choice = await DisplayActionSheet(title, "Cancel", null, "Save To This Device", "Share");
-        if (choice == "Share")
-        {
-            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(path)));
-            return;
-        }
-
-        if (choice != "Save To This Device")
-            return;
-
-        try
-        {
-            string saved = await DeviceFileSaver.SaveAsync(path, fileName, mime);
-            await DisplayAlert("Saved", $"Saved to {saved}", "Ok");
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlert("Save Failed", ex.Message, "Ok");
-        }
+        await DeviceFileSaver.OfferAsync(this, title, path, fileName, mime);
     }
 }
