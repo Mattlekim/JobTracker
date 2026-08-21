@@ -864,8 +864,10 @@ money out column). The layouts belong to **`Kernel/BankAccount.cs`**: each accou
 layouts (kept apart, as they always were), so statements from two different banks can both be imported without one
 bank's columns overwriting the other's. Accounts live in `bankaccounts.rjt` (a global file: in every backup,
 synced like the rest) and are looked after on `Layouts/BankAccounts`, reached through the **Banking** section on
-the settings page — which is only doors: that page, `Layouts/KeptStatements` and `Layouts/ExpenseRules` do the
-work. An account is added, renamed and **archived — never deleted**: the statements and expenses imported from one
+the settings page — which is three doors and one button: that page, `Layouts/KeptStatements` and
+`Layouts/ExpenseRules` do the work, and *Reset Banking Import Settings* forgets every account's columns so the
+next statement asks again. That button used to sit under *Data, Backup and Import*, among the backups and the
+round import, where it had nothing to do with either of them. An account is added, renamed and **archived — never deleted**: the statements and expenses imported from one
 are tracked against its id, which is also why a rename is safe and why *Delete All Data* leaves the accounts
 alone (like the settings, they are how the app is set up rather than what it has recorded). Archiving only takes
 the account out of the import question, said plainly on the page; everything imported from it stays, and
@@ -1047,14 +1049,19 @@ the same.
   calendar and another on the round. Anything left behind is counted and said in the summary rather than passed
   over quietly.
 
-### Taking a round on off another app
+### Taking a round on off Squeegee
 
 `ImportExport/SqueegeeCsvParser` reads a **Squeegee** export (Reporting, download csv) into the same
 `ImportedCustomerRow` list a round sheet is read into, and `CustomerImporter.Import(rows, options)` — the mapping
 half, split out for this — does the rest. **The two files want two readers and one importer**: matching a house
 already on the round, creating one that is not, putting the work on a round, clearing the balances is the same job
-whichever file it came out of, and two copies of it would drift. The picker on the settings page now takes `.csv`
-as well as `.xlsx` and routes on the extension.
+whichever file it came out of, and two copies of it would drift.
+
+**It is its own button** — *Import From Squeegee*, beside *Import Customers From Excel* on the settings page
+rather than replacing it. One button reading whichever file it was handed would be worse two ways: somebody
+moving off Squeegee goes looking for the word Squeegee, and the two are not equally proven — reading another
+app's export is marked **Experimental** and the spreadsheet import, which has been in use, must not be dragged
+under that marking with it.
 
 **Columns are found by their heading, never by where they sit** — the same rule the PayPal import follows and for
 the same reason: a bank has its columns pointed out once and remembered because it is one layout for ever, and
@@ -1137,6 +1144,12 @@ Soon* for a while and has since been taken out until the feature is real. The en
 handlers come back in `Layouts/SettingLayout.xaml` — the old ones are in the git history of that page.
 
 ## Experimental features
+
+**Importing from Squeegee** carries the marking on the button itself rather than on a section, because it sits
+inside *Data, Backup and Import* beside backups and the spreadsheet import, neither of which is experimental — so
+the badge and the orange line go with the one button. It says what to *check* rather than that it might break:
+the prices, how often each house comes round and which round it is on, against Squeegee, before the round is
+worked off it. That is something somebody can act on.
 
 GoCardless is marked **Experimental** where a user meets it — the settings section heading, an orange badge inside
 it, the toolbar item on `Layouts/ViewCustomerDetails` and the title of the action sheet that page puts up. **Work

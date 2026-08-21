@@ -1233,34 +1233,51 @@ public partial class SettingLayout : ContentPage
     }
 
     /// <summary>
-    /// Takes a round on off a file. Two kinds arrive here and they are told
-    /// apart by their extension: a round spreadsheet (.xlsx), which has one
-    /// layout and is read by position, and an export from another app
-    /// (.csv), which is read by its headings.
+    /// The round spreadsheet - one layout, read by column position.
+    ///
+    /// This and the Squeegee import are two buttons rather than one that
+    /// works out which file it was handed. Somebody moving off Squeegee
+    /// goes looking for the word Squeegee, and the two are not equally
+    /// proven: reading another app's export is marked Experimental and the
+    /// spreadsheet import, which has been in use, must not be dragged under
+    /// that marking with it.
     /// </summary>
     private async void bnt_importXlsx_Clicked(object sender, EventArgs e)
     {
         FileResult fr = await FilePicker.Default.PickAsync(new PickOptions
         {
-            PickerTitle = "Select a round spreadsheet (.xlsx) or an export (.csv)",
+            PickerTitle = "Select a round spreadsheet (.xlsx)",
         });
         if (fr == null)
             return;
 
-        if (fr.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            await ImportFromAnotherApp(fr);
-            return;
-        }
-
         if (!fr.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
         {
-            await DisplayAlert("Unsupported File",
-                "This is neither an Excel round sheet (.xlsx) nor an export from another app (.csv).", "ok");
+            await DisplayAlert("Unsupported File", "This is not an Excel file. You need a .xlsx file.", "ok");
             return;
         }
 
         await ImportRoundSheet(fr);
+    }
+
+    /// <summary>the csv Squeegee downloads under Reporting</summary>
+    private async void bnt_importSqueegee_Clicked(object sender, EventArgs e)
+    {
+        FileResult fr = await FilePicker.Default.PickAsync(new PickOptions
+        {
+            PickerTitle = "Select a Squeegee export (.csv)",
+        });
+        if (fr == null)
+            return;
+
+        if (!fr.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            await DisplayAlert("Unsupported File",
+                "This is not a csv file. In Squeegee, go to Reporting and download the report as a csv.", "ok");
+            return;
+        }
+
+        await ImportFromSqueegee(fr);
     }
 
     private async Task ImportRoundSheet(FileResult fr)
@@ -1291,8 +1308,7 @@ public partial class SettingLayout : ContentPage
     }
 
     /// <summary>
-    /// Takes a round on out of another app's export - Squeegee is the one
-    /// this was written against.
+    /// Takes a round on out of a Squeegee export.
     ///
     /// **What the file was understood to say is put up before anything is
     /// imported.** An export is not a round: it is a list of invoices or of
@@ -1303,7 +1319,7 @@ public partial class SettingLayout : ContentPage
     /// The same rule Layouts/PriceRise follows: say what is about to be done
     /// before doing it.
     /// </summary>
-    private async Task ImportFromAnotherApp(FileResult fr)
+    private async Task ImportFromSqueegee(FileResult fr)
     {
         ImportExport.SqueegeeImport read;
         try

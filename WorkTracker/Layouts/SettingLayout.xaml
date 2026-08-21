@@ -232,11 +232,21 @@
                 <Label></Label>
                 <Button Text="Restore From Backup" BackgroundColor="Transparent" TextColor="Orange" BorderColor="Orange" BorderWidth="2" Clicked="bnt_restorBackup_Clicked"></Button>
                 <Label></Label>
-                <Button Text="Import Customers From A File" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_importXlsx_Clicked"></Button>
+                <Button Text="Import Customers From Excel" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_importXlsx_Clicked"></Button>
+                <Label Text="A round spreadsheet (.xlsx) - the streets, what each house costs and how often it comes round." FontSize="12" TextColor="Grey"></Label>
+                <Label></Label>
+                <!-- named for where the file comes from rather than for its
+                     extension: somebody moving off Squeegee looks for
+                     Squeegee, and a button called From A File is not what
+                     they are looking for. It is a separate button from the
+                     Excel one so the Experimental marking lands on this and
+                     not on the spreadsheet import, which is not -->
+                <Label Text="EXPERIMENTAL" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#EF6C00" Padding="8,2" HorizontalOptions="Start"></Label>
+                <Button Text="Import From Squeegee" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_importSqueegee_Clicked"></Button>
+                <Label Text="Reading somebody else's export is still being proven. Check the houses it brings in - the prices, how often each one comes round and which round it is on - against Squeegee before you work off it." TextColor="#EF6C00" FontSize="13"></Label>
+                <Label Text="In Squeegee, download a csv under Reporting and pick it here. It says what it understood before it imports anything." FontSize="12" TextColor="Grey"></Label>
                 <Label></Label>
                 <Button Text="Export Round To Excel" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_exportXlsx_Clicked"></Button>
-                <Label></Label>
-                <Button Text="Reset Banking Import Settings"  BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_resetImportBanking"></Button>
                 <Label></Label>
                 <!-- goes over the round looking for the work that is
                      quietly not set up properly - no price, no time, ticked
@@ -289,6 +299,13 @@
                 <Label></Label>
                 <Button Text="Expense Rules" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_expenseRules_Clicked"></Button>
                 <Label Text="The payees remembered as expenses or ignored, so recurring bills log themselves." FontSize="12" TextColor="Grey"></Label>
+                <Label></Label>
+                <!-- this is about statements, so it lives with the rest of
+                     banking rather than under Data, where it sat among the
+                     backups and the round import and had nothing to do with
+                     either of them -->
+                <Button Text="Reset Banking Import Settings"  BackgroundColor="Transparent" BorderWidth="2" BorderColor="Green" TextColor="Green" Clicked="bnt_resetImportBanking"></Button>
+                <Label Text="Forgets which column is the date, the reference and the amount on every account, so the next statement asks again. Nothing already imported is touched." FontSize="12" TextColor="Grey"></Label>
             </VerticalStackLayout>
 
             <!--  GOCARDLESS  -->
