@@ -68,21 +68,33 @@ namespace UiInterface.ImportExport
         }
 
         /// <summary>
-        /// The Cleaned column headers, at least two weeks apart. Every clean
-        /// day is either a header or folds into the header before it, so the
-        /// headers partition the timeline and each clean falls under exactly
-        /// one column. A new header opens only for a day a fortnight or more
-        /// after the last header, which is what keeps them two weeks apart
-        /// however tightly the round was worked in between.
+        /// The Cleaned column headers, headed by the earliest day of each
+        /// run of cleaning.
+        ///
+        /// A new column opens only where there is a gap of a fortnight or
+        /// more since the day before it - not a fortnight since the last
+        /// header. That difference is the whole point: measured from the
+        /// header, the cut falls on a fixed fortnightly line and two cleans a
+        /// few days apart that happen to straddle it land in different
+        /// columns, which is exactly what went wrong. Measured from the day
+        /// before, a run of days close together can never be split - a column
+        /// only breaks where the round itself paused for two weeks - so days
+        /// a few apart always share a column, and the headers still come out
+        /// at least a fortnight apart because a column only starts after a
+        /// fortnight's gap.
         /// </summary>
         static List<DateTime> ClusterColumns(IEnumerable<DateTime> days)
         {
             List<DateTime> sorted = days.Select(d => d.Date).Distinct().OrderBy(x => x).ToList();
 
             List<DateTime> headers = new List<DateTime>();
+            DateTime? previous = null;
             foreach (DateTime d in sorted)
-                if (headers.Count == 0 || (d - headers[headers.Count - 1]).TotalDays >= 14)
+            {
+                if (previous == null || (d - previous.Value).TotalDays >= 14)
                     headers.Add(d);
+                previous = d;
+            }
 
             return headers;
         }
