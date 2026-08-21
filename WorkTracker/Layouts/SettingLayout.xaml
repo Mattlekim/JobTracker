@@ -247,6 +247,7 @@
                 <Label Text="In Squeegee, download a csv under Reporting and pick it here. It says what it understood before it imports anything." FontSize="12" TextColor="Grey"></Label>
                 <Label></Label>
                 <Button Text="Export Round To Excel" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_exportXlsx_Clicked"></Button>
+                <Label Text="Asks which houses - all of them, one round or one area - then whether to save the sheet onto this device or share it. It reads back in through Import Customers From Excel." FontSize="12" TextColor="Grey"></Label>
                 <Label></Label>
                 <!-- goes over the round looking for the work that is
                      quietly not set up properly - no price, no time, ticked

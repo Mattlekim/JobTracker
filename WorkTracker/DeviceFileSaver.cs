@@ -65,10 +65,83 @@ public static class DeviceFileSaver
     }
 
     /// <summary>
-    /// takes out anything a file system will not have in a name. the name is
-    /// built from a tax year rather than typed, so this is a backstop
+    /// Asks what to do with a file that has just been written, and does it.
+    ///
+    /// Every export in the app ends the same way - the file is sitting in the
+    /// cache, which nothing else on the device can see, so it counts for
+    /// nothing until it is either handed to another app or put somewhere the
+    /// user can find it again. That question was written out longhand at
+    /// every one of those endings, which is four chances to word the same
+    /// choice differently and four places to forget that iOS can only share.
+    ///
+    /// A platform that cannot save shares without asking: offering a choice
+    /// with one answer in it is not a choice.
     /// </summary>
-    private static string SafeName(string fileName)
+    /// <param name="page">the page to ask on</param>
+    /// <param name="title">what the file is, named for the user</param>
+    /// <param name="path">the file as it was written, in the cache folder</param>
+    /// <param name="fileName">what it should be called where it lands</param>
+    /// <param name="mimeType">what kind of file it is, so the device opens it with the right app</param>
+    /// <param name="extraNote">
+    /// anything worth adding once it has been saved - a backup says that
+    /// opening it from there puts it back
+    /// </param>
+    public static async Task OfferAsync(Page page, string title, string path,
+        string fileName, string mimeType, string extraNote = null)
+    {
+        if (page == null || string.IsNullOrWhiteSpace(path))
+            return;
+
+        if (!CanSave)
+        {
+            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(path)));
+            return;
+        }
+
+        string choice = await page.DisplayActionSheet(title, "Cancel", null, SaveOption, ShareOption);
+
+        if (choice == ShareOption)
+        {
+            await Share.RequestAsync(new ShareFileRequest(title, new ShareFile(path)));
+            return;
+        }
+
+        if (choice != SaveOption)
+            return;
+
+        try
+        {
+            string saved = await SaveAsync(path, fileName, mimeType);
+
+            await page.DisplayAlert("Saved",
+                string.IsNullOrWhiteSpace(extraNote) ? $"Saved to {saved}" : $"Saved to {saved}.\n\n{extraNote}",
+                "Ok");
+        }
+        catch (Exception ex)
+        {
+            await page.DisplayAlert("Save Failed", ex.Message, "Ok");
+        }
+    }
+
+    /// <summary>
+    /// said once, because the answer is compared against the same words it
+    /// was offered with
+    /// </summary>
+    private const string SaveOption = "Save To This Device";
+
+    private const string ShareOption = "Share";
+
+    /// <summary>
+    /// takes out anything a file system will not have in a name.
+    ///
+    /// It is public because a caller has to build the cache path first, and
+    /// some of these names are built out of things the user typed - a round
+    /// called "Mon/Tue" is a perfectly sensible name for a round and an
+    /// impossible one for a file. Path.Combine throws on it long before this
+    /// ever sees it, so the name has to be made safe on the way in as well as
+    /// on the way out.
+    /// </summary>
+    public static string SafeName(string fileName)
     {
         if (string.IsNullOrWhiteSpace(fileName))
             return "Work Tracker Export";
