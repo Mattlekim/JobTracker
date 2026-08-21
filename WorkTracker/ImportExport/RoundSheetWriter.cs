@@ -21,14 +21,42 @@ namespace UiInterface.ImportExport
             //one row per active job chain (the newest instance)
             List<Job> current = allJobs.FindAll(x => x.JobNextId == -1 && !x.HaveCanceled);
 
-            //most recent completed date per customer, giving the Cleaned columns
-            var lastCleaned = new Dictionary<int, DateTime>();
+            //  Every day each house was cleaned on, so the Cleaned columns
+            //  read like the round book they are: a column is a day the
+            //  round was worked, and every house done that day gets an x
+            //  under it. A house on a run of them shows its history across
+            //  the row.
+            //
+            //  It is keyed by the house (SameJobKey) rather than the
+            //  customer: a customer with two houses would otherwise get one
+            //  house's cleans on the other's row. And each house is marked
+            //  on *every* day it was done, not just its latest - the old
+            //  code put a single x under each house's own last-clean date,
+            //  so with every house last done on a different day the marks
+            //  scattered one-per-row across a column each, which is what
+            //  read as being all over the place.
+            var cleansByHouse = new Dictionary<string, HashSet<DateTime>>();
+            var everyDate = new HashSet<DateTime>();
             foreach (Job j in allJobs)
                 if (j.IsCompleted && j.DateCompleated.Year > 2001)
-                    if (!lastCleaned.TryGetValue(j.CustomerId, out DateTime d) || j.DateCompleated.Date > d)
-                        lastCleaned[j.CustomerId] = j.DateCompleated.Date;
+                {
+                    DateTime day = j.DateCompleated.Date;
+                    string key = j.SameJobKey;
 
-            List<DateTime> cleanedDates = lastCleaned.Values.Distinct().OrderBy(x => x).ToList();
+                    if (!cleansByHouse.TryGetValue(key, out HashSet<DateTime> days))
+                    {
+                        days = new HashSet<DateTime>();
+                        cleansByHouse[key] = days;
+                    }
+
+                    days.Add(day);
+                    everyDate.Add(day);
+                }
+
+            //the columns are the actual clean days. The most recent are kept
+            //when there are too many to fit, because a round book is worked
+            //off its recent history rather than years of it
+            List<DateTime> cleanedDates = everyDate.OrderBy(x => x).ToList();
             if (cleanedDates.Count > 20) //keep the sheet a sane width
                 cleanedDates = cleanedDates.Skip(cleanedDates.Count - 20).ToList();
 
@@ -38,10 +66,10 @@ namespace UiInterface.ImportExport
             AddEntry(zip, "xl/workbook.xml", WorkbookXml);
             AddEntry(zip, "xl/_rels/workbook.xml.rels", WorkbookRelsXml);
             AddEntry(zip, "xl/styles.xml", StylesXml);
-            AddEntry(zip, "xl/worksheets/sheet1.xml", BuildSheet(current, lastCleaned, cleanedDates));
+            AddEntry(zip, "xl/worksheets/sheet1.xml", BuildSheet(current, cleansByHouse, cleanedDates));
         }
 
-        static string BuildSheet(List<Job> jobs, Dictionary<int, DateTime> lastCleaned, List<DateTime> cleanedDates)
+        static string BuildSheet(List<Job> jobs, Dictionary<string, HashSet<DateTime>> cleansByHouse, List<DateTime> cleanedDates)
         {
             var sb = new StringBuilder();
             sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
@@ -90,12 +118,14 @@ namespace UiInterface.ImportExport
                     AppendText(sb, row, 6, FreqText(j), 0);
                     AppendText(sb, row, 7, (j.Notes ?? string.Empty).Replace("\r", " ").Replace("\n", " "), 0);
 
-                    if (lastCleaned.TryGetValue(j.CustomerId, out DateTime cleaned))
-                    {
-                        int col = cleanedDates.IndexOf(cleaned);
-                        if (col >= 0)
-                            AppendText(sb, row, 8 + col, "x", 0);
-                    }
+                    //an x under every clean day this house was actually
+                    //done on, so the marks line up down each column - the
+                    //importer reads the latest of them back as the last
+                    //clean
+                    if (cleansByHouse.TryGetValue(j.SameJobKey, out HashSet<DateTime> cleaned))
+                        for (int i = 0; i < cleanedDates.Count; i++)
+                            if (cleaned.Contains(cleanedDates[i]))
+                                AppendText(sb, row, 8 + i, "x", 0);
                     sb.Append("</row>");
                     row++;
                 }
