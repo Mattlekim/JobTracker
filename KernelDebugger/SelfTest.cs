@@ -722,11 +722,16 @@ public static class SelfTest
         //a house on the Tuesday round with a clean already done behind it.
         //MarkJobDone leaves the finished visit in the list beside the next
         //one it generated, which is what the sheet's Cleaned columns are
-        //read off
+        //read off - but only when the work comes round again, so the
+        //frequency has to be set or there is one visit and nothing to prove
         Job tuesday = AddJob("12", "High Street", 10f);
         tuesday.Address.Area = "Hillside";
+        tuesday.SetFrequence(1, FrequenceType.Week);
         tuesday.SetRound("Tuesday");
         tuesday.MarkJobDone(forceNotSave: true);
+
+        Check("marking it done made another visit",
+            tuesday.EveryVisit().Exists(x => !x.IsCompleted), "none found");
 
         Job thursday = AddJob("3", "Mill Lane", 12f);
         thursday.Address.Area = "Riverside";

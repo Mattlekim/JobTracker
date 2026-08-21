@@ -39,17 +39,21 @@ public static class RoundPartPicker
 
         List<string> choices = new List<string> { WholeRound };
 
-        //only offered when there is something behind them. A round nobody is
-        //on and an area nobody has written down are two ways of asking for an
-        //empty sheet, and an option that can only disappoint is worse than no
-        //option
-        if (rounds.Count > 0 || anyNoRound)
+        //  Offered only where there is a real split.
+        //
+        //  One answer is not a choice: a round nobody has organised has
+        //  every house under Work On No Round, and picking it would hand
+        //  back the whole round under a name that says it did something.
+        //  Same for an area on a round where nobody fills the area in. So
+        //  the test is two or more answers, counting the unnamed one.
+        if (rounds.Count + (anyNoRound ? 1 : 0) > 1)
             choices.Add(ARound);
 
-        if (areas.Count > 0 || anyNoArea)
+        if (areas.Count + (anyNoArea ? 1 : 0) > 1)
             choices.Add(AnArea);
 
-        //nothing is split up at all - do not ask a question with one answer
+        //nothing is split up at all - the whole round is the only answer
+        //there is, so it is given rather than asked for
         if (choices.Count == 1)
             return RoundPart.Everything();
 
