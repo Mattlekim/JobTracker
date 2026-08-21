@@ -67,6 +67,20 @@ public struct SettingsData
     /// </summary>
     public bool EnableWorkSharing;
 
+    /// <summary>
+    /// whether the Universal Credit page is on the Money tab. off by default -
+    /// most rounds are not on a claim - and settings written before this
+    /// existed read back as false, which is the same thing
+    /// </summary>
+    public bool ShowUniversalCredit;
+
+    /// <summary>
+    /// the day the claim started, which every assessment period is measured
+    /// from. MinValue - which is what an older settings file reads back as -
+    /// is nobody having said
+    /// </summary>
+    public DateTime UniversalCreditStart;
+
     public string SymbolDone, SymbolPaid, SymbolDonePaid;
 }
 
@@ -107,6 +121,26 @@ public class Settings
     /// gated - somebody handed a work list needs no setting to open it
     /// </summary>
     public static bool EnableWorkSharing = false;
+
+    /// <summary>
+    /// whether the Universal Credit page shows on the Money tab. Off by
+    /// default: most rounds are not on a claim, and a page of figures that
+    /// mean nothing to you is worse than no page at all.
+    /// </summary>
+    public static bool ShowUniversalCredit = false;
+
+    /// <summary>
+    /// the day the Universal Credit claim started. It is kept on
+    /// UniversalCredit rather than here, and this is a way in to the same
+    /// date rather than a second copy of it - the kernel does the month
+    /// arithmetic and cannot see the settings, exactly like
+    /// DefaultJobDuration above.
+    /// </summary>
+    public static DateTime UniversalCreditStart
+    {
+        get { return UniversalCredit.StartDate; }
+        set { UniversalCredit.StartDate = value; }
+    }
 
     public static void Save(string dir = null)
     {
@@ -160,6 +194,8 @@ public class Settings
         sd.DefaultJobDuration = DefaultJobDuration;
         sd.HaveShowenJobIntro = HaveShowenJobIntro;
         sd.EnableWorkSharing = EnableWorkSharing;
+        sd.ShowUniversalCredit = ShowUniversalCredit;
+        sd.UniversalCreditStart = UniversalCreditStart;
 
         sd.SymbolDone = PaperView.PaperItem.StringDone;
         sd.SymbolPaid = PaperView.PaperItem.StringPaid;
@@ -232,6 +268,12 @@ public class Settings
                 DefaultJobDuration = sd.DefaultJobDuration;
                 HaveShowenJobIntro = sd.HaveShowenJobIntro;
                 EnableWorkSharing = sd.EnableWorkSharing;
+
+                //false and MinValue are what a settings file written before
+                //the page existed reads back as, and both are the right
+                //answer: the page is off and no claim has been dated
+                ShowUniversalCredit = sd.ShowUniversalCredit;
+                UniversalCreditStart = sd.UniversalCreditStart;
 
                 //settings written before this existed read back as null,
                 //which is the same as never having set one
@@ -477,6 +519,10 @@ public partial class SettingLayout : ContentPage
         sw_workSharing.IsToggled = Settings.EnableWorkSharing;
         _loadingWorkSharing = false;
 
+        _loadingUniversalCredit = true;
+        sw_universalCredit.IsToggled = Settings.ShowUniversalCredit;
+        _loadingUniversalCredit = false;
+
         ShowDayViewSection();
 
         e_pv_done.Text = PaperView.PaperItem.StringDone;
@@ -556,6 +602,24 @@ public partial class SettingLayout : ContentPage
 
         Settings.EnableWorkSharing = e.Value;
         Settings.Save();
+    }
+
+    private bool _loadingUniversalCredit = false;
+
+    /// <summary>
+    /// the Universal Credit page comes and goes with this. The shell has to
+    /// be told outright - a page already built into the tab is only hidden
+    /// or shown, and nothing else would go looking
+    /// </summary>
+    private void sw_universalCredit_Toggled(object sender, ToggledEventArgs e)
+    {
+        if (_loadingUniversalCredit)
+            return;
+
+        Settings.ShowUniversalCredit = e.Value;
+        Settings.Save();
+
+        WorkTracker.AppShell.RefreshUniversalCreditTab();
     }
 
     private void ShowPhotoQualityDetail()

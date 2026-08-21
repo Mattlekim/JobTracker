@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.UniversalCreditView"
+             Title="Universal Credit">
+
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 12" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F2F4F7, Dark=#1E1E1E}" />
+            <Setter Property="Padding" Value="14" />
+        </Style>
+        <Style x:Key="Caption" TargetType="Label">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light=#6B7280, Dark=#9CA3AF}" />
+        </Style>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="12">
+
+            <!--  WHEN THE CLAIM STARTED  -->
+            <!-- the one thing the page cannot work out for itself. every
+                 month on it is measured from this date, so it is asked for
+                 first and said back in words underneath -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="The day your claim started" FontAttributes="Bold" FontSize="16" />
+                    <Label Style="{StaticResource Caption}"
+                           Text="Universal Credit is worked out a month at a time, and the month is your claim's own rather than the calendar's. It starts on the day the claim did and runs to the day before that date the next month." />
+                    <DatePicker x:Name="dp_start" Format="d MMMM yyyy" DateSelected="dp_start_DateSelected"></DatePicker>
+                    <!-- only while nothing has been set: a date picker
+                         already showing today has no change to report if
+                         today is the answer, so there has to be a way of
+                         saying so outright -->
+                    <Button x:Name="bnt_setStart" Text="Set The Start Date" Clicked="bnt_setStart_Clicked"
+                            BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2"
+                            CornerRadius="8" Padding="14,6" HorizontalOptions="Start" IsVisible="false"></Button>
+                    <!-- two labels rather than one recoloured: a caption
+                         whose colour is set from code loses the theme
+                         binding the style gave it, and it never gets it
+                         back -->
+                    <Label x:Name="l_notSet" FontSize="12" TextColor="#EF6C00" IsVisible="false"
+                           Text="Pick the day your claim started and press Set The Start Date. Nothing below can be worked out until it is set - every month on this page is measured from it."></Label>
+                    <Label x:Name="l_startExplain" Style="{StaticResource Caption}"></Label>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- ESTIMATES, NOT ADVICE - the same rule as the tax page. What
+                 is reported to a claim is the claimant's to get right, and a
+                 page that quietly reads as the finished answer would be
+                 worse than no page -->
+            <Border Style="{StaticResource Card}" BackgroundColor="{AppThemeBinding Light=#FFF3E0, Dark=#3E2723}">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="These figures are estimates" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#E65100, Dark=#FFB74D}" />
+                    <Label FontSize="12" TextColor="{AppThemeBinding Light=#8D6E63, Dark=#BCAAA4}"
+                           Text="They are worked out only from the payments and expenses recorded in this app, and they may be incomplete or wrong for your circumstances. Check them against your own records before you report anything, and ask your work coach or Citizens Advice if you are unsure. This app is not benefits advice." />
+                </VerticalStackLayout>
+            </Border>
+
+            <!--  THE MONTH THAT IS RUNNING NOW  -->
+            <Border x:Name="b_thisMonth" Style="{StaticResource Card}" IsVisible="false">
+                <VerticalStackLayout Spacing="6">
+                    <Label x:Name="l_thisTitle" FontAttributes="Bold" FontSize="16"></Label>
+                    <Label x:Name="l_thisDates" Style="{StaticResource Caption}"></Label>
+                    <Grid ColumnSpacing="8" RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"></RowDefinition>
+                            <RowDefinition Height="Auto"></RowDefinition>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Row="0" Grid.Column="0" Text="Paid in" Style="{StaticResource Caption}" HorizontalTextAlignment="Center" />
+                        <Label Grid.Row="0" Grid.Column="1" Text="Spent" Style="{StaticResource Caption}" HorizontalTextAlignment="Center" />
+                        <Label Grid.Row="0" Grid.Column="2" Text="Left" Style="{StaticResource Caption}" HorizontalTextAlignment="Center" />
+                        <Label Grid.Row="1" Grid.Column="0" x:Name="l_thisIncome" FontAttributes="Bold" TextColor="White" BackgroundColor="#2E7D32" Padding="6" HorizontalTextAlignment="Center" />
+                        <Label Grid.Row="1" Grid.Column="1" x:Name="l_thisExpenses" FontAttributes="Bold" TextColor="White" BackgroundColor="#7B1FA2" Padding="6" HorizontalTextAlignment="Center" />
+                        <Label Grid.Row="1" Grid.Column="2" x:Name="l_thisProfit" FontAttributes="Bold" TextColor="White" BackgroundColor="#00796B" Padding="6" HorizontalTextAlignment="Center" />
+                    </Grid>
+                    <Label x:Name="l_thisCounts" Style="{StaticResource Caption}"></Label>
+                    <Label x:Name="l_thisReport" FontSize="12" TextColor="#EF6C00"></Label>
+                </VerticalStackLayout>
+            </Border>
+
+            <!--  EVERY MONTH OF THE CLAIM, NEWEST FIRST  -->
+            <Label x:Name="l_monthsHeading" Text="Every month so far" FontAttributes="Bold" FontSize="16" Margin="4,0,0,0" IsVisible="false" />
+            <VerticalStackLayout x:Name="vsl_months" Spacing="8"></VerticalStackLayout>
+
+            <Label x:Name="l_nothing" Style="{StaticResource Caption}" IsVisible="false"></Label>
+
+            <!--  WHAT THIS IS AND IS NOT  -->
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="About reporting your earnings" FontAttributes="Bold" FontSize="16" />
+                    <Label x:Name="l_explain" Style="{StaticResource Caption}"></Label>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

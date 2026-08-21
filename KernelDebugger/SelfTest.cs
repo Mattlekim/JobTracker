@@ -62,6 +62,7 @@ public static class SelfTest
             ADaySaysHowMuchOfItIsDone();
             ANoteStaysOnTheDayItWasWrittenAgainst();
             WorkThatIsNotSetUpProperlyIsFound();
+            AClaimsMonthRunsToTheDayBeforeItStarted();
         }
         catch (Exception ex)
         {
@@ -595,6 +596,114 @@ public static class SelfTest
             records.Count == 1 && records[0].Reason == "gate was locked all month"
             && records[0].Kind == BalanceAdjustmentKind.WriteOff,
             records.Count == 0 ? "no record" : records[0].Describe);
+    }
+
+    /// <summary>
+    /// a Universal Credit assessment period runs from the day the claim
+    /// started to the day before that date the next month, and the money
+    /// counted against it is what moved inside it
+    /// </summary>
+    private static void AClaimsMonthRunsToTheDayBeforeItStarted()
+    {
+        Console.WriteLine();
+        Console.WriteLine("A claim's month runs to the day before the day it started");
+
+        Reset();
+        Payment.DeleteData();
+        Expense.DeleteData();
+
+        DateTime claim = new DateTime(2026, 1, 31);
+
+        UniversalCreditPeriod first = UniversalCredit.Period(claim, 0);
+        Check("the first month starts on the day the claim did",
+            first.Start == claim, first.Start.ToShortDateString());
+        Check("and ends the day before the same date next month",
+            first.End == new DateTime(2026, 2, 27), first.End.ToShortDateString());
+
+        //the whole reason every month is measured from the claim's own start
+        //rather than from the month before it: February pulls the 31st back
+        //to the 28th, and stepping on a month at a time from there would
+        //leave the claim on the 28th for good
+        UniversalCreditPeriod second = UniversalCredit.Period(claim, 1);
+        Check("a short month does not move the claim off the 31st",
+            second.Start == new DateTime(2026, 2, 28)
+            && second.End == new DateTime(2026, 3, 30),
+            $"{second.Start.ToShortDateString()} to {second.End.ToShortDateString()}");
+
+        UniversalCreditPeriod third = UniversalCredit.Period(claim, 2);
+        Check("the month after it is back on the 31st",
+            third.Start == new DateTime(2026, 3, 31), third.Start.ToShortDateString());
+
+        //no month may be missed and none may be counted twice
+        Check("each month starts the day after the last one ended",
+            second.Start == first.End.AddDays(1) && third.Start == second.End.AddDays(1),
+            "there is a gap or an overlap");
+
+        Check("the day before the claim is in no month",
+            UniversalCredit.PeriodOn(claim, claim.AddDays(-1)) == null, "it found one");
+        Check("the day the claim started is in the first month",
+            UniversalCredit.PeriodOn(claim, claim).Index == 0,
+            $"{UniversalCredit.PeriodOn(claim, claim).Index}");
+        Check("the last day of a month is still that month",
+            UniversalCredit.PeriodOn(claim, first.End).Index == 0,
+            $"{UniversalCredit.PeriodOn(claim, first.End).Index}");
+        Check("and the next day is the one after",
+            UniversalCredit.PeriodOn(claim, second.Start).Index == 1,
+            $"{UniversalCredit.PeriodOn(claim, second.Start).Index}");
+
+        Check("every month up to a date is there and no more",
+            UniversalCredit.PeriodsTo(claim, third.End).Count == 3,
+            $"{UniversalCredit.PeriodsTo(claim, third.End).Count} month(s)");
+
+        //the money: what moved inside the month counts, what moved either
+        //side of it does not
+        Customer customer = new Customer("12", "High Street");
+        Customer.Add(customer);
+
+        Payment.Add(customer.Id, 40f, PaymentMethod.Cash, "in the month", first.Start);
+        Payment.Add(customer.Id, 25f, PaymentMethod.Bank, "the last day of it", first.End);
+        Payment.Add(customer.Id, 90f, PaymentMethod.Cash, "the day after", second.Start);
+        Payment.Add(customer.Id, 15f, PaymentMethod.Cash, "before the claim", claim.AddDays(-1));
+
+        Expense.Add(new Expense() { Date = first.Start.AddDays(3), Amount = 20f, Merchant = "Garage" });
+        Expense.Add(new Expense() { Date = second.Start, Amount = 100f, Merchant = "Ladder Shop" });
+
+        UniversalCreditSummary summary = UniversalCreditSummary.Build(first);
+        Check("only the month's payments are counted",
+            summary.Income == 65f && summary.IncomeCount == 2,
+            $"{summary.Income} over {summary.IncomeCount} payment(s)");
+        Check("only the month's expenses are counted",
+            summary.Expenses == 20f && summary.ExpenseCount == 1,
+            $"{summary.Expenses} over {summary.ExpenseCount} expense(s)");
+        Check("what is left is one taken off the other",
+            summary.Profit == 45f && !summary.IsLoss, $"{summary.Profit}");
+
+        //a month that cost more than it took is said as the loss it is
+        //rather than flattened to nothing
+        UniversalCreditSummary lossy = UniversalCreditSummary.Build(second);
+        Check("a month that spent more than it took is a loss",
+            lossy.Profit == -10f && lossy.IsLoss, $"{lossy.Profit}");
+
+        List<UniversalCreditSummary> all = UniversalCreditSummary.BuildAll(claim, third.End);
+        Check("every month of the claim is summed up, newest first",
+            all.Count == 3 && all[0].Period.Index == 2 && all[2].Period.Index == 0,
+            $"{all.Count} month(s)");
+
+        //the start date is kept with the settings, so it travels in a backup
+        //like the rest of them
+        UniversalCredit.StartDate = claim;
+        Check("the date the claim started is remembered",
+            UniversalCredit.HaveStartDate && UniversalCredit.StartDate == claim,
+            UniversalCredit.StartDate.ToShortDateString());
+
+        UniversalCredit.StartDate = DateTime.MinValue;
+        Check("and nothing set is not a date",
+            !UniversalCredit.HaveStartDate, "it counted as one");
+
+        //leave nothing behind for whatever runs next
+        Payment.DeleteData();
+        Expense.DeleteData();
+        Customer.DeleteData();
     }
 
     private static string Describe(List<RoundStats> rounds)

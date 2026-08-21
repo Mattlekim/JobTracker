@@ -1222,6 +1222,51 @@ spreadsheet and files them. `ImportExport/TaxReportWriter` serves that two ways:
 
 Both carry the estimates warning inside the file, because an export travels without the page it came from.
 
+## Universal Credit
+
+`Kernel/UniversalCredit.cs` and `Layouts/UniversalCreditView` (the fourth page under Money, next to Tax) answer
+the one question a claim asks every month: what came in and what went out.
+
+**It is deliberately not the tax page in another hat**, and the two must never be made to look interchangeable.
+Tax is 6 April to 5 April and offers a choice of how income is counted; a claim's month is neither. It starts on
+the day the claim started and runs to **the day before that date the next month** — a claim that began on the
+6th runs 6 August to 5 September, then 6 September to 5 October. Nothing on it lines up with a tax year, and a
+figure off one page is no answer to the other, which is why the page says so out loud rather than leaving
+somebody to assume.
+
+Only money that actually moved counts: payments received inside the month and expenses paid inside it. There is
+no accruals option here on purpose — work done and not paid for is not earnings for a claim, whatever it is for
+tax.
+
+**Every month is measured from the claim's own start date, never from the month before it.** `AddMonths` pulls a
+date back to the last day of a short month — the 31st of January is the 28th of February — so stepping on a
+month at a time would leave a claim that started on the 31st sitting on the 28th for ever after. Counted from
+the start each time (`UniversalCredit.Period(claimStart, index)`), March is the 31st again, which is what the
+claim really does. `PeriodOn` guesses at the month from the calendar and then walks the last step or two,
+because the months are not all the same length and the arithmetic cannot be trusted to the day.
+
+A month that cost more than it took is **said as the loss it is** rather than flattened to a nought — that is a
+real thing to have to explain, and hiding it would only make the figures look invented. The month still running
+is marked as such on both cards: its figures are not the whole story yet.
+
+**The day the claim started is kept in the settings file** (`Settings.UniversalCreditStart`, a way in to
+`UniversalCredit.StartDate` exactly like `Settings.DefaultJobDuration` is a way in to `Job.DefaultDuration` —
+the kernel does the month arithmetic and cannot see the settings). So it rides in every backup with the rest of
+them. `MinValue` is nobody having said, which is not a date of its own: with no start date there are no months
+at all, and the page says so instead of guessing at one. It is asked for on the page rather than in the
+settings, because the page is the only place it means anything — and the **Set The Start Date** button is up
+only while nothing is set, because a picker already open on today cannot report a change to today, which is
+exactly the answer somebody starting a claim this week would give.
+
+**The page is off by default** (`Settings.ShowUniversalCredit`, the *Universal Credit* section on the settings
+page): most rounds are not on a claim, and a page of figures that mean nothing to you is worse than no page.
+`AppShell.RefreshUniversalCreditTab` puts it up and takes it down — kept apart from `RefreshShareTabs`, which is
+about which side of the extra-work fence the app is on and runs whenever work arrives or leaves. Like the
+settings door in the same tab, the page is never simply hidden out from under the shell: if it is the page being
+looked at when it goes, the tab is stepped back to Payments first.
+
+The month arithmetic and the figures are covered by the KernelDebugger self test (`dotnet run -- selftest`).
+
 ## Job types
 
 `Job.JobNames` is the list of job types, edited on the settings page and saved with the settings. `DefaultJobName`

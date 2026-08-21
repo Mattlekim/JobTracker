@@ -76,6 +76,10 @@ namespace WorkTracker
             //at. after _instance: it is what the refresh works on
             RefreshShareTabs();
 
+            //and the Universal Credit page, which is off unless the round is
+            //on a claim. after Settings.Load, which is what read the setting
+            RefreshUniversalCreditTab();
+
             //said outright rather than left to the shell: the extra work
             //tabs sit first in the xaml (hidden until they are wanted), and
             //the first tab is what a shell falls back to
@@ -283,6 +287,33 @@ namespace WorkTracker
             _instance.tab_myWork.IsVisible = InExtraWork && HasOwnWork();
 
             _instance.tab_extraShortcut.IsVisible = squeegeeOut;
+        }
+
+        /// <summary>
+        /// puts the Universal Credit page up or takes it down, off the
+        /// setting. Called at start up and whenever the switch on the
+        /// settings page is moved.
+        ///
+        /// Kept apart from RefreshShareTabs: that one is about which side of
+        /// the extra-work fence the app is on and runs whenever work arrives
+        /// or leaves, and this is a setting that changes when somebody
+        /// changes it. Neither has any business making the other's decision.
+        ///
+        /// Like the settings door in the same tab, the page is never simply
+        /// hidden out from under the shell - if it is the page being looked
+        /// at when it goes, the tab is stepped back to Payments first.
+        /// </summary>
+        public static void RefreshUniversalCreditTab()
+        {
+            if (_instance == null)
+                return;
+
+            bool show = Settings.ShowUniversalCredit;
+
+            if (!show && _instance.tab_money.CurrentItem == _instance.sc_moneyUniversalCredit)
+                _instance.tab_money.CurrentItem = _instance.sc_moneyPayments;
+
+            _instance.sc_moneyUniversalCredit.IsVisible = show;
         }
 
         /// <summary>
