@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using Kernel;
 
 namespace UiInterface.ImportExport
 {
@@ -23,6 +24,41 @@ namespace UiInterface.ImportExport
         public bool Tnb;                          // grey house number cell
         public DateTime? LastCleaned;             // most recent cleaned column
         public int SourceRow;
+
+        //-------------------------------------------------------------
+        // What a round sheet cannot say and an export from another app
+        // can. All of it is optional and a sheet sets none of it, so the
+        // spreadsheet import behaves exactly as it did: where one of
+        // these is left empty the importer falls back to the answer given
+        // once for the whole file on Layouts/ImportSheet.
+        //-------------------------------------------------------------
+
+        /// <summary>the town, when the file says which rather than the page</summary>
+        public string City = string.Empty;
+        public string Area = string.Empty;
+        public string Postcode = string.Empty;
+        public string Phone = string.Empty;
+        public string Email = string.Empty;
+
+        /// <summary>the round this one house is on, beating the file's answer</summary>
+        public string Round = string.Empty;
+
+        /// <summary>what the other app calls this customer, kept for the notes</summary>
+        public string ExternalRef = string.Empty;
+
+        /// <summary>
+        /// how often, already worked out. -1 says the row did not know and
+        /// <see cref="FrequencyText"/> is to be read instead, which is what
+        /// a round sheet leaves it at
+        /// </summary>
+        public int FrequencyAmount = -1;
+        public FrequenceType FrequencyType = FrequenceType.Week;
+
+        /// <summary>the work does not come round at all</summary>
+        public bool OneOff;
+
+        /// <summary>the day the work is next wanted, when the file says</summary>
+        public DateTime? NextDue;
     }
 
     /// <summary>

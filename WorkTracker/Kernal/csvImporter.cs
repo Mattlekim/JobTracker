@@ -82,30 +82,108 @@ namespace Kernel
         }
         public static CSVFile Import(string filePath)
         {
-            string[] lines = File.ReadAllLines(filePath);
+            return Parse(File.ReadAllText(filePath));
+        }
 
+        /// <summary>
+        /// A whole csv into its heading row and its rows.
+        ///
+        /// This walks the text rather than the lines, because **a line and
+        /// a row are not the same thing**: a field in quotes may hold a
+        /// newline, and an export written by another app puts one there
+        /// wherever somebody typed a note on two lines. Split on the
+        /// newlines first and that one note becomes two half rows, with
+        /// every column on both of them out of step - which does not fail,
+        /// it imports rubbish. A file with no newline inside a field reads
+        /// exactly as it always did.
+        /// </summary>
+        public static CSVFile Parse(string text)
+        {
             CSVFile csv = new CSVFile();
+            List<string[]> rows = ReadRows(text ?? string.Empty);
 
-            List<string> row = new List<string>();
-
-            //read the header
-            csv.Header = ReadRow(lines[0]);
-            csv.data = new string[lines.Length - 1][];
-            bool skipHeader = true;
-            int count = 0;
-            foreach(string l in lines)
+            if (rows.Count == 0)
             {
-                if (skipHeader)
+                csv.Header = new string[0];
+                csv.data = new string[0][];
+                return csv;
+            }
+
+            csv.Header = rows[0];
+            csv.data = rows.Skip(1).ToArray();
+            return csv;
+        }
+
+        /// <summary>
+        /// splits the text into rows, keeping a newline that is inside a
+        /// quoted field as part of that field
+        /// </summary>
+        private static List<string[]> ReadRows(string text)
+        {
+            List<string[]> rows = new List<string[]>();
+            StringBuilder row = new StringBuilder();
+            bool inQuotes = false;
+
+            //a quote only opens a field when it is the first thing in one,
+            //which is the rule ReadRow reads the row back with. Toggling on
+            //any quote at all would let a stray one - 6" pole, written in a
+            //note - swallow the rest of the file
+            bool atFieldStart = true;
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+
+                if (c == '"')
                 {
-                    skipHeader = false;
+                    if (inQuotes)
+                    {
+                        //a doubled quote is a quote inside the field and
+                        //does not close anything
+                        if (i + 1 < text.Length && text[i + 1] == '"')
+                        {
+                            row.Append("\"\"");
+                            i++;
+                            continue;
+                        }
+                        inQuotes = false;
+                    }
+                    else if (atFieldStart)
+                        inQuotes = true;
+
+                    row.Append(c);
+                    atFieldStart = false;
                     continue;
                 }
 
-                csv.data[count] = ReadRow(l);
+                if (!inQuotes && (c == '\n' || c == '\r'))
+                {
+                    //\r\n is one ending, not two
+                    if (c == '\r' && i + 1 < text.Length && text[i + 1] == '\n')
+                        i++;
+                    AddRow(rows, row.ToString());
+                    row.Clear();
+                    atFieldStart = true;
+                    continue;
+                }
 
-                count++;
+                row.Append(c);
+                atFieldStart = !inQuotes && c == ',';
             }
-            return csv;
+
+            AddRow(rows, row.ToString());
+            return rows;
+        }
+
+        /// <summary>
+        /// a blank line is not a row. csv files routinely end with one, and
+        /// counting it would hand every reader an empty row to trip over
+        /// </summary>
+        private static void AddRow(List<string[]> rows, string line)
+        {
+            if (line.Trim().Length == 0)
+                return;
+            rows.Add(ReadRow(line));
         }
     }
 }
