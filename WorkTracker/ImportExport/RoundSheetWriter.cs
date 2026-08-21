@@ -21,20 +21,10 @@ namespace UiInterface.ImportExport
             //one row per active job chain (the newest instance)
             List<Job> current = allJobs.FindAll(x => x.JobNextId == -1 && !x.HaveCanceled);
 
-            //  Every day each house was cleaned on, so the Cleaned columns
-            //  read like the round book they are: a column is a day the
-            //  round was worked, and every house done that day gets an x
-            //  under it. A house on a run of them shows its history across
-            //  the row.
-            //
-            //  It is keyed by the house (SameJobKey) rather than the
-            //  customer: a customer with two houses would otherwise get one
-            //  house's cleans on the other's row. And each house is marked
-            //  on *every* day it was done, not just its latest - the old
-            //  code put a single x under each house's own last-clean date,
-            //  so with every house last done on a different day the marks
-            //  scattered one-per-row across a column each, which is what
-            //  read as being all over the place.
+            //  Every day each house was cleaned on, keyed by the house
+            //  (SameJobKey) rather than the customer: a customer with two
+            //  houses would otherwise get one house's cleans on the other's
+            //  row.
             var cleansByHouse = new Dictionary<string, HashSet<DateTime>>();
             var everyDate = new HashSet<DateTime>();
             foreach (Job j in allJobs)
@@ -53,12 +43,20 @@ namespace UiInterface.ImportExport
                     everyDate.Add(day);
                 }
 
-            //the columns are the actual clean days. The most recent are kept
-            //when there are too many to fit, because a round book is worked
-            //off its recent history rather than years of it
-            List<DateTime> cleanedDates = everyDate.OrderBy(x => x).ToList();
-            if (cleanedDates.Count > 20) //keep the sheet a sane width
-                cleanedDates = cleanedDates.Skip(cleanedDates.Count - 20).ToList();
+            //  The columns sit at least two weeks apart. A round is worked
+            //  day by day, so the actual clean days are dozens of dates a
+            //  few days apart - a column each, they are unreadable. Clean
+            //  days closer together than a fortnight fold into one column,
+            //  headed by the earliest of them, and a house done on one of
+            //  the folded days shows that day in its own cell (see below).
+            //  So the columns read as "the round was worked around here",
+            //  and the exact day is not lost.
+            List<DateTime> columnDates = ClusterColumns(everyDate);
+
+            //the most recent are kept when there are too many to fit,
+            //because a round book is worked off its recent history
+            if (columnDates.Count > 20) //keep the sheet a sane width
+                columnDates = columnDates.Skip(columnDates.Count - 20).ToList();
 
             using ZipArchive zip = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
             AddEntry(zip, "[Content_Types].xml", ContentTypesXml);
@@ -66,10 +64,45 @@ namespace UiInterface.ImportExport
             AddEntry(zip, "xl/workbook.xml", WorkbookXml);
             AddEntry(zip, "xl/_rels/workbook.xml.rels", WorkbookRelsXml);
             AddEntry(zip, "xl/styles.xml", StylesXml);
-            AddEntry(zip, "xl/worksheets/sheet1.xml", BuildSheet(current, cleansByHouse, cleanedDates));
+            AddEntry(zip, "xl/worksheets/sheet1.xml", BuildSheet(current, cleansByHouse, columnDates));
         }
 
-        static string BuildSheet(List<Job> jobs, Dictionary<string, HashSet<DateTime>> cleansByHouse, List<DateTime> cleanedDates)
+        /// <summary>
+        /// The Cleaned column headers, at least two weeks apart. Every clean
+        /// day is either a header or folds into the header before it, so the
+        /// headers partition the timeline and each clean falls under exactly
+        /// one column. A new header opens only for a day a fortnight or more
+        /// after the last header, which is what keeps them two weeks apart
+        /// however tightly the round was worked in between.
+        /// </summary>
+        static List<DateTime> ClusterColumns(IEnumerable<DateTime> days)
+        {
+            List<DateTime> sorted = days.Select(d => d.Date).Distinct().OrderBy(x => x).ToList();
+
+            List<DateTime> headers = new List<DateTime>();
+            foreach (DateTime d in sorted)
+                if (headers.Count == 0 || (d - headers[headers.Count - 1]).TotalDays >= 14)
+                    headers.Add(d);
+
+            return headers;
+        }
+
+        /// <summary>
+        /// The clean this house had under one column - the most recent of
+        /// its cleans that fall in the column's window - or null for none.
+        /// The window is the header up to but not including the next one,
+        /// so every clean belongs to exactly one column.
+        /// </summary>
+        static DateTime? CleanInColumn(HashSet<DateTime> cleans, DateTime from, DateTime toExclusive)
+        {
+            DateTime? best = null;
+            foreach (DateTime d in cleans)
+                if (d >= from && d < toExclusive && (best == null || d > best.Value))
+                    best = d;
+            return best;
+        }
+
+        static string BuildSheet(List<Job> jobs, Dictionary<string, HashSet<DateTime>> cleansByHouse, List<DateTime> columnDates)
         {
             var sb = new StringBuilder();
             sb.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
@@ -82,15 +115,15 @@ namespace UiInterface.ImportExport
             string[] headers = { "Street", "PRICE", "Front", "Name", "PT", "Freq", "Notes" };
             for (int i = 0; i < headers.Length; i++)
                 AppendText(sb, row, i + 1, headers[i], 0);
-            for (int i = 0; i < cleanedDates.Count; i++)
+            for (int i = 0; i < columnDates.Count; i++)
                 AppendText(sb, row, headers.Length + 1 + i, "Cleaned", 0);
             sb.Append("</row>");
             row++;
 
             //row 2 - the date of each Cleaned column
             sb.Append($"<row r=\"{row}\">");
-            for (int i = 0; i < cleanedDates.Count; i++)
-                AppendNumber(sb, row, 8 + i, ToExcelSerial(cleanedDates[i]), 2);
+            for (int i = 0; i < columnDates.Count; i++)
+                AppendNumber(sb, row, 8 + i, ToExcelSerial(columnDates[i]), 2);
             sb.Append("</row>");
             row++;
 
@@ -118,14 +151,28 @@ namespace UiInterface.ImportExport
                     AppendText(sb, row, 6, FreqText(j), 0);
                     AppendText(sb, row, 7, (j.Notes ?? string.Empty).Replace("\r", " ").Replace("\n", " "), 0);
 
-                    //an x under every clean day this house was actually
-                    //done on, so the marks line up down each column - the
-                    //importer reads the latest of them back as the last
-                    //clean
+                    //  Under each column, this house's clean in that
+                    //  fortnight: an x when it was the column's own date,
+                    //  otherwise the day itself, so a clean folded into an
+                    //  earlier column still says when it really happened.
+                    //  Same-date jobs read the same way down the column, and
+                    //  the importer reads the latest cell back as the last
+                    //  clean (a date cell counts because it carries a slash).
                     if (cleansByHouse.TryGetValue(j.SameJobKey, out HashSet<DateTime> cleaned))
-                        for (int i = 0; i < cleanedDates.Count; i++)
-                            if (cleaned.Contains(cleanedDates[i]))
-                                AppendText(sb, row, 8 + i, "x", 0);
+                        for (int i = 0; i < columnDates.Count; i++)
+                        {
+                            DateTime from = columnDates[i];
+                            DateTime to = i + 1 < columnDates.Count ? columnDates[i + 1] : DateTime.MaxValue;
+
+                            DateTime? clean = CleanInColumn(cleaned, from, to);
+                            if (clean == null)
+                                continue;
+
+                            string mark = clean.Value.Date == from.Date
+                                ? "x"
+                                : clean.Value.ToString("d/M", CultureInfo.InvariantCulture);
+                            AppendText(sb, row, 8 + i, mark, 0);
+                        }
                     sb.Append("</row>");
                     row++;
                 }
