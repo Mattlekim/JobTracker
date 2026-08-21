@@ -21,6 +21,12 @@ namespace UiInterface.ImportExport
         public int DueDatesSet;
         /// <summary>jobs left where they were because a day is booked in for them</summary>
         public int DueDatesLeftBooked;
+        /// <summary>houses the file gave no repeat for, imported as one offs</summary>
+        public int OneOffs;
+        /// <summary>email addresses the file carried</summary>
+        public int EmailsFound;
+        /// <summary>jobs put on a round the file itself named, rather than the one picked</summary>
+        public int RoundsFromFile;
         public List<string> Problems = new List<string>();
     }
 
@@ -35,7 +41,12 @@ namespace UiInterface.ImportExport
     /// </summary>
     public class ImportOptions
     {
-        /// <summary>the sheet has streets but no town</summary>
+        /// <summary>
+        /// the sheet has streets but no town. an export from another app
+        /// usually does say, so this is what is used **where the file does
+        /// not** rather than what is put on everybody: overwriting a town
+        /// the file got right would be worse than the gap it fills
+        /// </summary>
         public string City = string.Empty;
         public string Area = string.Empty;
 
@@ -77,15 +88,38 @@ namespace UiInterface.ImportExport
         public static ImportResult Import(Stream xlsxStream, ImportOptions options)
         {
             options = options ?? new ImportOptions();
-            List<ImportedCustomerRow> rows = RoundSheetParser.Parse(xlsxStream);
+            return Import(RoundSheetParser.Parse(xlsxStream), options);
+        }
+
+        /// <summary>
+        /// The mapping half, on rows somebody else has read.
+        ///
+        /// A round sheet and an export from another app are two different
+        /// files and want two different readers, but what is done with what
+        /// comes out of them - matching a house that is already here,
+        /// creating one that is not, putting the work on a round, clearing
+        /// the balances - is the same job, and two copies of it would drift.
+        /// </summary>
+        public static ImportResult Import(List<ImportedCustomerRow> rows, ImportOptions options)
+        {
+            options = options ?? new ImportOptions();
+            rows = rows ?? new List<ImportedCustomerRow>();
             var result = new ImportResult();
 
-            //the round is remembered once for the whole sheet rather than
+            //the round is remembered once for the whole file rather than
             //per row, so the list of rounds cannot end up with the same name
             //on it twice, and so the caller can tell whether the settings
             //need saving
             if (!string.IsNullOrWhiteSpace(options.Round))
                 Job.RememberRound(options.Round);
+
+            //a file that names a round per house brings its own names with
+            //it, and they are remembered the same way
+            foreach (string named in rows
+                .Select(r => (r.Round ?? string.Empty).Trim())
+                .Where(r => r.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase))
+                Job.RememberRound(named);
 
             foreach (ImportedCustomerRow row in rows)
             {
@@ -123,16 +157,22 @@ namespace UiInterface.ImportExport
             if (phone.Length > 0)
                 result.PhonesFound++;
 
+            //a file with a phone column of its own beats a number dug out
+            //of a note. only the note counts towards PhonesFound - that
+            //figure is about numbers moved out of free text, not about how
+            //many customers ended up with one
+            if (row.Phone.Trim().Length > 0)
+                phone = row.Phone.Trim();
+
             //the sheet's own Front column wins over one written in a note
             float? frontPrice = RoundSheetParser.ParsePrice(row.FrontPriceText) ?? parsed.FrontPrice;
             if (frontPrice.HasValue)
                 result.FrontPrices++;
 
             string notes = BuildNotes(row, parsed.Remaining, result);
-            (int freqAmount, string freqUnit) = RoundSheetParser.ParseFrequency(row.FrequencyText);
-            FrequenceType freqType = freqUnit == "month" ? FrequenceType.Month
-                : freqUnit == "day" ? FrequenceType.Day
-                : FrequenceType.Week;
+            (int freqAmount, FrequenceType freqType) = FrequencyFor(row);
+            if (row.OneOff)
+                result.OneOffs++;
 
             if (customer == null)
             {
@@ -140,9 +180,9 @@ namespace UiInterface.ImportExport
                 {
                     PropertyNameNumber = row.HouseNumber,
                     Street = row.Street,
-                    City = options.City ?? string.Empty,
-                    Area = options.Area ?? string.Empty,
-                    Postcode = string.Empty,
+                    City = Pick(row.City, options.City),
+                    Area = Pick(row.Area, options.Area),
+                    Postcode = (row.Postcode ?? string.Empty).Trim(),
                 };
 
                 customer = new Customer { Address = address };
@@ -150,6 +190,11 @@ namespace UiInterface.ImportExport
                     customer.FName = row.Name;
                 if (phone.Length > 0)
                     customer.Phone = phone;
+                if (row.Email.Trim().Length > 0)
+                {
+                    customer.Email = row.Email.Trim();
+                    result.EmailsFound++;
+                }
                 customer.NormalPaymentMethord = PaymentMethodFrom(row.PaymentType);
                 Customer.Add(customer);
 
@@ -165,13 +210,14 @@ namespace UiInterface.ImportExport
                 job.DueDate = DueDateFor(options, row, freqAmount, freqType, result);
                 ApplyFrontPrice(job, frontPrice);
                 Job.Add(job);
-                PutOnRound(job, options, result);
+                PutOnRound(job, row, options, result);
                 result.Created++;
             }
             else
             {
                 if (customer.Phone.Length == 0 && phone.Length > 0)
                     customer.Phone = phone;
+                TopUpCustomer(customer, row, result);
 
                 Job job = Job.Query(QueryType.CustomerId, customer.Id)
                     .OrderBy(j => j.Id)
@@ -191,7 +237,7 @@ namespace UiInterface.ImportExport
                     job.DueDate = DueDateFor(options, row, freqAmount, freqType, result);
                     ApplyFrontPrice(job, frontPrice);
                     Job.Add(job);
-                    PutOnRound(job, options, result);
+                    PutOnRound(job, row, options, result);
                 }
                 else
                 {
@@ -204,7 +250,7 @@ namespace UiInterface.ImportExport
 
                     //a job already here has other visits behind it, so the
                     //round goes on the job rather than on this one visit
-                    PutOnRound(job, options, result);
+                    PutOnRound(job, row, options, result);
                     ReDate(job, options, result);
                 }
                 result.Updated++;
@@ -220,9 +266,16 @@ namespace UiInterface.ImportExport
         /// round it is on: a sheet is one round's worth of houses, and
         /// somebody who has not got rounds leaves the question alone.
         /// </summary>
-        static void PutOnRound(Job job, ImportOptions options, ImportResult result)
+        static void PutOnRound(Job job, ImportedCustomerRow row, ImportOptions options, ImportResult result)
         {
-            string round = (options.Round ?? string.Empty).Trim();
+            //a round named against the house itself beats the one picked
+            //for the whole file: a file that says which round each house is
+            //on knows something the question could not ask
+            string round = (row?.Round ?? string.Empty).Trim();
+            bool fromFile = round.Length > 0;
+            if (!fromFile)
+                round = (options.Round ?? string.Empty).Trim();
+
             if (round.Length == 0 || job == null)
                 return;
 
@@ -231,6 +284,8 @@ namespace UiInterface.ImportExport
             //clean and the next
             job.SetRound(round);
             result.RoundSet++;
+            if (fromFile)
+                result.RoundsFromFile++;
         }
 
         /// <summary>
@@ -277,7 +332,66 @@ namespace UiInterface.ImportExport
                 result.DueDatesSet++;
                 return options.DueDate.Value;
             }
+
+            //a file that says when the house is next wanted has the answer
+            //already. a round sheet has not, and has it worked out from the
+            //last clean ticked on it and how often it comes round
+            if (row.NextDue.HasValue)
+                return row.NextDue.Value.Date;
+
             return NextDueDate(row.LastCleaned, freqAmount, freqType);
+        }
+
+        /// <summary>
+        /// how often the house comes round. a reader that has already
+        /// worked it out is believed - it had the file's own wording in
+        /// front of it - and a round sheet, which leaves it at -1, has its
+        /// Freq cell read here exactly as it always was.
+        /// </summary>
+        static (int amount, FrequenceType type) FrequencyFor(ImportedCustomerRow row)
+        {
+            if (row.OneOff)
+                return (0, FrequenceType.Week);
+            if (row.FrequencyAmount >= 0)
+                return (row.FrequencyAmount, row.FrequencyType);
+
+            (int amount, string unit) = RoundSheetParser.ParseFrequency(row.FrequencyText);
+            return (amount, unit == "month" ? FrequenceType.Month
+                : unit == "day" ? FrequenceType.Day
+                : FrequenceType.Week);
+        }
+
+        /// <summary>the file's answer where it has one, the page's otherwise</summary>
+        static string Pick(string fromFile, string fromPage)
+        {
+            string file = (fromFile ?? string.Empty).Trim();
+            return file.Length > 0 ? file : (fromPage ?? string.Empty).Trim();
+        }
+
+        /// <summary>
+        /// fills in what a customer already here has not got, and leaves
+        /// alone what they have. a town or a postcode on a record was put
+        /// there by somebody who knows the round; an import writing over it
+        /// with whatever another app was holding would be a change nobody
+        /// asked for and nobody would see.
+        /// </summary>
+        static void TopUpCustomer(Customer customer, ImportedCustomerRow row, ImportResult result)
+        {
+            if (customer.Email.Length == 0 && row.Email.Trim().Length > 0)
+            {
+                customer.Email = row.Email.Trim();
+                result.EmailsFound++;
+            }
+
+            if (customer.Address == null)
+                return;
+
+            if ((customer.Address.Postcode ?? string.Empty).Length == 0 && row.Postcode.Trim().Length > 0)
+                customer.Address.Postcode = row.Postcode.Trim();
+            if ((customer.Address.City ?? string.Empty).Length == 0 && row.City.Trim().Length > 0)
+                customer.Address.City = row.City.Trim();
+            if ((customer.Address.Area ?? string.Empty).Length == 0 && row.Area.Trim().Length > 0)
+                customer.Address.Area = row.Area.Trim();
         }
 
         /// <summary>

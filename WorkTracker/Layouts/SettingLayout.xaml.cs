@@ -1232,6 +1232,16 @@ public partial class SettingLayout : ContentPage
         await UiInterface.ImportExport.BackupRestore.RestoreAsync(fr.FullPath, fr.FileName, this);
     }
 
+    /// <summary>
+    /// The round spreadsheet - one layout, read by column position.
+    ///
+    /// This and the Squeegee import are two buttons rather than one that
+    /// works out which file it was handed. Somebody moving off Squeegee
+    /// goes looking for the word Squeegee, and the two are not equally
+    /// proven: reading another app's export is marked Experimental and the
+    /// spreadsheet import, which has been in use, must not be dragged under
+    /// that marking with it.
+    /// </summary>
     private async void bnt_importXlsx_Clicked(object sender, EventArgs e)
     {
         FileResult fr = await FilePicker.Default.PickAsync(new PickOptions
@@ -1247,6 +1257,31 @@ public partial class SettingLayout : ContentPage
             return;
         }
 
+        await ImportRoundSheet(fr);
+    }
+
+    /// <summary>the csv Squeegee downloads under Reporting</summary>
+    private async void bnt_importSqueegee_Clicked(object sender, EventArgs e)
+    {
+        FileResult fr = await FilePicker.Default.PickAsync(new PickOptions
+        {
+            PickerTitle = "Select a Squeegee export (.csv)",
+        });
+        if (fr == null)
+            return;
+
+        if (!fr.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            await DisplayAlert("Unsupported File",
+                "This is not a csv file. In Squeegee, go to Reporting and download the report as a csv.", "ok");
+            return;
+        }
+
+        await ImportFromSqueegee(fr);
+    }
+
+    private async Task ImportRoundSheet(FileResult fr)
+    {
         //a sheet says where the houses are and nothing above the street, so
         //the town, the round, the money and the first due date are all asked
         //once for the whole file - on one page rather than as a run of
@@ -1264,38 +1299,146 @@ public partial class SettingLayout : ContentPage
             using (Stream stream = await fr.OpenReadAsync())
                 result = ImportExport.CustomerImporter.Import(stream, options);
 
-            //a round typed in rather than picked is new, and the list of
-            //rounds lives with the settings
-            if (Job.RoundNames.Count != knownRounds)
-                Settings.Save();
-
-            DataRefreshNotifier.NotifyDataChanged();
-
-            string summary = $"Customers created: {result.Created}\nCustomers updated: {result.Updated}";
-            if (result.RoundSet > 0)
-                summary += $"\n{result.RoundSet} job(s) put on {options.Round}, and every visit of them";
-            if (result.DueDatesSet > 0)
-                summary += $"\n{result.DueDatesSet} job(s) due {options.DueDate.Value:d MMM yyyy}";
-            if (result.DueDatesLeftBooked > 0)
-                summary += $"\n{result.DueDatesLeftBooked} job(s) left on the day they are booked in for";
-            if (result.BalancesCleared > 0)
-                summary += $"\n{result.BalancesCleared} balance(s) cleared - each one is in that customer's history";
-            if (result.TnbFromNotes > 0)
-                summary += $"\n{result.TnbFromNotes} set to text the night before (from notes)";
-            if (result.PhonesFound > 0)
-                summary += $"\n{result.PhonesFound} phone number(s) taken out of notes";
-            if (result.FrontPrices > 0)
-                summary += $"\n{result.FrontPrices} front only price(s) added as an alternative price";
-            if (result.MissingPrice > 0)
-                summary += $"\n\n{result.MissingPrice} customer(s) had no readable price - they were imported with price 0 and a note, please set their price manually.";
-            if (result.Problems.Count > 0)
-                summary += $"\n\n{result.Problems.Count} row(s) failed:\n" + string.Join("\n", result.Problems.Take(5));
-            await DisplayAlert("Import Complete", summary, "Ok");
+            await FinishImport(knownRounds, result, options, null);
         }
         catch (Exception ex)
         {
             await DisplayAlert("Import Failed", $"Could not import this file: {ex.Message}", "ok");
         }
+    }
+
+    /// <summary>
+    /// Takes a round on out of a Squeegee export.
+    ///
+    /// **What the file was understood to say is put up before anything is
+    /// imported.** An export is not a round: it is a list of invoices or of
+    /// jobs, several rows to the house, with voided invoices and rows that
+    /// are not work at all in among them. So "2,143 rows, 306 houses" is the
+    /// only thing that tells somebody whether the file was read or mangled,
+    /// and which heading was taken for what is the only thing that says why.
+    /// The same rule Layouts/PriceRise follows: say what is about to be done
+    /// before doing it.
+    /// </summary>
+    private async Task ImportFromSqueegee(FileResult fr)
+    {
+        ImportExport.SqueegeeImport read;
+        try
+        {
+            //a round's worth of csv is not something to read on the ui thread
+            string path = fr.FullPath;
+            read = await Task.Run(() => ImportExport.SqueegeeCsvParser.Parse(CSV.Import(path)));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Import Failed", $"Could not read this file: {ex.Message}", "ok");
+            return;
+        }
+
+        if (!read.HasAddress)
+        {
+            await DisplayAlert("Nothing To Import",
+                "There is no address column in this file, so there is no telling which house any row is about."
+                + "\n\nIn Squeegee the exports with the work on them are under Reporting."
+                + "\n\nThe headings in this file were:\n" + ColumnList(read.ColumnsIgnored), "ok");
+            return;
+        }
+
+        if (read.Rows.Count == 0)
+        {
+            await DisplayAlert("Nothing To Import",
+                $"{read.RowsRead} row(s) were read and not one of them left a house to import.", "ok");
+            return;
+        }
+
+        string what = $"{read.Rows.Count} house(s), read off {read.RowsRead} row(s).";
+        if (read.DuplicatesFolded > 0)
+            what += $"\n{read.DuplicatesFolded} row(s) were another go at a house already read - the newest of each was kept.";
+        if (read.VoidsSkipped > 0)
+            what += $"\n{read.VoidsSkipped} voided row(s) left out.";
+        if (read.NoAddress > 0)
+            what += $"\n{read.NoAddress} row(s) had nothing that reads as an address.";
+        if (read.NoPrice > 0)
+            what += $"\n{read.NoPrice} house(s) had no readable price - they come in at 0 with a note.";
+        if (read.OneOffs > 0)
+            what += $"\n{read.OneOffs} house(s) said nothing about coming round again - those come in as one offs.";
+
+        what += "\n\nColumns understood:\n" + ColumnList(read.ColumnsUsed);
+        if (read.ColumnsIgnored.Count > 0)
+            what += "\n\nColumns not used:\n" + ColumnList(read.ColumnsIgnored);
+
+        bool goOn = await DisplayAlert("Does This Look Right?", what, "Continue", "Cancel");
+        if (!goOn)
+            return;
+
+        //the file says the town and the round itself, so those answers are
+        //only used to fill in what it left out
+        ImportExport.ImportOptions options = await ImportSheet.AskAsync(
+            Navigation, fr.FileName, string.Empty, addressInFile: true);
+        if (options == null)
+            return;
+
+        try
+        {
+            int knownRounds = Job.RoundNames.Count;
+            ImportExport.ImportResult result = ImportExport.CustomerImporter.Import(read.Rows, options);
+            await FinishImport(knownRounds, result, options, $"Read {read.RowsRead} row(s) as {read.Rows.Count} house(s).");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Import Failed", $"Could not import this file: {ex.Message}", "ok");
+        }
+    }
+
+    /// <summary>a column list, one to a line, for an alert</summary>
+    private static string ColumnList(List<string> lines)
+        => lines.Count == 0 ? "(none)" : string.Join("\n", lines.Select(l => "  " + l));
+
+    /// <summary>
+    /// What is said after an import, and the two things that have to happen
+    /// whichever kind of file it came out of. It is one method because the
+    /// wording of an import is the same question however the file was read,
+    /// and two copies of it would end up answering differently.
+    /// </summary>
+    private async Task FinishImport(int knownRounds, ImportExport.ImportResult result,
+        ImportExport.ImportOptions options, string preamble)
+    {
+        //a round typed in rather than picked is new, and the list of
+        //rounds lives with the settings
+        if (Job.RoundNames.Count != knownRounds)
+            Settings.Save();
+
+        DataRefreshNotifier.NotifyDataChanged();
+
+        string summary = string.IsNullOrEmpty(preamble) ? string.Empty : preamble + "\n\n";
+        summary += $"Customers created: {result.Created}\nCustomers updated: {result.Updated}";
+        if (result.RoundSet > 0)
+        {
+            summary += result.RoundsFromFile > 0
+                ? $"\n{result.RoundSet} job(s) put on a round, and every visit of them ({result.RoundsFromFile} on the round the file named)"
+                : $"\n{result.RoundSet} job(s) put on {options.Round}, and every visit of them";
+        }
+        if (result.DueDatesSet > 0)
+            summary += $"\n{result.DueDatesSet} job(s) due {options.DueDate.Value:d MMM yyyy}";
+        if (result.DueDatesLeftBooked > 0)
+            summary += $"\n{result.DueDatesLeftBooked} job(s) left on the day they are booked in for";
+        if (result.OneOffs > 0)
+            summary += $"\n{result.OneOffs} job(s) came in as one offs - the file gave no repeat for them";
+        if (result.BalancesCleared > 0)
+            summary += $"\n{result.BalancesCleared} balance(s) cleared - each one is in that customer's history";
+        if (result.EmailsFound > 0)
+            summary += $"\n{result.EmailsFound} email address(es) brought in";
+        if (result.TnbFromNotes > 0)
+            summary += $"\n{result.TnbFromNotes} set to text the night before (from notes)";
+        if (result.PhonesFound > 0)
+            summary += $"\n{result.PhonesFound} phone number(s) taken out of notes";
+        if (result.FrontPrices > 0)
+            summary += $"\n{result.FrontPrices} front only price(s) added as an alternative price";
+        if (result.MissingPrice > 0)
+            summary += $"\n\n{result.MissingPrice} customer(s) had no readable price - they were imported with price 0 and a note, please set their price manually.";
+        if (result.Problems.Count > 0)
+            summary += $"\n\n{result.Problems.Count} row(s) failed:\n" + string.Join("\n", result.Problems.Take(5));
+
+        await DisplayAlert("Import Complete", summary, "Ok");
     }
 
     private async void bnt_exportXlsx_Clicked(object sender, EventArgs e)

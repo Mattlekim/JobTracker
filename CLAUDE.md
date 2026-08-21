@@ -864,8 +864,10 @@ money out column). The layouts belong to **`Kernel/BankAccount.cs`**: each accou
 layouts (kept apart, as they always were), so statements from two different banks can both be imported without one
 bank's columns overwriting the other's. Accounts live in `bankaccounts.rjt` (a global file: in every backup,
 synced like the rest) and are looked after on `Layouts/BankAccounts`, reached through the **Banking** section on
-the settings page — which is only doors: that page, `Layouts/KeptStatements` and `Layouts/ExpenseRules` do the
-work. An account is added, renamed and **archived — never deleted**: the statements and expenses imported from one
+the settings page — which is three doors and one button: that page, `Layouts/KeptStatements` and
+`Layouts/ExpenseRules` do the work, and *Reset Banking Import Settings* forgets every account's columns so the
+next statement asks again. That button used to sit under *Data, Backup and Import*, among the backups and the
+round import, where it had nothing to do with either of them. An account is added, renamed and **archived — never deleted**: the statements and expenses imported from one
 are tracked against its id, which is also why a rename is safe and why *Delete All Data* leaves the accounts
 alone (like the settings, they are how the app is set up rather than what it has recorded). Archiving only takes
 the account out of the import question, said plainly on the page; everything imported from it stays, and
@@ -1047,6 +1049,81 @@ the same.
   calendar and another on the round. Anything left behind is counted and said in the summary rather than passed
   over quietly.
 
+### Taking a round on off Squeegee
+
+`ImportExport/SqueegeeCsvParser` reads a **Squeegee** export (Reporting, download csv) into the same
+`ImportedCustomerRow` list a round sheet is read into, and `CustomerImporter.Import(rows, options)` — the mapping
+half, split out for this — does the rest. **The two files want two readers and one importer**: matching a house
+already on the round, creating one that is not, putting the work on a round, clearing the balances is the same job
+whichever file it came out of, and two copies of it would drift.
+
+**It is its own button** — *Import From Squeegee*, beside *Import Customers From Excel* on the settings page
+rather than replacing it. One button reading whichever file it was handed would be worse two ways: somebody
+moving off Squeegee goes looking for the word Squeegee, and the two are not equally proven — reading another
+app's export is marked **Experimental** and the spreadsheet import, which has been in use, must not be dragged
+under that marking with it.
+
+**Columns are found by their heading, never by where they sit** — the same rule the PayPal import follows and for
+the same reason: a bank has its columns pointed out once and remembered because it is one layout for ever, and
+another app's export names its own and renames them in the next release. Nothing about the layout is saved.
+Headings are *aliased* rather than demanded, because Squeegee has several reports that can be downloaded and they
+do not carry the same columns.
+
+Four things this must keep getting right, all of them found in real exported data:
+
+- **An export is not a round.** It is several rows to the house — one per invoice or per visit — with voided
+  invoices and rows that are not work at all in among them. Rows are folded to one per house, keyed on the
+  customer reference **and** the address: on the reference alone a landlord's three houses become one, on the
+  address alone two customers at one address become one, and on the name alone two different Alexander Smiths
+  become one. The newest row wins and is topped up from the one it replaced — an empty cell on the newest row is
+  not the same as there being no answer.
+- **Voids are skipped, and they come in pairs** — the original and a negative twin. Neither says anything about
+  the round, and counted as work they would price a house at a negative figure.
+- **"every 4 weeks on Friday" is four weeks.** The day of the week is dropped **before** the unit is looked for,
+  because *Friday has "day" in it*: read the unit out of the wording with the day name still there and every
+  Squeegee frequency answers "day", so a four weekly house comes in as a four *daily* one — a house on the work
+  list seven times a month for ever. Weeks are tested before days for the same reason, so nothing has to be right
+  twice. (`RoundSheetParser.ParseFrequency` still has the old order; it is fed a spreadsheet's Freq cell, which
+  does not carry a day name, and is left as it is.)
+- **Nothing said about how often means a one off, not four weekly.** A blank frequency and "Ad hoc" are how
+  Squeegee says the work does not come round. A one off never generates a next visit, so the worst it costs is one
+  frequency typed in by hand; read as four weekly it invents a standing appointment nobody agreed to.
+
+**The price taken is the gross** — what the customer actually pays — falling back to the net column only when
+there is no total. Same rule as the PayPal import: take the net and every customer is a few pence short for ever.
+A nought or a credit note is no price at all and the house comes in at 0 with a note, which is what the existing
+missing-price count is for.
+
+**Splitting the address is the part that can go wrong quietly**, because customers are matched on house number
+plus street: read a street wrongly and nothing fails, a second customer appears beside the one already on the
+round — the mess `Layouts/TidyCustomers` exists to clear up. So the rules are plain rather than clever: a postcode
+at the end comes off first so it cannot be read as the town; a first piece with no digits in it is the *name* of
+the house and the piece after it is the street (`PropertyNameNumber` is a name or a number, and putting the name
+there keeps the street a street, so the houses on it still group together); otherwise the last piece is the town,
+the first is the street and anything between is the area.
+
+**What the file was understood to say is put up before anything is imported** — houses against rows, voids and
+duplicates dropped, and which heading was taken for what. That is the only thing that tells somebody the file was
+read rather than mangled, and it is the same rule `Layouts/PriceRise` follows.
+
+The town, area and round on `Layouts/ImportSheet` become **fallbacks** here rather than what goes on everybody:
+the file says where each house is and often which round it is on, and writing over that with one answer would be
+worse than the gap it fills. The page says so (`addressInFile`), because leaving the town blank on purpose and
+leaving it blank by mistake have to look different. A house whose row names a round goes on that one; a house
+whose row does not falls back to the one picked, and every round name the file brings is remembered like one
+typed in.
+
+`Kernel/csvImporter.cs` now walks the text rather than the lines, because **a line and a row are not the same
+thing**: a field in quotes may hold a newline, and an export written by another app puts one wherever somebody
+typed a note on two lines. Split on newlines first and that note becomes two half rows with every column on both
+out of step — which does not fail, it imports rubbish. A quote only opens a field when it is the first thing in
+one, matching how the row is read back, so a stray `6" pole` in a note cannot swallow the rest of the file.
+
+**Not brought in yet**: what a customer owes (the export's paid/unpaid flags cannot tell a part-paid invoice from
+an unpaid one, so *start everybody owing nothing* is the honest answer and leaves a write-off record behind each
+one), the job type, and the day of the week a round falls on. An existing customer is **topped up, never written
+over** — a town or postcode already on a record was put there by somebody who knows the round.
+
 ## Google Drive sync
 
 `WorkTracker/CloudSync.cs` syncs the `.rjt` data files and receipt photos with the user's Drive `appDataFolder`
@@ -1067,6 +1144,12 @@ Soon* for a while and has since been taken out until the feature is real. The en
 handlers come back in `Layouts/SettingLayout.xaml` — the old ones are in the git history of that page.
 
 ## Experimental features
+
+**Importing from Squeegee** carries the marking on the button itself rather than on a section, because it sits
+inside *Data, Backup and Import* beside backups and the spreadsheet import, neither of which is experimental — so
+the badge and the orange line go with the one button. It says what to *check* rather than that it might break:
+the prices, how often each house comes round and which round it is on, against Squeegee, before the round is
+worked off it. That is something somebody can act on.
 
 GoCardless is marked **Experimental** where a user meets it — the settings section heading, an orange badge inside
 it, the toolbar item on `Layouts/ViewCustomerDetails` and the title of the action sheet that page puts up. **Work

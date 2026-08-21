@@ -26,7 +26,7 @@ public partial class ImportSheet : ContentPage
     /// <summary>blank is a real answer here - it is the work on no round</summary>
     private string _round = string.Empty;
 
-    private ImportSheet(string fileName, string suggestedCity)
+    private ImportSheet(string fileName, string suggestedCity, bool addressInFile)
     {
         InitializeComponent();
 
@@ -34,15 +34,30 @@ public partial class ImportSheet : ContentPage
         e_city.Text = suggestedCity ?? string.Empty;
         dp_dueDate.Date = UsfulFuctions.DateNow.Date;
         ShowRound();
+
+        //an export from another app carries the address and often the round
+        //as well, so the same questions mean something different: they are
+        //what fills in the gaps rather than what goes on everybody. Saying
+        //so is the whole difference between leaving the town blank on
+        //purpose and leaving it blank by mistake
+        if (!addressInFile)
+            return;
+
+        l_what.Text = "This file already says where each house is. What is asked here is used only where it does not.";
+        l_where.Text = "Used for any house whose row has no town or area on it. Anything the file does say is left as it is.";
+        l_whichRound.Text = "Used for any house the file does not put on a round of its own. A house the file names a round for goes on that one.";
+        l_zero.Text = "An export carries the work, not the money. Anything already owed is written off, and each one written off is kept in that customer's history.";
+        l_due.Text = "Left off, each house keeps the day the file says it is next wanted, or is worked out from how often it comes round. Turn it on to start the whole lot on one day.";
     }
 
     /// <summary>
     /// puts the page up and waits for an answer. returns null when the user
     /// backs out
     /// </summary>
-    public static async Task<ImportOptions> AskAsync(INavigation navigation, string fileName, string suggestedCity)
+    public static async Task<ImportOptions> AskAsync(INavigation navigation, string fileName,
+        string suggestedCity, bool addressInFile = false)
     {
-        ImportSheet page = new ImportSheet(fileName, suggestedCity);
+        ImportSheet page = new ImportSheet(fileName, suggestedCity, addressInFile);
         await navigation.PushModalAsync(page);
         return await page._answer.Task;
     }
