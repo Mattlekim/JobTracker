@@ -282,6 +282,22 @@
                 <Label Text="This only shows or hides the sending buttons - on the work list, a booked day and the calendar. Work somebody sends to you always opens, whatever this is set to." FontSize="12" TextColor="Grey"></Label>
             </VerticalStackLayout>
 
+            <!--  UNIVERSAL CREDIT  -->
+            <!-- off by default: most rounds are not on a claim, and a page of
+                 figures that mean nothing to you is worse than no page at
+                 all. The claim's start date is asked for on the page itself,
+                 which is the only place it means anything -->
+            <Button Text="&#x25B8; Universal Credit" ClassId="sec_universalcredit" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
+            <VerticalStackLayout x:Name="sec_universalcredit" IsVisible="false" Padding="10,0,10,10">
+                <Label Text="Universal Credit is worked out a month at a time, and the month is your claim's own - it starts on the day the claim did and runs to the day before that date the next month. The page adds up what you were paid and what you spent over each of those months." TextColor="Grey"></Label>
+                <Label></Label>
+                <HorizontalStackLayout>
+                    <Label Text="Show the Universal Credit page" VerticalOptions="Center"></Label>
+                    <Switch x:Name="sw_universalCredit" Toggled="sw_universalCredit_Toggled"></Switch>
+                </HorizontalStackLayout>
+                <Label Text="It appears under Money, next to Tax. The day your claim started is set on the page itself." FontSize="12" TextColor="Grey"></Label>
+            </VerticalStackLayout>
+
             <!--  BANKING  -->
             <!-- the doors to everything statement shaped: the accounts
                  (added, renamed, archived - never deleted, what was imported

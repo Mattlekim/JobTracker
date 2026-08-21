@@ -79,6 +79,10 @@
             <ShellContent Title="Payments" Route="money_payments" x:Name="sc_moneyPayments" ContentTemplate="{DataTemplate local:Payments}" />
             <ShellContent Title="Expenses" Route="money_expenses" ContentTemplate="{DataTemplate local:Expenses}" />
             <ShellContent Title="Tax" Route="money_tax" ContentTemplate="{DataTemplate local:TaxView}" />
+            <!-- what a Universal Credit claim has to be told each month.
+                 off unless the round is on a claim (Settings.ShowUniversalCredit,
+                 put up and taken down by RefreshUniversalCreditTab) -->
+            <ShellContent Title="Universal Credit" Route="money_universalcredit" x:Name="sc_moneyUniversalCredit" ContentTemplate="{DataTemplate local:UniversalCreditView}" IsVisible="false" />
             <ShellContent Title="Settings" x:Name="sc_moneySettings" ContentTemplate="{DataTemplate local:SettingLayout}" IsVisible="false"/>
         </Tab>
         <Tab Title="Settings"

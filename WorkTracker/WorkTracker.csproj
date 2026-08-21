@@ -141,6 +141,7 @@
 	  <Compile Include="..\Kernel\ScreenshotMode.cs" Link="Kernal\ScreenshotMode.cs" />
 	  <Compile Include="..\Kernel\SaveLoad.cs" Link="Kernal\SaveLoad.cs" />
 	  <Compile Include="..\Kernel\TaxReporting.cs" Link="Kernal\TaxReporting.cs" />
+	  <Compile Include="..\Kernel\UniversalCredit.cs" Link="Kernal\UniversalCredit.cs" />
 	  <Compile Include="..\Kernel\UsefulFuctions.cs" Link="Kernal\UsefulFuctions.cs" />
 	  <Compile Include="..\Kernel\WorkDay.cs" Link="Kernal\WorkDay.cs" />
 	  <Compile Include="..\Kernel\WorkShare.cs" Link="Kernal\WorkShare.cs" />
@@ -241,6 +242,9 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TaxView.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Layouts\UniversalCreditView.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TutorialWorkPlanner.xaml">
