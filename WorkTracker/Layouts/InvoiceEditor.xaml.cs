@@ -251,6 +251,9 @@ public partial class InvoiceEditor : ContentPage
         e_billAddress.Text = _invoice.BillToAddress;
         e_notes.Text = _invoice.Notes;
 
+        cb_paid.IsChecked = _invoice.Paid;
+        l_paidStatus.Text = _invoice.StatusText;
+
         if (_invoice.Lines != null)
             foreach (InvoiceLine line in _invoice.Lines)
                 _lines.Add(Wrap(line));
@@ -308,6 +311,13 @@ public partial class InvoiceEditor : ContentPage
             _dirty = true;
     }
 
+    private void cb_paid_Changed(object sender, CheckedChangedEventArgs e)
+    {
+        l_paidStatus.Text = e.Value ? "Paid" : "Awaiting payment";
+        if (!_loading)
+            _dirty = true;
+    }
+
     private void bnt_addLine_Clicked(object sender, EventArgs e)
     {
         _lines.Add(Wrap(new InvoiceLine()));
@@ -344,6 +354,16 @@ public partial class InvoiceEditor : ContentPage
         _invoice.BillToName = (e_billName.Text ?? string.Empty).Trim();
         _invoice.BillToAddress = (e_billAddress.Text ?? string.Empty).Trim();
         _invoice.Notes = (e_notes.Text ?? string.Empty).Trim();
+
+        //paid state, with the day it was settled kept alongside it
+        _invoice.Paid = cb_paid.IsChecked;
+        if (_invoice.Paid)
+        {
+            if (_invoice.DatePaid <= DateTime.MinValue)
+                _invoice.DatePaid = DateTime.Now.Date;
+        }
+        else
+            _invoice.DatePaid = DateTime.MinValue;
 
         _invoice.Lines = new List<InvoiceLine>();
         foreach (InvoiceLineEntry entry in _lines)

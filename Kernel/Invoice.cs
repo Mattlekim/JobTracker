@@ -115,6 +115,21 @@ namespace Kernel
         /// <summary>anything to say on it - a thank you, when it is due, how to pay</summary>
         public string Notes { get; set; } = string.Empty;
 
+        /// <summary>
+        /// whether it has been paid. false is awaiting payment, which is what
+        /// an invoice starts as and what an older file reads back as
+        /// </summary>
+        public bool Paid { get; set; } = false;
+
+        /// <summary>when it was marked paid, or MinValue</summary>
+        public DateTime DatePaid { get; set; } = DateTime.MinValue;
+
+        [XmlIgnore]
+        public string StatusText
+        {
+            get { return Paid ? "Paid" : "Awaiting payment"; }
+        }
+
         /// <summary>the invoice totalled up off its lines</summary>
         [XmlIgnore]
         public float Total
@@ -251,6 +266,54 @@ namespace Kernel
 
             if (moved)
                 Save();
+        }
+
+        /// <summary>
+        /// After money has come in, mark a customer's awaiting invoices paid
+        /// when they now owe nothing.
+        ///
+        /// "If all the money has been paid" is read off the balance: a
+        /// customer's balance is the running total of work done minus money
+        /// received, so a balance at or below zero (a half penny of float
+        /// slack) means everything billed to them has been covered. This is
+        /// called after bank reconciliation records the payments, so a
+        /// statement that clears what somebody owed marks their invoice paid
+        /// without it being ticked by hand.
+        ///
+        /// Only invoices attached to a customer are touched - one written from
+        /// scratch (<see cref="CustomerId"/> -1) has no customer to clear.
+        /// </summary>
+        /// <returns>how many invoices were marked paid</returns>
+        public static int MarkPaidForClearedCustomers(IEnumerable<int> customerIds)
+        {
+            if (customerIds == null)
+                return 0;
+
+            HashSet<int> seen = new HashSet<int>();
+            int changed = 0;
+
+            foreach (int id in customerIds)
+            {
+                if (id < 0 || !seen.Add(id))
+                    continue;
+
+                Customer c = Customer.ById(id);
+                if (c == null || c.Balance > 0.005f)
+                    continue;
+
+                foreach (Invoice invoice in _Invoices)
+                    if (invoice.CustomerId == id && !invoice.Paid)
+                    {
+                        invoice.Paid = true;
+                        invoice.DatePaid = UsfulFuctions.DateNow;
+                        changed++;
+                    }
+            }
+
+            if (changed > 0)
+                Save();
+
+            return changed;
         }
 
         public static void DeleteData()

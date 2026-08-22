@@ -993,6 +993,16 @@ in the numbers is something an accountant asks about, which is why `Load` always
 the highest number on the file. The editor shows `PeekNextNumber` as a preview until then. Deleting an invoice
 (`Layouts/Invoices`) does **not** reuse its number.
 
+**An invoice is paid or awaiting payment** (`Invoice.Paid`, `DatePaid`). It starts awaiting, and an older file
+reads back as awaiting. It can be ticked by hand on the editor, and `Layouts/Invoices` filters by it (All /
+Awaiting / Paid) and colours each row's status. The invoice HTML gets a **PAID** stamp when it is settled.
+
+**Reconciliation marks an attached invoice paid by itself** (`Invoice.MarkPaidForClearedCustomers`, called from
+`Layouts/StatmentViewer` after a statement import records its payments). "All the money has been paid" is read
+off the customer's balance — work done minus money received — so a balance at or below zero (a half-penny of
+float slack) means everything billed to them is covered, and their awaiting invoices are marked paid. Only
+invoices with a `CustomerId` are touched; one written from scratch (`CustomerId == -1`) has no customer to clear.
+
 **The business the invoices are from** is `Kernel/BusinessInfo.cs`: the name, address, phone, email, website, VAT
 number, how-to-pay note and footer line printed at the top and bottom of every invoice. The text lives in the
 settings file, not a file of its own — it is how the app is set up rather than something it has recorded, the same

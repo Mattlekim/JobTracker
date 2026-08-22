@@ -74,7 +74,12 @@ namespace Kernel
             if (invoice.DueDate > DateTime.MinValue)
                 s.Append("<tr><td class=\"k\">Due</td><td class=\"v\">")
                  .Append(Escape(invoice.DueDate.ToString("d MMM yyyy"))).Append("</td></tr>");
-            s.Append("</table></div>");
+            s.Append("</table>");
+            //a plain PAID stamp when it is settled, so the state is obvious on
+            //the page as well as in the app
+            if (invoice.Paid)
+                s.Append("<div class=\"paid\">PAID</div>");
+            s.Append("</div>");
             s.Append("</div>");
 
             //  bill to
@@ -225,6 +230,7 @@ namespace Kernel
                 ".meta td{padding:2px 0 2px 12px;}" +
                 ".meta .k{color:#777;text-align:right;}" +
                 ".meta .v{font-weight:600;text-align:right;}" +
+                ".paid{display:inline-block;margin-top:10px;padding:4px 14px;border:2px solid #1a9d68;color:#1a9d68;font-weight:700;letter-spacing:2px;border-radius:6px;}" +
                 ".billto{margin:28px 0 20px;}" +
                 ".label{text-transform:uppercase;font-size:11px;letter-spacing:1px;color:#999;margin-bottom:4px;}" +
                 ".billto .name{font-weight:700;font-size:16px;}" +
