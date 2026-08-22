@@ -281,6 +281,7 @@ public static class BackupRestore
             GoCardlessRequest.Load();
             BalanceAdjustment.Load();
             DayNote.Load();
+            Invoice.Load();
 
             //the device's data is the backup's now, and so is the date it was
             //last changed - the stamp came out of the zip with everything else

@@ -166,6 +166,10 @@ namespace Kernel
             //story, and the story follows the customer that is kept
             BalanceAdjustment.MoveCustomer(from.Id, into.Id);
 
+            //an invoice already sent to the duplicate is still that customer's
+            //bill, so it follows them to the record that is kept
+            Invoice.MoveCustomer(from.Id, into.Id);
+
             if (string.IsNullOrWhiteSpace(into.FName))
                 into.FName = from.FName;
 

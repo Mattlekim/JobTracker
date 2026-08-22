@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.Invoices"
+             Title="Invoices">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="New Invoice" Clicked="tbi_New_Clicked"></ToolbarItem>
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <Label x:Name="l_empty" Grid.Row="0" Padding="16" TextColor="Grey" IsVisible="false"
+               Text="No invoices yet. Tap New Invoice to make one, or make one from a customer's details page."></Label>
+
+        <RefreshView x:Name="rv_invoices" Grid.Row="1" Refreshing="rv_invoices_Refreshing">
+            <CollectionView x:Name="cv_invoices" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Stroke="{AppThemeBinding Light=#DDD, Dark=#444}" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 8" Padding="10" Margin="8,6">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="Row_Tapped"></TapGestureRecognizer>
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                <Label Grid.Row="0" Grid.Column="0" Text="{Binding FormattedNumber}" FontAttributes="Bold" FontSize="16"></Label>
+                                <Label Grid.Row="0" Grid.Column="1" Text="{Binding FormattedTotal}" FontAttributes="Bold" FontSize="16" HorizontalOptions="End"></Label>
+                                <Label Grid.Row="1" Grid.Column="0" Text="{Binding BillToName}" TextColor="Grey"></Label>
+                                <Label Grid.Row="1" Grid.Column="1" Text="{Binding FormattedDate}" TextColor="Grey" HorizontalOptions="End"></Label>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+
+</ContentPage>

@@ -340,6 +340,42 @@
                 <Label Text="Set it up at paypal.me if you have not already. Sending the link does not mark anything as paid - the money is recorded when it lands, off your PayPal statement." FontSize="12" TextColor="{StaticResource MidGray}"></Label>
             </VerticalStackLayout>
 
+            <!--  INVOICES  -->
+            <Button Text="▸ Invoices" ClassId="sec_invoices" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
+            <VerticalStackLayout x:Name="sec_invoices" IsVisible="false" Padding="10,0,10,10" Spacing="6">
+                <Label Text="Make an invoice from a customer's job, or from scratch with as many lines as you like - it totals them up itself. These details print at the top of every one." TextColor="Grey"></Label>
+                <Label></Label>
+
+                <Button Text="Saved Invoices" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_invoices_Clicked"></Button>
+                <Label Text="Every invoice you have made - open one to edit it, share it again, or delete it. New Invoice is on that page too." FontSize="12" TextColor="Grey"></Label>
+                <Label></Label>
+
+                <Label Text="Your details" FontAttributes="Bold"></Label>
+                <Entry x:Name="e_bizName" Placeholder="Business name" TextChanged="e_business_Changed"></Entry>
+                <Editor x:Name="e_bizAddress" Placeholder="Address" AutoSize="TextChanges" MinimumHeightRequest="70" TextChanged="e_business_Changed"></Editor>
+                <Entry x:Name="e_bizPhone" Placeholder="Phone" Keyboard="Telephone" TextChanged="e_business_Changed"></Entry>
+                <Entry x:Name="e_bizEmail" Placeholder="Email (shown on invoices)" Keyboard="Email" TextChanged="e_business_Changed"></Entry>
+                <Entry x:Name="e_bizWebsite" Placeholder="Website (optional)" TextChanged="e_business_Changed"></Entry>
+                <Entry x:Name="e_bizTax" Placeholder="VAT / UTR number (optional)" TextChanged="e_business_Changed"></Entry>
+                <Label></Label>
+
+                <Label Text="How to pay" FontAttributes="Bold"></Label>
+                <Editor x:Name="e_bizPayment" Placeholder="Bank details, or how you would like to be paid" AutoSize="TextChanges" MinimumHeightRequest="60" TextChanged="e_business_Changed"></Editor>
+                <Label></Label>
+
+                <Label Text="Footer note" FontAttributes="Bold"></Label>
+                <Editor x:Name="e_bizFooter" Placeholder="A thank you, your terms - anything for the bottom of the invoice" AutoSize="TextChanges" MinimumHeightRequest="50" TextChanged="e_business_Changed"></Editor>
+                <Label></Label>
+
+                <Label Text="Logo" FontAttributes="Bold"></Label>
+                <Image x:Name="img_logo" HeightRequest="80" HorizontalOptions="Start" IsVisible="false"></Image>
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="Choose Logo" BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2" Clicked="bnt_chooseLogo_Clicked"></Button>
+                    <Button x:Name="bnt_removeLogo" Text="Remove" BackgroundColor="Transparent" TextColor="#C62828" BorderColor="#C62828" BorderWidth="2" Clicked="bnt_removeLogo_Clicked" IsVisible="false"></Button>
+                </HorizontalStackLayout>
+                <Label Text="A picture from your phone, scaled down and kept with your data so it goes in your backups." FontSize="12" TextColor="Grey"></Label>
+            </VerticalStackLayout>
+
             <Button Text="▸ GoCardless (Experimental)" ClassId="sec_gocardless" Style="{StaticResource SectionHeader}" Clicked="Section_Clicked"></Button>
             <VerticalStackLayout x:Name="sec_gocardless" IsVisible="false" Padding="10,0,10,10">
                 <Label Text="EXPERIMENTAL" FontAttributes="Bold" FontSize="12" TextColor="White" BackgroundColor="#EF6C00" Padding="8,2" HorizontalOptions="Start"></Label>
