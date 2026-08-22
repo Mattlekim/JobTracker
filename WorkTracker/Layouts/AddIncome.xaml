@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.AddIncome"
+             Title="Add Income">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="14" Spacing="12">
+
+            <Label Text="Money in that is not off the round - a day's work for someone, a one off. It counts as income for your tax, and it is not tied to any customer."
+                   TextColor="Grey" FontSize="13"></Label>
+
+            <Label Text="Amount" FontAttributes="Bold"></Label>
+            <Entry x:Name="e_amount" Placeholder="0.00" Keyboard="Numeric"></Entry>
+
+            <Label Text="Date" FontAttributes="Bold"></Label>
+            <DatePicker x:Name="dp_date" HorizontalOptions="Start"></DatePicker>
+
+            <Label Text="What was it for" FontAttributes="Bold"></Label>
+            <Entry x:Name="e_description" Placeholder="e.g. Full day for John"></Entry>
+
+            <Label Text="Paid by" FontAttributes="Bold"></Label>
+            <Picker x:Name="p_method"></Picker>
+
+            <Button x:Name="bnt_save" Text="Save Income" Clicked="bnt_save_Clicked"
+                    BackgroundColor="Green" TextColor="White" Margin="0,10,0,0"></Button>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

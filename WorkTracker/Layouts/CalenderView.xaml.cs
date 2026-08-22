@@ -779,6 +779,7 @@ public partial class CalenderView : ContentPage
 
         options.Add(noteOption);
         options.Add("Add Expense");
+        options.Add("Add Income");
 
         if (day.Jobs.Count > 0)
         {
@@ -829,6 +830,14 @@ public partial class CalenderView : ContentPage
             NewExpense.JobToLink = null;
             NewExpense.DateToUse = day.Date;
             await Navigation.PushAsync(new NewExpense());
+        }
+        else
+        if (result == "Add Income")
+        {
+            //a day's work for somebody, recorded against the day that was
+            //tapped
+            AddIncome.DateToUse = day.Date;
+            await Navigation.PushAsync(new AddIncome());
         }
         else
         if (result.Contains("Bookin Remaining"))

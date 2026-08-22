@@ -154,12 +154,14 @@ namespace Kernel
 
         /// <summary>
         /// true while the payment is not linked to anybody, which is what the
-        /// page colours the customer line off
+        /// page colours the customer line off. Other income - a day for
+        /// somebody, entered by hand - belongs to no customer on purpose, so
+        /// it is not flagged: it is not waiting to be linked.
         /// </summary>
         [XmlIgnore]
         public bool IsUnidentified
         {
-            get { return GetCustomer(CustomerId) == null; }
+            get { return !OtherIncome && GetCustomer(CustomerId) == null; }
         }
 
         /// <summary>

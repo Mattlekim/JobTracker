@@ -461,4 +461,15 @@ public partial class Payments : ContentPage
     {
         Navigation.PushAsync(new IgnoredPayments());
     }
+
+    /// <summary>
+    /// records money in that is not off the round - a day for somebody, a one
+    /// off. the page rebuilds itself when it is navigated back to, so the new
+    /// payment shows without anything else needing telling
+    /// </summary>
+    private void bnt_addIncome_Clicked(object sender, EventArgs e)
+    {
+        AddIncome.DateToUse = DateTime.MinValue;
+        Navigation.PushAsync(new AddIncome());
+    }
 }

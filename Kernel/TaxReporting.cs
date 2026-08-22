@@ -321,6 +321,17 @@ namespace Kernel
                         summary.Income += j.EffectivePrice;
                         summary.IncomeCount++;
                     }
+
+                //income entered by hand that has no job behind it - a day for
+                //somebody - has nothing in the completed jobs to be counted
+                //off, so it is added here as well. it is not tied to a job, so
+                //it cannot double-count one
+                foreach (Payment p in Payment.Query())
+                    if (p.OtherIncome && period.Contains(p.Date))
+                    {
+                        summary.Income += p.Amount;
+                        summary.IncomeCount++;
+                    }
             }
 
             foreach (Expense e in Expense.Query())

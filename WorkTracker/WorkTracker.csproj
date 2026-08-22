@@ -257,6 +257,9 @@
 	  <MauiXaml Update="Layouts\InvoiceEditor.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
+	  <MauiXaml Update="Layouts\AddIncome.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TutorialWorkPlanner.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

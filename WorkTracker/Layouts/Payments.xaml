@@ -7,6 +7,7 @@
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Filters" IconImageSource="filter.png" Clicked="bnt_filters_Clicked"></ToolbarItem>
         <ToolbarItem x:Name="bnt_ClearFilter" Text="Import Bank Statment (csv or pdf)" Clicked="bnt_ImportBank"></ToolbarItem>
+        <ToolbarItem Text="Add Income" Clicked="bnt_addIncome_Clicked" Order="Secondary"></ToolbarItem>
         <ToolbarItem Text="Ignored Payments" Clicked="bnt_ignoredPayments" Order="Secondary"></ToolbarItem>
 
     </ContentPage.ToolbarItems>
