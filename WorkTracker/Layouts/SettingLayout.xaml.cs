@@ -82,6 +82,15 @@ public struct SettingsData
     public DateTime UniversalCreditStart;
 
     public string SymbolDone, SymbolPaid, SymbolDonePaid;
+
+    /// <summary>
+    /// the business name, address and contact details printed on invoices.
+    /// kept here with the rest of how the app is set up, not in a file of its
+    /// own - the same home as the paypal.me name. an older settings file reads
+    /// this back with every field null, which BusinessInfo.Restore treats as
+    /// never having been filled in
+    /// </summary>
+    public BusinessInfo.Data Business;
 }
 
 public class JobNamesSettingData
@@ -201,6 +210,8 @@ public class Settings
         sd.SymbolPaid = PaperView.PaperItem.StringPaid;
         sd.SymbolDonePaid = PaperView.PaperItem.StringDonePaid;
 
+        sd.Business = BusinessInfo.Snapshot();
+
         //written only when something in it would actually differ, so opening
         //the settings page and coming back out does not read as the round
         //having been changed
@@ -278,6 +289,9 @@ public class Settings
                 //settings written before this existed read back as null,
                 //which is the same as never having set one
                 PayPal.Handle = sd.PayPalHandle;
+
+                //the invoice business details, likewise null on an older file
+                BusinessInfo.Restore(sd.Business);
 
                 PaperView.PaperItem.StringDone = sd.SymbolDone;
                 PaperView.PaperItem.StringPaid = sd.SymbolPaid;
@@ -529,7 +543,107 @@ public partial class SettingLayout : ContentPage
         e_pv_paid.Text = PaperView.PaperItem.StringPaid;
         e_pv_donepaid.Text = PaperView.PaperItem.StringDonePaid;
         ShowReceiptPhotoSection();
+        ShowInvoiceSection();
         SetZindexLables();
+    }
+
+    //  ------------------------------------------------------------  invoices
+
+    /// <summary>
+    /// the business details printed on invoices, and the logo. the text lives
+    /// in the settings file like the paypal name; the logo is a file in the
+    /// data folder so it rides in backups
+    /// </summary>
+    private void ShowInvoiceSection()
+    {
+        e_bizName.Text = BusinessInfo.Name;
+        e_bizAddress.Text = BusinessInfo.Address;
+        e_bizPhone.Text = BusinessInfo.Phone;
+        e_bizEmail.Text = BusinessInfo.Email;
+        e_bizWebsite.Text = BusinessInfo.Website;
+        e_bizTax.Text = BusinessInfo.TaxNumber;
+        e_bizPayment.Text = BusinessInfo.PaymentDetails;
+        e_bizFooter.Text = BusinessInfo.FooterNote;
+        ShowLogo();
+    }
+
+    /// <summary>
+    /// copies the boxes onto BusinessInfo. done live rather than only on the
+    /// way out, so a logo chosen mid-edit does not save over unsaved text -
+    /// the file is written when the page is left, like the other fields here
+    /// </summary>
+    private void ReadBusinessFields()
+    {
+        BusinessInfo.Name = (e_bizName.Text ?? string.Empty).Trim();
+        BusinessInfo.Address = (e_bizAddress.Text ?? string.Empty).Trim();
+        BusinessInfo.Phone = (e_bizPhone.Text ?? string.Empty).Trim();
+        BusinessInfo.Email = (e_bizEmail.Text ?? string.Empty).Trim();
+        BusinessInfo.Website = (e_bizWebsite.Text ?? string.Empty).Trim();
+        BusinessInfo.TaxNumber = (e_bizTax.Text ?? string.Empty).Trim();
+        BusinessInfo.PaymentDetails = (e_bizPayment.Text ?? string.Empty).Trim();
+        BusinessInfo.FooterNote = (e_bizFooter.Text ?? string.Empty).Trim();
+    }
+
+    private void e_business_Changed(object sender, TextChangedEventArgs e)
+    {
+        ReadBusinessFields();
+    }
+
+    private void ShowLogo()
+    {
+        if (BusinessInfo.HasLogo)
+        {
+            //loaded off the bytes rather than the path, so replacing the logo
+            //file does not show the old one out of the image cache
+            byte[] bytes = BusinessInfo.LogoBytes();
+            if (bytes != null)
+                img_logo.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
+            img_logo.IsVisible = bytes != null;
+            bnt_removeLogo.IsVisible = bytes != null;
+        }
+        else
+        {
+            img_logo.Source = null;
+            img_logo.IsVisible = false;
+            bnt_removeLogo.IsVisible = false;
+        }
+    }
+
+    private void bnt_invoices_Clicked(object sender, EventArgs e)
+    {
+        Navigation.PushAsync(new Invoices());
+    }
+
+    /// <summary>
+    /// picks a picture and keeps it as the logo, scaled down the same way a
+    /// receipt photo is - it is kept and backed up for as long as the data is
+    /// </summary>
+    private async void bnt_chooseLogo_Clicked(object sender, EventArgs e)
+    {
+        try
+        {
+            FileResult photo = await MediaPicker.Default.PickPhotoAsync();
+            if (photo == null)
+                return;
+
+            using (Stream source = await photo.OpenReadAsync())
+                await ReceiptPhoto.SaveCompressedAsync(source, BusinessInfo.LogoPath);
+
+            ShowLogo();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Logo", ex.Message, "Ok");
+        }
+    }
+
+    private async void bnt_removeLogo_Clicked(object sender, EventArgs e)
+    {
+        if (!await DisplayAlert("Remove Logo", "Take the logo off your invoices?", "Remove", "Keep"))
+            return;
+
+        BusinessInfo.RemoveLogo();
+        ShowLogo();
     }
 
     /// <summary>
@@ -718,6 +832,10 @@ public partial class SettingLayout : ContentPage
         PaperView.PaperItem.StringDone = e_pv_done.Text;
         PaperView.PaperItem.StringPaid = e_pv_paid.Text;
         PaperView.PaperItem.StringDonePaid = e_pv_donepaid.Text;
+
+        //the invoice business details, in case the page was left without a
+        //keystroke landing (they are otherwise kept live as they are typed)
+        ReadBusinessFields();
 
         Settings.Save();
     }
@@ -1567,6 +1685,7 @@ public partial class SettingLayout : ContentPage
                 GoCardlessRequest.DeleteData();
                 BalanceAdjustment.DeleteData();
                 DayNote.DeleteData();
+                Invoice.DeleteData();
 
                 Job.Save();
                 Customer.Save();
@@ -1577,6 +1696,7 @@ public partial class SettingLayout : ContentPage
                 GoCardlessRequest.Save();
                 BalanceAdjustment.Save();
                 DayNote.Save();
+                Invoice.Save();
                 DataRefreshNotifier.NotifyDataChanged();
                 await DisplayAlert("Complete", "All data erased", "Ok");
             }

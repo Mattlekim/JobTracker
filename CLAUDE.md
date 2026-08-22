@@ -950,6 +950,63 @@ note. Payee text is matched through `StatementText.PayeeKey`, which strips the r
 "direct debit"/"card payment" wrapping the bank puts around the name. Rules are editable on the
 `Layouts/ExpenseRules` page, and live in `expenserules.rjt` alongside the other data files.
 
+## Invoices
+
+An invoice is a bill handed to a customer. There are two ways to one, and they meet in the same editor: **Create
+Invoice** on `Layouts/ViewCustomerDetails` starts it off from a job — billed to that customer, with one line for
+the work at what the house is charged now (`Job.CurrentPrice`, the same figure the customer page shows, not
+whatever visit happened to open the page) — and **New Invoice** on `Layouts/Invoices` starts a blank one. Either
+way `Layouts/InvoiceEditor` is where lines are added, priced and totalled and the invoice is saved.
+
+**An invoice is a record** (`Kernel/Invoice.cs`, `invoices.rjt` — one global file like the balance adjustments
+and the day notes: an invoice belongs to a customer, not to a tax year, and it is not itself a tax figure). It
+rides in every backup, comes back with a restore, is cleared by Delete All Data, follows a merged duplicate to
+the kept customer (`Invoice.MoveCustomer`, called from `CustomerMerge.Merge` beside the balance adjustments), and
+is covered by the KernelDebugger self test.
+
+**The invoice totals itself off its lines** (`Invoice.Total`, `InvoiceLine.LineTotal = Quantity * UnitPrice`) —
+the line and the invoice totals are worked out, never stored, so the two can never disagree. The editor adds them
+up live as they are typed: `InvoiceLineEntry` is the editable half of a line, carrying the boxes as text and
+working its own total out, with a blank quantity counting as one and a blank price as nothing so a half filled in
+line still reads. It is turned into a plain `InvoiceLine` on save.
+
+**Two things are a snapshot taken when the invoice is made, not read live**: who it is billed to (name and
+address) and the price on each line. An invoice is what the customer was actually sent, so a price rise agreed
+afterwards, an address corrected, or the customer merged away must not rewrite a bill already handed over. The
+customer is still linked by `CustomerId` so their invoices can be found, but nothing on the invoice is read back
+off them. An invoice written from scratch carries `CustomerId == -1`.
+
+**The invoice number is handed out in order and never reused** (`Invoice.Number`, shown as `INV-0001`). The
+counter is kept in the file alongside the invoices, and `Invoice.Add` takes the next number when the invoice is
+saved rather than when the editor opens, so an invoice started and backed out of does not use one up — and a gap
+in the numbers is something an accountant asks about, which is why `Load` always pulls the counter back ahead of
+the highest number on the file. The editor shows `PeekNextNumber` as a preview until then. Deleting an invoice
+(`Layouts/Invoices`) does **not** reuse its number.
+
+**The business the invoices are from** is `Kernel/BusinessInfo.cs`: the name, address, phone, email, website, VAT
+number, how-to-pay note and footer line printed at the top and bottom of every invoice. The text lives in the
+settings file, not a file of its own — it is how the app is set up rather than something it has recorded, the same
+home as the paypal.me name, and a static holder the kernel reads and `Settings` saves through `SettingsData.Business`.
+The **logo** is an image, so it is a file (`invoicelogo.jpg`) in the data folder rather than text in the settings;
+it is written scaled down the same way a receipt photo is (`ReceiptPhoto.SaveCompressedAsync`), sits with the data
+so it rides in every backup (`TaxYearBackup.CopyLogo` puts it in the zip, and the zip-over-folder restore brings it
+back), and the invoice reads its bytes to embed it. It is set up in the **Invoices** section on the settings page,
+which also holds the door to `Layouts/Invoices`.
+
+**An invoice is built as a self-contained HTML page** (`Kernel/InvoiceHtml.cs`) — the whole thing in one file,
+logo embedded as a base64 data URI, nothing fetched from anywhere. That is what makes it work everywhere the app
+runs and everywhere it is sent: it opens in any browser, prints to PDF, and can be emailed or saved without the
+pdf library the app deliberately does without (it hand-writes its spreadsheets over the zip for the same reason).
+It is kept in the kernel and reads the logo's bytes rather than a file path, so the self test can build an invoice
+and check the figures come out on it. Sharing goes through `DeviceFileSaver.OfferAsync` (mime `text/html`) like
+every other export — Save To This Device or Share, and iOS shares without asking. Sharing re-renders what is
+saved; it does not change the record.
+
+**The editor asks before losing work**, the same as the job form: anything typed sets `_dirty`, and both the
+phone's back button and the nav-bar arrow (a `BackButtonBehavior` command) offer Save It / Leave Without Saving. A
+new invoice becomes an existing one the moment it is saved (`_becameExisting`), so a second Save edits what it just
+made rather than adding a second invoice with a second number.
+
 ## How a payment is said on the payments page
 
 `Layouts/Payments` (the first page under the Money tab) is a list of money that has come in, and the one thing

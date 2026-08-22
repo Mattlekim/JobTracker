@@ -93,7 +93,13 @@ public static class TaxYearBackup
         GoCardlessRequest.Save(Settings.SaveDataFolder);
         BalanceAdjustment.Save(Settings.SaveDataFolder);
         DayNote.Save(Settings.SaveDataFolder);
+        Invoice.Save(Settings.SaveDataFolder);
         Settings.Save(Settings.SaveDataFolder);
+
+        //the invoice logo is an image rather than one of the .rjt files the
+        //savers above write, so it is copied in by hand - it lives in the data
+        //folder so it can travel in every backup
+        CopyLogo(saveDir);
 
         //the tax records, for the years asked for
         Expense.Save(Settings.SaveDataFolder, wanted);
@@ -141,6 +147,26 @@ public static class TaxYearBackup
             return $"Tax Year {TaxCalendar.YearFolderName(years[0])} {stamp}.rbf";
 
         return $"Backup {stamp}.rbf";
+    }
+
+    /// <summary>
+    /// copies the invoice logo into the backup folder so it goes in the zip.
+    /// a round with no logo simply has nothing to copy
+    /// </summary>
+    private static void CopyLogo(string saveDir)
+    {
+        try
+        {
+            if (!BusinessInfo.HasLogo)
+                return;
+
+            File.Copy(BusinessInfo.LogoPath,
+                Path.Combine(saveDir, BusinessInfo.LogoFileName), true);
+        }
+        catch
+        {
+            //a logo that will not copy must not lose the rest of the backup
+        }
     }
 
     private static void ClearFolder(string folder)

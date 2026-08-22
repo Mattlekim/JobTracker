@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="UiInterface.Layouts.InvoiceEditor"
+             Title="Invoice">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Save" Clicked="tbi_Save_Clicked"></ToolbarItem>
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="12" Spacing="10">
+
+            <Label x:Name="l_invoiceNumber" FontSize="Title" FontAttributes="Bold"></Label>
+
+            <!-- a nudge when there is no business set up yet: an invoice with a
+                 blank header is not much of an invoice -->
+            <Label x:Name="l_noBusiness" TextColor="#EF6C00" FontSize="13" IsVisible="false"
+                   Text="No business details set yet. Add your name, address and logo under Settings → Invoices so they show at the top of the invoice."></Label>
+
+            <!--  date and optional due date  -->
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+                <Label Grid.Row="0" Grid.Column="0" Text="Date" VerticalOptions="Center"></Label>
+                <DatePicker Grid.Row="0" Grid.Column="1" x:Name="dp_date" HorizontalOptions="Start"></DatePicker>
+
+                <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Spacing="6">
+                    <CheckBox x:Name="cb_hasDue" CheckedChanged="cb_hasDue_Changed" VerticalOptions="Center"></CheckBox>
+                    <Label Text="Payment due" VerticalOptions="Center"></Label>
+                    <DatePicker x:Name="dp_due" IsVisible="false" VerticalOptions="Center"></DatePicker>
+                </HorizontalStackLayout>
+            </Grid>
+
+            <Label Text="_________________________________" HorizontalOptions="Center" TextColor="Grey"></Label>
+
+            <!--  who it is billed to  -->
+            <Label Text="Bill To" FontAttributes="Bold"></Label>
+            <Entry x:Name="e_billName" Placeholder="Customer name"></Entry>
+            <Editor x:Name="e_billAddress" Placeholder="Address" AutoSize="TextChanges" MinimumHeightRequest="70"></Editor>
+
+            <Label Text="_________________________________" HorizontalOptions="Center" TextColor="Grey"></Label>
+
+            <!--  the lines - description, how many, the price each, and the
+                  line total worked out as they are typed  -->
+            <Label Text="Items" FontAttributes="Bold"></Label>
+
+            <!-- a plain bindable stack rather than a CollectionView: a
+                 CollectionView inside this ScrollView sizes badly, and an
+                 invoice only ever has a handful of lines, so nothing here needs
+                 virtualising -->
+            <VerticalStackLayout x:Name="sl_lines" Spacing="0">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate>
+                        <Border Stroke="{AppThemeBinding Light=#DDD, Dark=#444}" StrokeThickness="1"
+                                StrokeShape="RoundRectangle 6" Padding="8" Margin="0,0,0,8">
+                            <VerticalStackLayout Spacing="6">
+                                <Entry Text="{Binding Description, Mode=TwoWay}" Placeholder="Description"></Entry>
+                                <Grid ColumnDefinitions="*,*,*,Auto" ColumnSpacing="6">
+                                    <VerticalStackLayout Grid.Column="0">
+                                        <Label Text="Qty" FontSize="11" TextColor="Grey"></Label>
+                                        <Entry Text="{Binding Quantity, Mode=TwoWay}" Keyboard="Numeric"></Entry>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1">
+                                        <Label Text="Unit price" FontSize="11" TextColor="Grey"></Label>
+                                        <Entry Text="{Binding UnitPrice, Mode=TwoWay}" Keyboard="Numeric"></Entry>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="2">
+                                        <Label Text="Amount" FontSize="11" TextColor="Grey"></Label>
+                                        <Label Text="{Binding LineTotalText}" VerticalOptions="Center" FontAttributes="Bold"></Label>
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="3" Text="✕" Clicked="bnt_removeLine_Clicked"
+                                            BackgroundColor="Transparent" TextColor="#C62828" FontAttributes="Bold"
+                                            VerticalOptions="End" WidthRequest="40"></Button>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Button Text="+ Add Item" Clicked="bnt_addLine_Clicked"
+                    BackgroundColor="Transparent" TextColor="Green" BorderColor="Green" BorderWidth="2"></Button>
+
+            <HorizontalStackLayout HorizontalOptions="End" Spacing="8" Padding="0,4">
+                <Label Text="Total" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"></Label>
+                <Label x:Name="l_total" FontSize="18" FontAttributes="Bold" VerticalOptions="Center"></Label>
+            </HorizontalStackLayout>
+
+            <Label Text="_________________________________" HorizontalOptions="Center" TextColor="Grey"></Label>
+
+            <Label Text="Notes" FontAttributes="Bold"></Label>
+            <Editor x:Name="e_notes" Placeholder="Anything to say on the invoice" AutoSize="TextChanges" MinimumHeightRequest="70"></Editor>
+
+            <Button x:Name="bnt_share" Text="Save &amp; Share Invoice" Clicked="bnt_share_Clicked"
+                    BackgroundColor="Green" TextColor="White" Margin="0,8,0,0"></Button>
+
+            <Label Text="Saving keeps the invoice as a record. Share builds it as a web page you can open, print to PDF, email or save."
+                   FontSize="12" TextColor="Grey"></Label>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

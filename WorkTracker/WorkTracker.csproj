@@ -128,6 +128,9 @@
 	  <Compile Include="..\Kernel\Filter.cs" Link="Kernal\Filter.cs" />
 	  <Compile Include="..\Kernel\Gloable.cs" Link="Kernal\Gloable.cs" />
 	  <Compile Include="..\Kernel\GoCardlessRequest.cs" Link="Kernal\GoCardlessRequest.cs" />
+	  <Compile Include="..\Kernel\BusinessInfo.cs" Link="Kernal\BusinessInfo.cs" />
+	  <Compile Include="..\Kernel\Invoice.cs" Link="Kernal\Invoice.cs" />
+	  <Compile Include="..\Kernel\InvoiceHtml.cs" Link="Kernal\InvoiceHtml.cs" />
 	  <Compile Include="..\Kernel\Job.cs" Link="Kernal\Job.cs" />
 	  <Compile Include="..\Kernel\JobDisplay.cs" Link="Kernal\JobDisplay.cs" />
 	  <Compile Include="..\Kernel\BalanceAdjustment.cs" Link="Kernal\BalanceAdjustment.cs" />
@@ -246,6 +249,12 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\UniversalCreditView.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Layouts\Invoices.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	  <MauiXaml Update="Layouts\InvoiceEditor.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	  <MauiXaml Update="Layouts\TutorialWorkPlanner.xaml">

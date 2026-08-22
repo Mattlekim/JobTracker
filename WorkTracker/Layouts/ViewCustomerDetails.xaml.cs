@@ -450,6 +450,24 @@ public partial class ViewCustomerDetails : ContentPage
     /// fee or a customer rounding down is involved, so this marks the job
     /// paid and clears the odds and ends left owing
     /// </summary>
+    /// <summary>
+    /// makes an invoice from this job - billed to the customer, with a line
+    /// for the work at what it is charged now. It is only a draft: the editor
+    /// is where it is added to, totalled and saved, so backing out changes
+    /// nothing. More lines can be put on it there.
+    /// </summary>
+    private async void tbi_Invoice_Clicked(object sender, EventArgs e)
+    {
+        if (CurrentJob == null)
+        {
+            await DisplayAlert("Invoice", "There is no job to invoice.", "Ok");
+            return;
+        }
+
+        Invoice draft = InvoiceEditor.DraftForJob(CurrentJob);
+        await Navigation.PushAsync(new InvoiceEditor(draft, true));
+    }
+
     private async void tbi_Settle_Clicked(object sender, EventArgs e)
     {
         Customer c = CurrentJob?.GetCustomer();

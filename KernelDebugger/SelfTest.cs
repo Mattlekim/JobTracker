@@ -64,6 +64,7 @@ public static class SelfTest
             WorkThatIsNotSetUpProperlyIsFound();
             AClaimsMonthRunsToTheDayBeforeItStarted();
             APartOfTheRoundTakesWholeHousesWithIt();
+            AnInvoiceTotalsUpAndSurvivesASave();
         }
         catch (Exception ex)
         {
@@ -808,6 +809,72 @@ public static class SelfTest
             said.Add($"{r.RoundName}={r.HousesOnTheRound} house(s)");
 
         return said.Count == 0 ? "no rounds" : string.Join(", ", said);
+    }
+
+    /// <summary>
+    /// an invoice adds its own lines up, hands out invoice numbers in order
+    /// without reusing one, prints its figures on the page, and comes back off
+    /// the file with nothing lost
+    /// </summary>
+    private static void AnInvoiceTotalsUpAndSurvivesASave()
+    {
+        Console.WriteLine();
+        Console.WriteLine("An invoice totals itself up and survives a save");
+
+        Reset();
+        Invoice.DeleteData();
+
+        Invoice invoice = new Invoice()
+        {
+            Date = new DateTime(2026, 8, 22),
+            BillToName = "Jane Smith",
+            BillToAddress = "12 High Street\nTown",
+        };
+        invoice.Lines.Add(new InvoiceLine() { Description = "Window cleaning", Quantity = 2, UnitPrice = 10 });
+        invoice.Lines.Add(new InvoiceLine() { Description = "Conservatory roof", Quantity = 1, UnitPrice = 15.5f });
+
+        Check("it totals its lines up itself", invoice.Total == 35.5f, $"{invoice.Total}");
+
+        Invoice.Add(invoice);
+        int first = invoice.Number;
+        Check("adding it handed it a number", first >= 1, $"{first}");
+
+        Invoice second = new Invoice() { Date = new DateTime(2026, 8, 22), BillToName = "Bob Jones" };
+        second.Lines.Add(new InvoiceLine() { Description = "Clean", Quantity = 1, UnitPrice = 8 });
+        Invoice.Add(second);
+        Check("the next invoice took the next number", second.Number == first + 1, $"{second.Number}");
+
+        //the figures come out on the page
+        string html = InvoiceHtml.Build(invoice);
+        Check("the invoice page shows who it is for", html.Contains("Jane Smith"), "name missing");
+        Check("and its total", html.Contains(invoice.FormattedTotal), invoice.FormattedTotal);
+        Check("and its number", html.Contains(invoice.FormattedNumber), invoice.FormattedNumber);
+
+        //thrown away and read back off the file the add wrote
+        Invoice.DeleteData();
+        Invoice.Load();
+
+        Check("both invoices came back", Invoice.Query().Count == 2, $"{Invoice.Query().Count}");
+
+        Invoice read = Invoice.ById(invoice.Id);
+        Check("the total survived", read != null && read.Total == 35.5f, read == null ? "missing" : $"{read.Total}");
+        Check("the lines survived", read != null && read.Lines.Count == 2, read == null ? "missing" : $"{read.Lines.Count}");
+        Check("who it was billed to survived", read != null && read.BillToName == "Jane Smith", read == null ? "missing" : read.BillToName);
+
+        //a number is never reused, even after the file has been read back
+        Invoice third = new Invoice() { Date = new DateTime(2026, 8, 22), BillToName = "Cara Ray" };
+        third.Lines.Add(new InvoiceLine() { Description = "Clean", Quantity = 1, UnitPrice = 9 });
+        Invoice.Add(third);
+        Check("numbering carried on past a reload", third.Number == second.Number + 1, $"{third.Number}");
+
+        //an invoice follows a merged duplicate to the customer that is kept
+        Invoice.MoveCustomer(-1, 7);
+        Check("invoices follow a merged customer",
+            Invoice.ForCustomer(7).Count == 3, $"{Invoice.ForCustomer(7).Count}");
+
+        //do not leave the test invoices sat in the real data folder
+        Invoice.DeleteData();
+        Invoice.Save();
     }
 
     private static Job AddJob(string number, string street, float price)
