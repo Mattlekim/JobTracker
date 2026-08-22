@@ -85,8 +85,21 @@ namespace Kernel
             AppendMultiline(s, invoice.BillToAddress);
             s.Append("</div></div>");
 
-            //  the lines
+            //  the lines. the date column only appears when a line has a date -
+            //  an invoice for several cleans wants it, one for a single job
+            //  does not
+            bool anyDate = false;
+            if (invoice.Lines != null)
+                foreach (InvoiceLine line in invoice.Lines)
+                    if (line.HasDate)
+                    {
+                        anyDate = true;
+                        break;
+                    }
+
             s.Append("<table class=\"lines\"><thead><tr>");
+            if (anyDate)
+                s.Append("<th class=\"date\">Date</th>");
             s.Append("<th class=\"desc\">Description</th>");
             s.Append("<th class=\"num\">Qty</th>");
             s.Append("<th class=\"num\">Unit</th>");
@@ -97,6 +110,10 @@ namespace Kernel
                 foreach (InvoiceLine line in invoice.Lines)
                 {
                     s.Append("<tr>");
+                    if (anyDate)
+                        s.Append("<td class=\"date\">")
+                         .Append(line.HasDate ? Escape(line.Date.ToString("d MMM yyyy")) : string.Empty)
+                         .Append("</td>");
                     s.Append("<td class=\"desc\">").Append(Escape(line.Description)).Append("</td>");
                     s.Append("<td class=\"num\">").Append(Number(line.Quantity)).Append("</td>");
                     s.Append("<td class=\"num\">").Append(Money(line.UnitPrice)).Append("</td>");
@@ -104,8 +121,11 @@ namespace Kernel
                     s.Append("</tr>");
                 }
 
+            //the total sits under the amount column, so it spans everything to
+            //its left - one more column when the date is showing
+            int spanToTotal = anyDate ? 4 : 3;
             s.Append("</tbody><tfoot><tr>");
-            s.Append("<td class=\"desc total-l\" colspan=\"3\">Total</td>");
+            s.Append("<td class=\"desc total-l\" colspan=\"").Append(spanToTotal).Append("\">Total</td>");
             s.Append("<td class=\"num total-v\">").Append(Money(invoice.Total)).Append("</td>");
             s.Append("</tr></tfoot></table>");
 
@@ -213,6 +233,7 @@ namespace Kernel
                 "table.lines th{text-align:left;border-bottom:2px solid #1a9d68;padding:8px 6px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#555;}" +
                 "table.lines td{padding:8px 6px;border-bottom:1px solid #eee;vertical-align:top;}" +
                 "table.lines .num{text-align:right;white-space:nowrap;}" +
+                "table.lines .date{white-space:nowrap;color:#555;}" +
                 "table.lines tfoot td{border-bottom:none;padding-top:14px;font-size:16px;}" +
                 ".total-l{text-align:right;font-weight:600;}" +
                 ".total-v{font-weight:700;border-top:2px solid #1a9d68;}" +

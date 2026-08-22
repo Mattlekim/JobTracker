@@ -830,10 +830,13 @@ public static class SelfTest
             BillToName = "Jane Smith",
             BillToAddress = "12 High Street\nTown",
         };
-        invoice.Lines.Add(new InvoiceLine() { Description = "Window cleaning", Quantity = 2, UnitPrice = 10 });
+        invoice.Lines.Add(new InvoiceLine() { Description = "Clean", Date = new DateTime(2026, 8, 1), Quantity = 1, UnitPrice = 10 });
+        invoice.Lines.Add(new InvoiceLine() { Description = "Clean", Date = new DateTime(2026, 8, 15), Quantity = 1, UnitPrice = 10 });
         invoice.Lines.Add(new InvoiceLine() { Description = "Conservatory roof", Quantity = 1, UnitPrice = 15.5f });
 
         Check("it totals its lines up itself", invoice.Total == 35.5f, $"{invoice.Total}");
+        Check("a line can carry a date", invoice.Lines[0].HasDate && !invoice.Lines[2].HasDate,
+            $"{invoice.Lines[0].HasDate}/{invoice.Lines[2].HasDate}");
 
         Invoice.Add(invoice);
         int first = invoice.Number;
@@ -849,6 +852,8 @@ public static class SelfTest
         Check("the invoice page shows who it is for", html.Contains("Jane Smith"), "name missing");
         Check("and its total", html.Contains(invoice.FormattedTotal), invoice.FormattedTotal);
         Check("and its number", html.Contains(invoice.FormattedNumber), invoice.FormattedNumber);
+        Check("a dated invoice shows a Date column", html.Contains("Date</th>"), "no date column");
+        Check("an undated one does not", !InvoiceHtml.Build(second).Contains("Date</th>"), "unexpected date column");
 
         //thrown away and read back off the file the add wrote
         Invoice.DeleteData();
@@ -858,8 +863,10 @@ public static class SelfTest
 
         Invoice read = Invoice.ById(invoice.Id);
         Check("the total survived", read != null && read.Total == 35.5f, read == null ? "missing" : $"{read.Total}");
-        Check("the lines survived", read != null && read.Lines.Count == 2, read == null ? "missing" : $"{read.Lines.Count}");
+        Check("the lines survived", read != null && read.Lines.Count == 3, read == null ? "missing" : $"{read.Lines.Count}");
         Check("who it was billed to survived", read != null && read.BillToName == "Jane Smith", read == null ? "missing" : read.BillToName);
+        Check("a line's date survived", read != null && read.Lines[0].Date == new DateTime(2026, 8, 1),
+            read == null ? "missing" : read.Lines[0].Date.ToShortDateString());
 
         //a number is never reused, even after the file has been read back
         Invoice third = new Invoice() { Date = new DateTime(2026, 8, 22), BillToName = "Cara Ray" };

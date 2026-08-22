@@ -24,6 +24,8 @@ public class InvoiceLineEntry : INotifyPropertyChanged
     private string _description = string.Empty;
     private string _quantity = "1";
     private string _unitPrice = string.Empty;
+    private bool _hasDate = false;
+    private DateTime _date = DateTime.Today;
 
     public string Description
     {
@@ -57,6 +59,27 @@ public class InvoiceLineEntry : INotifyPropertyChanged
         }
     }
 
+    public bool HasDate
+    {
+        get { return _hasDate; }
+        set
+        {
+            _hasDate = value;
+            Raise(nameof(HasDate));
+            if (Changed != null) Changed();
+        }
+    }
+
+    public DateTime Date
+    {
+        get { return _date; }
+        set
+        {
+            _date = value;
+            if (Changed != null) Changed();
+        }
+    }
+
     public float QuantityValue { get { return Parse(_quantity, 1); } }
 
     public float UnitPriceValue { get { return Parse(_unitPrice, 0); } }
@@ -85,6 +108,7 @@ public class InvoiceLineEntry : INotifyPropertyChanged
         return new InvoiceLine()
         {
             Description = Description.Trim(),
+            Date = _hasDate ? _date : DateTime.MinValue,
             Quantity = QuantityValue,
             UnitPrice = UnitPriceValue,
         };
@@ -172,9 +196,14 @@ public partial class InvoiceEditor : ContentPage
         string what = string.IsNullOrWhiteSpace(job.Name) ? "Window cleaning" : job.Name;
         string where = job.Address == null ? string.Empty : $" - {job.Address}".TrimEnd();
 
+        //the day the clean is for, so a from-job invoice reads with its date
+        //already on it - the completed day when it is done, else the due day
+        DateTime when = job.IsCompleted ? job.DateCompleated : job.DueDate;
+
         invoice.Lines.Add(new InvoiceLine()
         {
             Description = (what + where).Trim(),
+            Date = when > new DateTime(2000, 1, 2) ? when : DateTime.MinValue,
             Quantity = 1,
             UnitPrice = price,
         });
@@ -242,6 +271,8 @@ public partial class InvoiceEditor : ContentPage
             //a fresh line comes in with the boxes as they read: 1 and blank
             Quantity = line.Quantity.ToString("0.##", CultureInfo.CurrentCulture),
             UnitPrice = line.UnitPrice > 0 ? line.UnitPrice.ToString("0.00", CultureInfo.CurrentCulture) : string.Empty,
+            HasDate = line.HasDate,
+            Date = line.HasDate ? line.Date : DateTime.Today,
         };
         entry.Changed = OnLineChanged;
         return entry;
