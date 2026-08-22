@@ -65,6 +65,7 @@ public static class SelfTest
             AClaimsMonthRunsToTheDayBeforeItStarted();
             APartOfTheRoundTakesWholeHousesWithIt();
             AnInvoiceTotalsUpAndSurvivesASave();
+            AnInvoiceIsMarkedPaidWhenTheBalanceClears();
         }
         catch (Exception ex)
         {
@@ -882,6 +883,63 @@ public static class SelfTest
         //do not leave the test invoices sat in the real data folder
         Invoice.DeleteData();
         Invoice.Save();
+    }
+
+    /// <summary>
+    /// an invoice starts awaiting payment, is not marked paid while the
+    /// customer still owes, is marked paid once their balance clears (which is
+    /// what bank reconciliation does when the money comes in), and the flag
+    /// survives a save and load
+    /// </summary>
+    private static void AnInvoiceIsMarkedPaidWhenTheBalanceClears()
+    {
+        Console.WriteLine();
+        Console.WriteLine("An invoice is marked paid when the balance clears");
+
+        Reset();
+        Invoice.DeleteData();
+        Customer.DeleteData();
+
+        Customer customer = new Customer("9", "Elm Road");
+        Customer.Add(customer);
+
+        Invoice bill = new Invoice() { CustomerId = customer.Id, Date = new DateTime(2026, 8, 22) };
+        bill.Lines.Add(new InvoiceLine() { Description = "Clean", Quantity = 1, UnitPrice = 20 });
+        Invoice.Add(bill);
+
+        Check("a new invoice is awaiting payment", !bill.Paid, "already paid");
+
+        //still owing - the statement has not covered it
+        customer.Balance = 20;
+        int whileOwing = Invoice.MarkPaidForClearedCustomers(new List<int>() { customer.Id });
+        Check("an invoice is not paid while money is owed",
+            whileOwing == 0 && !Invoice.ById(bill.Id).Paid, $"{whileOwing}");
+
+        //the money has come in and the balance is cleared
+        customer.Balance = 0;
+        int marked = Invoice.MarkPaidForClearedCustomers(new List<int>() { customer.Id });
+        Check("clearing the balance marks the invoice paid",
+            marked == 1 && Invoice.ById(bill.Id).Paid, $"{marked}");
+
+        //thrown away and read back off the file
+        int id = bill.Id;
+        Invoice.DeleteData();
+        Invoice.Load();
+        Invoice reloaded = Invoice.ById(id);
+        Check("the paid flag survives a save and load",
+            reloaded != null && reloaded.Paid, reloaded == null ? "missing" : "not paid");
+
+        //an invoice from scratch has no customer, so nothing clears it
+        Invoice.DeleteData();
+        Invoice scratch = new Invoice() { CustomerId = -1, Date = new DateTime(2026, 8, 22) };
+        scratch.Lines.Add(new InvoiceLine() { Description = "One off", Quantity = 1, UnitPrice = 5 });
+        Invoice.Add(scratch);
+        Invoice.MarkPaidForClearedCustomers(new List<int>() { -1 });
+        Check("a from-scratch invoice is never auto-paid", !Invoice.ById(scratch.Id).Paid, "wrongly paid");
+
+        Invoice.DeleteData();
+        Invoice.Save();
+        Customer.DeleteData();
     }
 
     private static Job AddJob(string number, string street, float price)

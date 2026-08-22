@@ -8,12 +8,19 @@
         <ToolbarItem Text="New Invoice" Clicked="tbi_New_Clicked"></ToolbarItem>
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid RowDefinitions="Auto,Auto,*">
 
-        <Label x:Name="l_empty" Grid.Row="0" Padding="16" TextColor="Grey" IsVisible="false"
-               Text="No invoices yet. Tap New Invoice to make one, or make one from a customer's details page."></Label>
+        <!-- filter by paid / awaiting. the active one is filled in -->
+        <HorizontalStackLayout Grid.Row="0" Spacing="8" Padding="8,8,8,4">
+            <Button x:Name="bnt_fAll" Text="All" Clicked="bnt_filterAll_Clicked" FontSize="13" Padding="14,4" CornerRadius="8"></Button>
+            <Button x:Name="bnt_fAwaiting" Text="Awaiting" Clicked="bnt_filterAwaiting_Clicked" FontSize="13" Padding="14,4" CornerRadius="8"></Button>
+            <Button x:Name="bnt_fPaid" Text="Paid" Clicked="bnt_filterPaid_Clicked" FontSize="13" Padding="14,4" CornerRadius="8"></Button>
+        </HorizontalStackLayout>
 
-        <RefreshView x:Name="rv_invoices" Grid.Row="1" Refreshing="rv_invoices_Refreshing">
+        <Label x:Name="l_empty" Grid.Row="1" Padding="16" TextColor="Grey" IsVisible="false"
+               Text="No invoices to show. Tap New Invoice to make one, or make one from a customer's details page."></Label>
+
+        <RefreshView x:Name="rv_invoices" Grid.Row="2" Refreshing="rv_invoices_Refreshing">
             <CollectionView x:Name="cv_invoices" SelectionMode="None">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -22,11 +29,21 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="Row_Tapped"></TapGestureRecognizer>
                             </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
                                 <Label Grid.Row="0" Grid.Column="0" Text="{Binding FormattedNumber}" FontAttributes="Bold" FontSize="16"></Label>
                                 <Label Grid.Row="0" Grid.Column="1" Text="{Binding FormattedTotal}" FontAttributes="Bold" FontSize="16" HorizontalOptions="End"></Label>
                                 <Label Grid.Row="1" Grid.Column="0" Text="{Binding BillToName}" TextColor="Grey"></Label>
                                 <Label Grid.Row="1" Grid.Column="1" Text="{Binding FormattedDate}" TextColor="Grey" HorizontalOptions="End"></Label>
+                                <Label Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding StatusText}" FontSize="12" FontAttributes="Bold">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding Paid}" Value="True">
+                                            <Setter Property="TextColor" Value="#1A9D68"></Setter>
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding Paid}" Value="False">
+                                            <Setter Property="TextColor" Value="#EF6C00"></Setter>
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
                             </Grid>
                         </Border>
                     </DataTemplate>

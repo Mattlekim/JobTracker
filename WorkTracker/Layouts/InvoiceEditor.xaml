@@ -30,6 +30,13 @@
                 </HorizontalStackLayout>
             </Grid>
 
+            <!-- paid / awaiting payment. reconciliation ticks this by itself
+                 when a customer's balance clears; it can also be set by hand -->
+            <HorizontalStackLayout Spacing="6">
+                <CheckBox x:Name="cb_paid" CheckedChanged="cb_paid_Changed" VerticalOptions="Center"></CheckBox>
+                <Label x:Name="l_paidStatus" Text="Awaiting payment" VerticalOptions="Center"></Label>
+            </HorizontalStackLayout>
+
             <Label Text="_________________________________" HorizontalOptions="Center" TextColor="Grey"></Label>
 
             <!--  who it is billed to  -->

@@ -831,6 +831,14 @@ public partial class StatmentViewer : ContentPage
                     unmatched++;
             }
 
+            //an invoice attached to a customer whose balance the statement has
+            //now cleared is marked paid by itself - the money has come in, so
+            //the bill is settled without it being ticked by hand
+            List<int> paidCustomers = new List<int>();
+            foreach (Payment p in payments)
+                paidCustomers.Add(p.CustomerId);
+            int invoicesPaid = Invoice.MarkPaidForClearedCustomers(paidCustomers);
+
             string msg = string.Empty;
             foreach (Payment p in payments)
             {
@@ -843,7 +851,12 @@ public partial class StatmentViewer : ContentPage
                 msg += $"{s} was already in\n";
 
             if (unmatched > 0)
-                msg += $"{unmatched} payments not matched to a customer";
+                msg += $"{unmatched} payments not matched to a customer\n";
+
+            if (invoicesPaid > 0)
+                msg += invoicesPaid == 1
+                    ? "1 invoice marked paid"
+                    : $"{invoicesPaid} invoices marked paid";
 
             DisplayAlert($"Imported {payments.Count} payments. {already.Count} already in", msg, "Ok");
 
