@@ -149,6 +149,33 @@ namespace Kernel
         }
 
 
+        /// <summary>
+        /// Records income that belongs to no customer on the round - a day's
+        /// work for somebody, a one-off job. It counts as income like any
+        /// other payment (the tax page adds up the payments on the cash basis),
+        /// but it is tied to no customer and moves no balance, and it is marked
+        /// as other income so the payments page shows its description rather
+        /// than flagging it as an unmatched payment.
+        /// </summary>
+        public static Payment AddOtherIncome(float amount, PaymentMethod method, string description, DateTime date)
+        {
+            Payment payment = new Payment()
+            {
+                CustomerId = -1,
+                Amount = amount,
+                PaymentMethod = method,
+                Date = date,
+                CustomerReference = string.Empty,
+                Description = (description ?? string.Empty).Trim(),
+                OtherIncome = true,
+            };
+
+            payment.GenerateId();
+            _Payments.Add(payment);
+            Save();
+            return payment;
+        }
+
         public static ResultType Add(float amount, PaymentMethod method, string reference)
         {
             return Add(amount, method, reference, DateTime.Now);
@@ -218,6 +245,21 @@ namespace Kernel
         /// the reference string for this payment
         /// </summary>
         public string CustomerReference { get; set; }
+
+        /// <summary>
+        /// a note on money that is not off the round - a day's work for
+        /// somebody, a one-off. it is what the payments page shows in place of
+        /// a customer name
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+
+        /// <summary>
+        /// true when this is income entered by hand that belongs to no
+        /// customer on the round - "I did a day for someone". It still counts
+        /// as income for tax, but it is not an unmatched payment waiting to be
+        /// linked, so the page does not flag it in red.
+        /// </summary>
+        public bool OtherIncome { get; set; } = false;
 
       
 
@@ -349,6 +391,11 @@ namespace Kernel
         {
             get
             {
+                //money entered by hand that is not off the round says what it
+                //was for rather than looking like a payment nobody has claimed
+                if (OtherIncome)
+                    return string.IsNullOrWhiteSpace(Description) ? "Other income" : Description;
+
                 Customer c = GetCustomer(CustomerId);
                 if (c == null)
                 {

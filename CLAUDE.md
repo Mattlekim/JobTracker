@@ -1092,6 +1092,26 @@ blank references off every cash payment, and `ShowAge` keeps the row from saying
 (`CustomerTextColour`) rather than in the same grey as a customer's name, which is the one line on the card
 that wants doing something about.
 
+### Recording income that is not off the round
+
+Not all the money in is a round customer paying for a clean — a day's work for somebody, a one off.
+`Payment.AddOtherIncome` records it: a payment tied to **no customer** (`CustomerId == -1`) that moves no balance
+and carries a `Description` of what it was for. It is marked `OtherIncome`, which is what tells it apart from an
+unmatched import — so the payments page shows its description rather than the red *tap to link*
+(`IsUnidentified` is false for it), and it is never swept up by the reconciliation that clears a customer's
+invoices.
+
+It **counts as income**. On the cash basis — the default — the tax page adds up the payments, so it is in
+already; on the accruals basis, which counts completed jobs rather than payments, `TaxSummary.Build` adds the
+other-income payments on top, because they have no job behind them to be counted off (and being tied to no job,
+they cannot double-count one).
+
+It is entered on `Layouts/AddIncome` (amount, date, what it was for, and how it was paid, through the shared
+`Controles/PaymentMethodChoice`), reached two ways: the **Add Income** toolbar item on `Layouts/Payments`, and
+**Add Income** on a day's action sheet on `Layouts/CalenderView`, which opens it on the day that was tapped
+(`AddIncome.DateToUse`, taken and reset like `BookJobFormcs.BookForDate`). Covered by the KernelDebugger self
+test.
+
 ## Saying how a job was paid for
 
 Cash at the gate, a card, a cheque, a bank transfer — which of them the money came as is one of the three things

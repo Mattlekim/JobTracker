@@ -66,6 +66,7 @@ public static class SelfTest
             APartOfTheRoundTakesWholeHousesWithIt();
             AnInvoiceTotalsUpAndSurvivesASave();
             AnInvoiceIsMarkedPaidWhenTheBalanceClears();
+            OtherIncomeCountsWithoutACustomer();
         }
         catch (Exception ex)
         {
@@ -939,6 +940,49 @@ public static class SelfTest
 
         Invoice.DeleteData();
         Invoice.Save();
+        Customer.DeleteData();
+    }
+
+    /// <summary>
+    /// income entered by hand for a day's work belongs to no customer, is not
+    /// flagged as an unmatched payment, says what it was for, counts as income
+    /// on the cash basis, and survives a save and load
+    /// </summary>
+    private static void OtherIncomeCountsWithoutACustomer()
+    {
+        Console.WriteLine();
+        Console.WriteLine("Other income counts without a customer");
+
+        Reset();
+        Payment.DeleteData();
+        Customer.DeleteData();
+
+        DateTime day = new DateTime(2026, 8, 22);
+        Payment income = Payment.AddOtherIncome(80f, PaymentMethod.Bank, "Full day for John", day);
+
+        Check("it is recorded", Payment.Query().Count == 1, $"{Payment.Query().Count}");
+        Check("it belongs to no customer", income.CustomerId == -1, $"{income.CustomerId}");
+        Check("it is marked as other income", income.OtherIncome, "not marked");
+        Check("it is not flagged as unmatched", !income.IsUnidentified, "flagged");
+        Check("it says what it was for", income.GetCustomerDetails == "Full day for John", income.GetCustomerDetails);
+
+        //the tax page adds the payments up on the cash basis, so it is income
+        float cashIncome = 0;
+        foreach (Payment p in Payment.Query())
+            cashIncome += p.Amount;
+        Check("it counts as income", cashIncome == 80f, $"{cashIncome}");
+
+        //thrown away and read back off the file
+        Payment.DeleteData();
+        Payment.Load();
+
+        Payment back = Payment.Query().Find(x => x.Description == "Full day for John");
+        Check("it survives a save and load",
+            back != null && back.OtherIncome && back.Amount == 80f,
+            back == null ? "missing" : $"{back.Amount}/{back.OtherIncome}");
+
+        Payment.DeleteData();
+        Payment.Save();
         Customer.DeleteData();
     }
 
