@@ -79,6 +79,9 @@
             <ShellContent Title="Payments" Route="money_payments" x:Name="sc_moneyPayments" ContentTemplate="{DataTemplate local:Payments}" />
             <ShellContent Title="Expenses" Route="money_expenses" ContentTemplate="{DataTemplate local:Expenses}" />
             <ShellContent Title="Tax" Route="money_tax" ContentTemplate="{DataTemplate local:TaxView}" />
+            <!-- make and look at invoices from the Money tab; also reached from
+                 a customer's details and the settings Invoices section -->
+            <ShellContent Title="Invoices" Route="money_invoices" x:Name="sc_moneyInvoices" ContentTemplate="{DataTemplate local:Invoices}" />
             <!-- what a Universal Credit claim has to be told each month.
                  off unless the round is on a claim (Settings.ShowUniversalCredit,
                  put up and taken down by RefreshUniversalCreditTab) -->

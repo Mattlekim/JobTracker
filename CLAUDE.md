@@ -958,6 +958,10 @@ the work at what the house is charged now (`Job.CurrentPrice`, the same figure t
 whatever visit happened to open the page) — and **New Invoice** on `Layouts/Invoices` starts a blank one. Either
 way `Layouts/InvoiceEditor` is where lines are added, priced and totalled and the invoice is saved.
 
+`Layouts/Invoices` is reached three ways, all landing on the same list: the **Invoices** page on the Money tab
+(`sc_moneyInvoices` in `AppShell.xaml`), the Invoices section on the settings page, and a customer's own details.
+Making one and looking at the lot both live where the rest of the money does.
+
 **An invoice is a record** (`Kernel/Invoice.cs`, `invoices.rjt` — one global file like the balance adjustments
 and the day notes: an invoice belongs to a customer, not to a tax year, and it is not itself a tax figure). It
 rides in every backup, comes back with a restore, is cleared by Delete All Data, follows a merged duplicate to
@@ -969,6 +973,12 @@ the line and the invoice totals are worked out, never stored, so the two can nev
 up live as they are typed: `InvoiceLineEntry` is the editable half of a line, carrying the boxes as text and
 working its own total out, with a blank quantity counting as one and a blank price as nothing so a half filled in
 line still reads. It is turned into a plain `InvoiceLine` on save.
+
+**A line can carry a date** (`InvoiceLine.Date`, optional — `MinValue` is none, `HasDate` says which). That is
+what bills several cleans owed at once: one dated line each. A line without a day — "conservatory roof" — simply
+leaves it off. The invoice's line table grows a **Date** column only when at least one line has one, so a
+single-job invoice stays as plain as it was. A from-job invoice's one line comes in dated with the visit's day
+(the completed day when it is done, else the due day).
 
 **Two things are a snapshot taken when the invoice is made, not read live**: who it is billed to (name and
 address) and the price on each line. An invoice is what the customer was actually sent, so a price rise agreed

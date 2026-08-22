@@ -54,6 +54,13 @@
                                 StrokeShape="RoundRectangle 6" Padding="8" Margin="0,0,0,8">
                             <VerticalStackLayout Spacing="6">
                                 <Entry Text="{Binding Description, Mode=TwoWay}" Placeholder="Description"></Entry>
+                                <!-- an optional date for the line, so several
+                                     cleans owed each read with their own day -->
+                                <HorizontalStackLayout Spacing="6">
+                                    <CheckBox IsChecked="{Binding HasDate, Mode=TwoWay}" VerticalOptions="Center"></CheckBox>
+                                    <Label Text="Date" VerticalOptions="Center"></Label>
+                                    <DatePicker Date="{Binding Date, Mode=TwoWay}" IsVisible="{Binding HasDate}" VerticalOptions="Center"></DatePicker>
+                                </HorizontalStackLayout>
                                 <Grid ColumnDefinitions="*,*,*,Auto" ColumnSpacing="6">
                                     <VerticalStackLayout Grid.Column="0">
                                         <Label Text="Qty" FontSize="11" TextColor="Grey"></Label>

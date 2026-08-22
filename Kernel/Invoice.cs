@@ -15,11 +15,26 @@ namespace Kernel
     {
         public string Description { get; set; } = string.Empty;
 
+        /// <summary>
+        /// the day this line is for - the clean it is billing for. optional
+        /// (MinValue = none), because a line like "conservatory roof" is not
+        /// about a day. When several cleans are owed, each is a line with its
+        /// own date.
+        /// </summary>
+        public DateTime Date { get; set; } = DateTime.MinValue;
+
         /// <summary>how many. one by default - most lines are a single job</summary>
         public float Quantity { get; set; } = 1;
 
         /// <summary>what one of them costs</summary>
         public float UnitPrice { get; set; } = 0;
+
+        /// <summary>whether this line carries a date</summary>
+        [XmlIgnore]
+        public bool HasDate
+        {
+            get { return Date > DateTime.MinValue; }
+        }
 
         /// <summary>quantity times the price. never stored - see the class summary</summary>
         [XmlIgnore]
@@ -33,6 +48,7 @@ namespace Kernel
             return new InvoiceLine()
             {
                 Description = Description,
+                Date = Date,
                 Quantity = Quantity,
                 UnitPrice = UnitPrice,
             };
